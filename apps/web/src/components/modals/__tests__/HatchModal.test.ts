@@ -70,7 +70,7 @@ describe('HatchModal.vue', () => {
     expect(wrapper.find('[data-testid="reveal-description"]').exists()).toBe(true);
   });
 
-  it('validates custom nickname and shows feedback on invalid input', async () => {
+  it('validates custom nickname, enforces maxlength=20, and shows feedback on invalid input', async () => {
     const wrapper = mount(HatchModal, {
       props: {
         slotId: 1,
@@ -84,6 +84,7 @@ describe('HatchModal.vue', () => {
 
     const input = wrapper.find<HTMLInputElement>('[data-testid="nickname-input"]');
     expect(input.exists()).toBe(true);
+    expect(input.attributes('maxlength')).toBe('20');
 
     // Invalid: more than 20 chars
     await input.setValue('Tên này dài quá hai mươi ký tự chắc chắn sẽ lỗi');
@@ -99,7 +100,7 @@ describe('HatchModal.vue', () => {
     expect(wrapper.find('[data-testid="nickname-error"]').exists()).toBe(false);
   });
 
-  it('calls gameStore.hatchEgg and emits gameBridge penguin:spawn on completion', async () => {
+  it('synchronizes revealed species with hatched creature, calls hatchEgg, and emits penguin:spawn & camera:focus', async () => {
     const game = useGameStore();
     const hatchSpy = vi.spyOn(game, 'hatchEgg');
     const bridgeSpy = vi.spyOn(gameBridge, 'emit');
@@ -116,6 +117,8 @@ describe('HatchModal.vue', () => {
     await egg.trigger('click');
     await egg.trigger('click');
 
+    const revealedName = wrapper.find('[data-testid="reveal-species-name"]').text();
+
     // Set valid nickname
     const input = wrapper.find<HTMLInputElement>('[data-testid="nickname-input"]');
     await input.setValue('Bé Tuyết Nhỏ');
@@ -124,12 +127,22 @@ describe('HatchModal.vue', () => {
     const confirmBtn = wrapper.find('[data-testid="hatch-confirm-btn"]');
     await confirmBtn.trigger('click');
 
-    expect(hatchSpy).toHaveBeenCalledWith(1, 'Bé Tuyết Nhỏ');
+    expect(hatchSpy).toHaveBeenCalledWith(1, 'Bé Tuyết Nhỏ', expect.any(String));
+
+    // Verify penguin:spawn payload
     expect(bridgeSpy).toHaveBeenCalledWith('penguin:spawn', expect.objectContaining({
       penguin: expect.objectContaining({
         nickname: 'Bé Tuyết Nhỏ',
       }),
     }));
+
+    // Verify revealed species matches hatched creature's species
+    const spawnCall = bridgeSpy.mock.calls.find((call) => call[0] === 'penguin:spawn');
+    const hatchedPenguin = (spawnCall?.[1] as { penguin: { speciesId: string } })?.penguin;
+    expect(hatchedPenguin).toBeDefined();
+
+    // Verify camera:focus is emitted
+    expect(bridgeSpy).toHaveBeenCalledWith('camera:focus', { x: 0, y: 0 });
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 
@@ -156,7 +169,7 @@ describe('HatchModal.vue', () => {
     const confirmBtn = wrapper.find('[data-testid="hatch-confirm-btn"]');
     await confirmBtn.trigger('click');
 
-    expect(hatchSpy).toHaveBeenCalledWith(1, '');
+    expect(hatchSpy).toHaveBeenCalledWith(1, '', expect.any(String));
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 });

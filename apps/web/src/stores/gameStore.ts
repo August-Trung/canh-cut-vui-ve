@@ -178,7 +178,7 @@ export const useGameStore = defineStore('game', {
       return changed;
     },
 
-    hatchEgg(slotId: number, customNickname?: string): OwnedPenguin | null {
+    hatchEgg(slotId: number, customNickname?: string, preRolledSpeciesId?: string): OwnedPenguin | null {
       const slot = this.incubatorSlots.find((s) => s.slotId === slotId);
       if (!slot || slot.state !== 'READY_TO_HATCH' || !slot.eggTypeId) {
         return null;
@@ -187,7 +187,7 @@ export const useGameStore = defineStore('game', {
       const eggDef = EGG_TYPES_MAP.get(slot.eggTypeId);
       if (!eggDef) return null;
 
-      const speciesId = randomService.rollDrop(eggDef.dropPool);
+      const speciesId = preRolledSpeciesId ?? randomService.rollDrop(eggDef.dropPool);
       const speciesDef = SPECIES_MAP.get(speciesId);
       const defaultName = speciesDef?.name ?? 'Penguin';
 

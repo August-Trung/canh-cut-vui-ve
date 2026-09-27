@@ -126,14 +126,14 @@
         <div class="reveal-header">
           <span class="reveal-subtitle">Chào Mừng Thành Viên Mới!</span>
           <h2 class="reveal-species-name" data-testid="reveal-species-name">
-            {{ previewSpecies.name }}
+            {{ activeSpecies.name }}
           </h2>
           <span
             class="rarity-badge"
-            :class="`rarity-badge--${previewSpecies.rarity}`"
+            :class="`rarity-badge--${activeSpecies.rarity}`"
             data-testid="reveal-rarity-badge"
           >
-            {{ getRarityLabel(previewSpecies.rarity) }}
+            {{ getRarityLabel(activeSpecies.rarity) }}
           </span>
         </div>
 
@@ -141,7 +141,7 @@
         <div class="reveal-avatar-wrap">
           <div class="avatar-glow"></div>
           <svg viewBox="0 0 48 48" class="reveal-penguin-svg">
-            <ellipse cx="24" cy="26" rx="16" ry="18" :fill="getSpeciesColor(previewSpecies.id)" />
+            <ellipse cx="24" cy="26" rx="16" ry="18" :fill="getSpeciesColor(activeSpecies.id)" />
             <ellipse cx="24" cy="28" rx="10" ry="13" fill="#FFFFFF" />
             <circle cx="17" cy="23" r="2.5" fill="#FDA4AF" opacity="0.8" />
             <circle cx="31" cy="23" r="2.5" fill="#FDA4AF" opacity="0.8" />
@@ -160,11 +160,11 @@
           <div class="trait-line">
             <span class="trait-label">Tính cách:</span>
             <span class="trait-val" data-testid="reveal-personality-trait">
-              {{ previewSpecies.trait }} ({{ previewSpecies.personality }})
+              {{ activeSpecies.trait }} ({{ activeSpecies.personality }})
             </span>
           </div>
           <p class="reveal-desc" data-testid="reveal-description">
-            "{{ previewSpecies.description }}"
+            "{{ activeSpecies.description }}"
           </p>
         </div>
 
@@ -182,7 +182,7 @@
               :class="{ 'nickname-input--error': nicknameError }"
               data-testid="nickname-input"
               placeholder="Nhập biệt danh đáng yêu..."
-              maxlength="30"
+              maxlength="20"
               @input="onNicknameInput"
             />
           </div>
@@ -233,6 +233,7 @@ type HatchStage = 'wobble' | 'crack' | 'burst' | 'reveal';
 const currentStage = ref<HatchStage>('wobble');
 const nicknameInput = ref('');
 const nicknameError = ref<string | null>(null);
+const revealedSpecies = ref<PenguinSpecies | null>(null);
 
 // Slot information
 const currentSlot = computed(() => gameStore.getSlotById(props.slotId));
@@ -241,14 +242,12 @@ const currentEggDef = computed(() => {
   return EGG_TYPES_MAP.get(currentSlot.value.eggTypeId) ?? null;
 });
 
-// Pre-roll or preview species based on egg drop pool
-const previewSpecies = computed<PenguinSpecies>(() => {
-  if (currentEggDef.value?.dropPool) {
-    const rolledId = randomService.rollDrop(currentEggDef.value.dropPool);
-    const def = SPECIES_MAP.get(rolledId);
-    if (def) return def;
-  }
+const previewFallback = computed<PenguinSpecies>(() => {
   return SPECIES_LIST[0]!;
+});
+
+const activeSpecies = computed<PenguinSpecies>(() => {
+  return revealedSpecies.value ?? previewFallback.value;
 });
 
 function advanceStage() {
@@ -258,7 +257,15 @@ function advanceStage() {
     currentStage.value = 'burst';
   } else if (currentStage.value === 'burst') {
     currentStage.value = 'reveal';
-    nicknameInput.value = previewSpecies.value.name;
+    if (!revealedSpecies.value) {
+      if (currentEggDef.value?.dropPool) {
+        const rolledId = randomService.rollDrop(currentEggDef.value.dropPool);
+        revealedSpecies.value = SPECIES_MAP.get(rolledId) ?? SPECIES_LIST[0]!;
+      } else {
+        revealedSpecies.value = SPECIES_LIST[0]!;
+      }
+    }
+    nicknameInput.value = revealedSpecies.value.name;
     validateCurrentNickname();
   }
 }
@@ -273,7 +280,7 @@ function validateCurrentNickname() {
     nicknameError.value = null;
     return;
   }
-  const result = validateNickname(nicknameInput.value, previewSpecies.value.name);
+  const result = validateNickname(nicknameInput.value, activeSpecies.value.name);
   if (!result.valid) {
     nicknameError.value = result.error ?? 'Tên không hợp lệ';
   } else {
@@ -287,9 +294,14 @@ function completeHatching() {
   const raw = nicknameInput.value;
   const nameToPass = raw.trim() ? raw.trim() : '';
 
-  const newPenguin = gameStore.hatchEgg(props.slotId, nameToPass);
+  const newPenguin = gameStore.hatchEgg(
+    props.slotId,
+    nameToPass,
+    activeSpecies.value.id
+  );
   if (newPenguin) {
     gameBridge.emit('penguin:spawn', { penguin: newPenguin });
+    gameBridge.emit('camera:focus', { x: 0, y: 0 });
   }
 
   emit('close');
