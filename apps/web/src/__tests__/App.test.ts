@@ -111,4 +111,40 @@ describe('App Component', () => {
     expect(vm.activeHatchSlotId).toBe(2);
     expect(wrapper.findComponent({ name: 'HatchModal' }).exists()).toBe(true);
   });
+
+  it('triggers soundService chimes on interactions and GameBridge events', async () => {
+    const { soundService } = await import('../services/SoundService');
+    const popSpy = vi.spyOn(soundService, 'playPop').mockImplementation(() => {});
+    const chirpSpy = vi.spyOn(soundService, 'playChirp').mockImplementation(() => {});
+    const eatSpy = vi.spyOn(soundService, 'playEat').mockImplementation(() => {});
+    const fanfareSpy = vi.spyOn(soundService, 'playHatchFanfare').mockImplementation(() => {});
+
+    const game = useGameStore();
+    await game.initGame();
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    const vm = wrapper.vm as unknown as { openModal: (m: string) => void; closeModal: () => void };
+
+    // Modal open and close trigger pop
+    vm.openModal('inventory');
+    expect(popSpy).toHaveBeenCalled();
+    popSpy.mockClear();
+
+    vm.closeModal();
+    expect(popSpy).toHaveBeenCalled();
+
+    // Penguin pet action triggers chirp
+    gameBridge.emit('penguin:action', { ownedId: 'p-1', action: 'pet' });
+    expect(chirpSpy).toHaveBeenCalled();
+
+    // Penguin feed action triggers eat sound
+    gameBridge.emit('penguin:action', { ownedId: 'p-1', action: 'feed' });
+    expect(eatSpy).toHaveBeenCalled();
+
+    // Penguin spawn triggers fanfare
+    gameBridge.emit('penguin:spawn', { penguin: game.ownedPenguins[0] });
+    expect(fanfareSpy).toHaveBeenCalled();
+  });
 });

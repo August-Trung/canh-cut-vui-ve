@@ -133,6 +133,7 @@ import { useGameStore } from '../../stores/gameStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { useCollectionStore } from '../../stores/collectionStore';
 import { gameStorage } from '../../services/StorageService';
+import { soundService } from '../../services/SoundService';
 import ConfirmModal from './ConfirmModal.vue';
 
 const emit = defineEmits<{
@@ -156,6 +157,9 @@ function showFeedback(msg: string, type: 'success' | 'warning' | 'info' = 'info'
 
 function handleToggleAudio() {
   gameStore.toggleAudio();
+  if (!gameStore.audioMuted) {
+    soundService.playPop();
+  }
   showFeedback(gameStore.audioMuted ? 'Đã tắt âm thanh' : 'Đã bật âm thanh', 'info');
 }
 

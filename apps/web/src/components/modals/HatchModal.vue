@@ -218,6 +218,7 @@ import { useGameStore } from '../../stores/gameStore';
 import { gameBridge } from '../../game/bridge/GameBridge';
 import { validateNickname } from '../../services/NicknameValidator';
 import { randomService } from '../../services/RandomService';
+import { soundService } from '../../services/SoundService';
 
 const props = defineProps<{
   slotId: number;
@@ -253,10 +254,13 @@ const activeSpecies = computed<PenguinSpecies>(() => {
 function advanceStage() {
   if (currentStage.value === 'wobble') {
     currentStage.value = 'crack';
+    soundService.playPop();
   } else if (currentStage.value === 'crack') {
     currentStage.value = 'burst';
+    soundService.playPop();
   } else if (currentStage.value === 'burst') {
     currentStage.value = 'reveal';
+    soundService.playHatchFanfare();
     if (!revealedSpecies.value) {
       if (currentEggDef.value?.dropPool) {
         const rolledId = randomService.rollDrop(currentEggDef.value.dropPool);
@@ -304,6 +308,7 @@ function completeHatching() {
     gameBridge.emit('camera:focus', { x: 0, y: 0 });
   }
 
+  soundService.playPop();
   emit('close');
 }
 

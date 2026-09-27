@@ -61,6 +61,7 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useGameStore } from './stores/gameStore';
 import { gameBridge } from './game/bridge/GameBridge';
+import { soundService } from './services/SoundService';
 import IslandCanvas from './components/canvas/IslandCanvas.vue';
 import TopBar from './components/hud/TopBar.vue';
 import ShelfRack from './components/dock/ShelfRack.vue';
@@ -78,14 +79,17 @@ const activeHatchSlotId = ref<number>(1);
 const inspectedPenguinId = ref<string | null>(null);
 
 function openModal(modalName: string) {
+  soundService.playPop();
   activeModal.value = modalName;
 }
 
 function closeModal() {
+  soundService.playPop();
   activeModal.value = null;
 }
 
 function openHatchModal(slotId: number) {
+  soundService.playPop();
   activeHatchSlotId.value = slotId;
   activeModal.value = 'hatch';
 }
@@ -99,12 +103,14 @@ onMounted(async () => {
 
   // Subscribe to GameBridge events
   const unsubPenguinClick = gameBridge.on('penguin:clicked', ({ ownedId }) => {
+    soundService.playPop();
     gameStore.selectPenguin(ownedId);
     inspectedPenguinId.value = ownedId;
     activeModal.value = 'inspect';
   });
 
   const unsubEggClick = gameBridge.on('egg:clicked', ({ slotId }) => {
+    soundService.playPop();
     const slot = gameStore.getSlotById(slotId);
     if (slot?.state === 'READY_TO_HATCH') {
       openHatchModal(slotId);
@@ -113,7 +119,19 @@ onMounted(async () => {
     }
   });
 
-  unsubs.push(unsubPenguinClick, unsubEggClick);
+  const unsubPenguinAction = gameBridge.on('penguin:action', ({ action }) => {
+    if (action === 'pet') {
+      soundService.playChirp();
+    } else if (action === 'feed') {
+      soundService.playEat();
+    }
+  });
+
+  const unsubPenguinSpawn = gameBridge.on('penguin:spawn', () => {
+    soundService.playHatchFanfare();
+  });
+
+  unsubs.push(unsubPenguinClick, unsubEggClick, unsubPenguinAction, unsubPenguinSpawn);
 });
 
 onUnmounted(() => {
