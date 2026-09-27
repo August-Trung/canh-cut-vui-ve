@@ -1,0 +1,73 @@
+import { PenguinSpecies } from '@penguin/types';
+
+export const SPECIES_LIST: PenguinSpecies[] = [
+  {
+    id: 'snowy',
+    speciesNumber: '001',
+    name: 'Snowy',
+    rarity: 'common',
+    personality: 'shy',
+    trait: 'Chilly Feet',
+    favoriteFood: 'Small Sardine',
+    dislikedFood: 'Spicy Pepper',
+    description: 'A gentle, introverted penguin who loves the crunch of fresh snow.',
+    clue: 'Loves waddling near the quiet snowdrifts.',
+    visualKey: 'penguin_snowy',
+  },
+  {
+    id: 'sleepy',
+    speciesNumber: '002',
+    name: 'Sleepy',
+    rarity: 'common',
+    personality: 'sleepy',
+    trait: 'Heavy Sleeper',
+    favoriteFood: 'Warm Milk',
+    dislikedFood: 'Alarm Clocks',
+    description: 'Can fall asleep anywhere, even sliding midway down an ice slope.',
+    clue: 'Often found dozing near the warm camp lanterns.',
+    visualKey: 'penguin_sleepy',
+  },
+  {
+    id: 'shy',
+    speciesNumber: '003',
+    name: 'Shy',
+    rarity: 'common',
+    personality: 'shy',
+    trait: 'Blushing Glow',
+    favoriteFood: 'Sweet Berries',
+    dislikedFood: 'Loud Megaphones',
+    description: 'Hides behind its cozy knitted scarf when players get too close.',
+    clue: 'Peek behind the pine trees on snowy mornings.',
+    visualKey: 'penguin_shy',
+  },
+  {
+    id: 'happy',
+    speciesNumber: '004',
+    name: 'Happy',
+    rarity: 'common',
+    personality: 'happy',
+    trait: 'Sunny Smile',
+    favoriteFood: 'Ice Cream',
+    dislikedFood: 'Bitter Herbs',
+    description: 'Spreads endless cheer and does tiny celebration spins across the ice.',
+    clue: 'Spawns when joy fills the icy air.',
+    visualKey: 'penguin_happy',
+  },
+  {
+    id: 'hungry',
+    speciesNumber: '005',
+    name: 'Hungry',
+    rarity: 'common',
+    personality: 'hungry',
+    trait: 'Endless Appetite',
+    favoriteFood: 'Fat Salmon',
+    dislikedFood: 'Empty Plates',
+    description: 'Never stops thinking about fish and waddles right up to the fishing hole.',
+    clue: 'Attracted by the scent of fresh fish.',
+    visualKey: 'penguin_hungry',
+  },
+];
+
+export const SPECIES_MAP = new Map<string, PenguinSpecies>(
+  SPECIES_LIST.map((s) => [s.id, s])
+);
