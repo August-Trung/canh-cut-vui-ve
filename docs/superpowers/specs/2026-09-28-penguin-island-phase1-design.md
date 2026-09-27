@@ -1,7 +1,7 @@
 # Technical Design Specification: Penguin Island — Phase 1 (Playable Foundation)
 
 - **Date:** 2026-09-28
-- **Status:** Approved for Implementation Planning
+- **Status:** Finalized & Approved
 - **Target Milestone:** Playable single-island foundation with autonomous penguins, egg incubation & hatching, creature collection book, inventory, local persistence, and nostalgic 2010s social-game aesthetic.
 
 ---
@@ -33,7 +33,7 @@ A clean npm/pnpm workspace layout allowing Phase 4+ to drop in backend APIs seam
 │   │   │   │   ├── ai/                # Autonomous FSM (IDLE, WADDLE, SLIDE, SLEEP, TALK, REACT, EAT, PLAY, FISH, FOLLOW, CELEBRATE)
 │   │   │   │   ├── bridge/            # Typed Event Bridge (GameBridge)
 │   │   │   │   ├── effects/           # Particle emitters (snow, sparkles, hearts, water ripples)
-│   │   │   │   └── textures/          # High-res procedural 2.5D canvas texture generators
+│   │   │   │   └── textures/          # High-res procedural 2.5D canvas texture generators (Cached by visualKey)
 │   │   │   ├── components/            # Vue 3 UI Layer
 │   │   │   │   ├── hud/               # TopBar (Level, Currencies: Fish/Coins/Gems, Utility Buttons)
 │   │   │   │   ├── dock/              # Wooden/Ice Shelf Rack & Simulated NPC Neighbor Strip
@@ -105,7 +105,7 @@ export type PenguinMood =
 export interface OwnedPenguin {
   id: string; // Unique instance UUID
   speciesId: string; // Refers to PenguinSpecies.id
-  nickname: string; // Player custom or default name (max 20 chars sanitized)
+  nickname: string; // Player custom or default name
   level: number;
   experience: number;
   happiness: number; // 0 - 100
@@ -120,8 +120,20 @@ export interface OwnedPenguin {
 }
 ```
 
-### 3.2 Egg Types & Hatchery Lifecycle
+### 3.2 Egg Types & Drop Pool Rules
+- **Drop Tables:** Data-driven and extensible.
+- **Validation Rules:**
+  - Weights are arbitrary positive numbers (do **not** require summing to 100; normalized via relative proportions: `weight / sum(weights)`).
+  - Every drop pool must have at least one entry.
+  - All weights must be strictly positive numbers (`weight > 0`).
+  - All referenced species IDs must exist in the species database.
+
 ```typescript
+export interface DropPoolEntry {
+  speciesId: string;
+  weight: number;
+}
+
 export interface EggType {
   id: string; // e.g. 'basic_egg'
   name: string;
@@ -131,10 +143,7 @@ export interface EggType {
   minPlayerLevel?: number;
   eventId?: string;
   guaranteedRare?: boolean;
-  dropPool: {
-    speciesId: string;
-    weight: number;
-  }[];
+  dropPool: DropPoolEntry[];
 }
 
 export type IncubatorState =
@@ -156,151 +165,160 @@ export interface IncubatorSlot {
 }
 ```
 
-### 3.3 Inventory & Economy
+### 3.3 Complete Starter Egg Flow
+1. **Starter Save:** New player save starts with `Basic Egg x1` in inventory and 1 initial penguin on the island (*Snowy*).
+2. **Placement:** Player opens Hatchery drawer and places the `Basic Egg` into Slot 1 (`EMPTY` → `EGG_PLACED` → `INCUBATING`).
+3. **Incubation:** Slot timer counts down (Phase 1 default is 10s for snappy testing/starter experience).
+4. **Readiness:** When elapsed, state transitions to `READY_TO_HATCH`.
+5. **Hatching Sequence:** Player clicks slot or egg to begin hatching modal:
+   - Egg wobble + crack animation.
+   - Flash of light and celebration fanfare.
+   - `OwnedPenguin` is created with a unique UUID.
+   - Collection book entry for the species is marked as discovered.
+   - Slot resets to `EMPTY`.
+   - New penguin is spawned in Phaser onto the island ice.
+
+### 3.4 Explicit Versioned GameSaveData Schema
 ```typescript
-export type ItemCategory = 'eggs' | 'food' | 'decorations' | 'cosmetics' | 'special';
-
-export interface InventoryItem {
-  itemId: string;
-  category: ItemCategory;
-  name: string;
-  description: string;
-  quantity: number;
-  stackable: boolean;
-  metadata?: Record<string, unknown>;
-}
-
-export interface Currencies {
-  coins: number;
-  gems: number;
-  fish: number;
+export interface GameSaveData {
+  schemaVersion: number; // e.g. 1
+  createdAt: number;
+  updatedAt: number;
+  player: {
+    id: string;
+    displayName: string;
+    level: number;
+    experience: number;
+    avatarId: string;
+  };
+  currencies: {
+    coins: number;
+    gems: number;
+    fish: number;
+  };
+  inventory: {
+    itemId: string;
+    category: 'eggs' | 'food' | 'decorations' | 'cosmetics' | 'special';
+    quantity: number;
+    metadata?: Record<string, unknown>;
+  }[];
+  ownedPenguins: OwnedPenguin[];
+  collectionBook: {
+    speciesId: string;
+    discoveredAt: number;
+  }[];
+  incubatorSlots: IncubatorSlot[];
+  islandState: {
+    islandId: string;
+    theme: string;
+    decorationsPlaced: {
+      id: string;
+      itemId: string;
+      x: number;
+      y: number;
+    }[];
+  };
 }
 ```
+*Missing optional fields receive safe defaults. Unknown future fields are preserved or safely ignored.*
+
+### 3.5 Nickname Validation Rules
+- Trim leading/trailing whitespace.
+- Maximum 20 Unicode characters.
+- Normalize consecutive whitespace to a single space.
+- Reject control characters (ASCII 0–31, 127).
+- Reject HTML/script content (e.g. `<`, `>`, `&`, or tags).
+- Allow normal Unicode letters (including Vietnamese accented characters `á, à, ỏ, ã, ạ, â, đ, ê, ô, ơ, ư`), numbers, spaces, and common safe punctuation (hyphens, underscores, apostrophes).
+- Allow skipping nickname (defaults to species name).
 
 ---
 
-## 4. Phaser 3 Game World & Autonomous Penguin FSM
+## 4. Phaser 3 Game World & Entities
 
-### 4.1 Snow Island Environment
-- **Scene:** `SnowIslandScene` extending `Phaser.Scene`.
-- **Layers:**
-  1. Ambient Sky gradient with drifting soft snowflake particle emitter.
-  2. Multi-tier snow banks with organic curves and soft vector drop-shadows.
-  3. Center Frozen Ice Pond with water edge ripples, transparent glacial ice sheet, and slippery friction physics.
-  4. Decorative winter props: Igloo, pine trees dusted in snow, snowman, and wooden signpost.
-  5. Dynamic Entity Layer: Penguins, Incubator Nest, and floating speech bubbles.
-- **Camera Controls:**
-  - Panning: Smooth drag via pointer or touch.
-  - Zoom: Smooth zoom between 0.75x and 1.5x via mouse scroll wheel or pinch.
-  - Bounds Clamping: Soft elastic boundaries preventing panning off the island.
+### 4.1 Snow Island Scene
+- Centered 2.5D Snow Island with multi-layer snow banks, soft vector drop shadows, and central frozen ice pond.
+- Ambient falling snowflakes (using Phaser particle emitter with capped particle count).
+- Camera: drag pan, zoom (0.75x–1.5x), bounds clamping.
 
 ### 4.2 Autonomous Penguin AI State Machine
-Each penguin is an instance of `PenguinEntity` governed by a lightweight deterministic state machine:
-- **`IDLE`:** Subtle breathing squash/stretch, head tilt, blinking.
-- **`WADDLE`:** Waddles between random wander waypoints on the snow with alternating tilt.
-- **`BELLY_SLIDE`:** When crossing the frozen pond, drops onto its belly and slides rapidly across the ice with snow spray particles!
-- **`SLEEP`:** Sits down, eyes closed, gentle snoring bubbles (`Zzz`) float upwards.
-- **`TALK`:** Displays an original cute speech bubble (e.g. *"Trời hôm nay mát ghê!"*, *"Ai thấy con cá hồi của tui đâu hong?"*).
-- **`EAT`:** Triggered when fed fish — heart particles burst, eating animation plays, and happiness increases.
-- **`PLAY`:** Plays with a small ice cube or does a celebratory hop.
-- **`FISH`:** Stands near the ice pond hole, looks down eagerly.
-- **`FOLLOW`:** Waddles curiously behind another nearby penguin.
-- **`CELEBRATE`:** Jump & spin celebration when a new egg hatches or level-up occurs.
-- **`REACT`:** Triggered on click: wiggles, jumps, plays sound effect, emits hearts, and updates mood.
+Each penguin is an instance of `PenguinEntity` with states:
+- `IDLE`: Subtle breathing squash/stretch, head tilt, blinking.
+- `WADDLE`: Waddles between wander waypoints on the snow with alternating tilt.
+- `BELLY_SLIDE`: Slides smoothly across the central frozen ice pond.
+- `SLEEP`: Sits down, eyes closed, `Zzz` bubbles float up.
+- `TALK`: Cute original quips in temporary speech bubble.
+- `EAT`: Plays eating animation, emits hearts, consumes 1 Fish, increases happiness.
+- `PLAY`: Plays with an ice cube or playful hop.
+- `FISH`: Stands near ice hole looking into water.
+- `FOLLOW`: Waddles curiously behind another nearby penguin.
+- `CELEBRATE`: Jumps and spins happily.
+- `REACT`: Triggered on click (wiggles, jumps, updates mood).
 
-### 4.3 High-Res Stylized 2.5D Vector Graphics
-Textures are generated in-memory via high-DPI Canvas/Vector generators upon boot:
-- Round, plump penguin silhouettes with soft shaded highlights and drop shadows.
-- Distinct color coats & accessories:
-  - **Snowy:** Navy coat, snowy white belly, warm earmuffs.
-  - **Sleepy:** Lavender-grey coat, sleepy eyes, nightcap with fluffy pom-pom.
-  - **Shy:** Soft rose coat, blushing cheeks, warm knitted wool scarf.
-  - **Happy:** Mint green coat, happy curved eyes, cute head sprout.
-  - **Hungry:** Striped golden-orange belly, cheerful appetite bib.
+### 4.3 Texture Caching
+- Textures generated via high-DPI Canvas/Vector logic are **cached by `visualKey`** in Phaser's TextureManager (`scene.textures.exists(key)`).
+- Never re-render identical canvas textures for multiple entities of the same species or egg type.
 
 ---
 
-## 5. Game Mechanics & Service Layer
+## 5. Architecture & GameBridge Lifecycle
 
-### 5.1 Egg Incubation & Hatching Sequence
-1. Player opens the **Hatchery** shelf and places an egg into an available incubator slot (`EMPTY` → `EGG_PLACED` → `INCUBATING`).
-2. A timer counts down (Phase 1 uses a rapid test timer e.g. 10–30s or instant speed-up).
-3. Once completed, state turns to `READY_TO_HATCH`.
-4. Clicking the ready egg launches the full-screen Hatching celebration:
-   - Egg rocks back and forth with suspenseful thumping sound.
-   - Vector cracks spread across the shell.
-   - Flash of light + star particles shoot outward.
-   - The new `OwnedPenguin` emerges in a celebration pose.
-   - Shows species details, rarity badge, personality quote, and an optional nickname input.
-   - Input is sanitized (trimmed, max 20 chars, alphanumeric/vietnamese accented characters only, no HTML/script tags).
-   - The new penguin is added to `ownedPenguins`, recorded in `collectionBook`, and spawned onto the island.
+### 5.1 Strict Separation of Concerns
+- **Phaser must NEVER directly mutate Pinia state.**
+- **Store & Services + GameBridge act as the authoritative boundary.**
+- All UI actions flow through Pinia stores / Services, which emit events across `GameBridge` to notify Phaser.
+- Phaser emits user interaction events (`PENGUIN_CLICKED`, `EGG_CLICKED`, `CANVAS_READY`) across `GameBridge` to notify Pinia stores.
 
-### 5.2 Abstractions: `IRandomService` and `IGameStorage`
-- **`IRandomService`:**
-  ```typescript
-  export interface IRandomService {
-    rollDrop(dropPool: { speciesId: string; weight: number }[]): string;
-    randomRange(min: number, max: number): number;
-  }
-  ```
-  *In Phase 1, `LocalRandomService` uses client pseudo-random generation. In Phase 4, the backend will become authoritative without altering UI/Phaser interfaces.*
+### 5.2 GameBridge Lifecycle Management
+```typescript
+type GameBridgeEventMap = {
+  'penguin:clicked': { ownedId: string };
+  'egg:clicked': { slotId: number };
+  'canvas:ready': void;
+  'penguin:spawn': { penguin: OwnedPenguin };
+  'penguin:action': { ownedId: string; action: 'pet' | 'feed' };
+  'camera:focus': { x: number; y: number };
+};
 
-- **`IGameStorage`:**
-  ```typescript
-  export interface IGameStorage {
-    load(): Promise<GameSaveData | null>;
-    save(data: GameSaveData): Promise<void>;
-    exportJson(data: GameSaveData): string;
-    importJson(json: string): GameSaveData | null;
-    clear(): Promise<void>;
-  }
-  ```
-  *Implemented as `LocalStorageAdapter` for Phase 1. Debounced autosaves ensure zero frame stutter.*
+export class GameBridge {
+  private listeners: Map<string, Set<(payload: any) => void>> = new Map();
 
-### 5.3 Feeding & Interaction Rules
-- Feeding requires **1 Fish** from the inventory.
-- If Fish count > 0: consumes 1 Fish, triggers `EAT` state in Phaser, emits heart particles, increases Happiness by +15 (clamped to 100), and sets mood to `happy`.
-- If Fish count = 0: displays an in-game notification/toast: *"Hết cá rồi! Hãy câu thêm hoặc kiếm thêm cá nhé."*
+  on<K extends keyof GameBridgeEventMap>(event: K, handler: (payload: GameBridgeEventMap[K]) => void): () => void;
+  emit<K extends keyof GameBridgeEventMap>(event: K, payload: GameBridgeEventMap[K]): void;
+  clear(): void;
+}
+```
+- Supports typed payloads, explicit `unsubscribe` callbacks.
+- Prevents duplicate listeners.
+- Cleans up all scene/component listeners on `onUnmounted` or scene shutdown.
 
 ---
 
-## 6. Vue 3 UI Architecture & Visual Polish
+## 6. Vue 3 UI Layer & Nostalgic Visual Polish
 
 ### 6.1 Nostalgic HUD & Shelves
-- **Top HUD:**
-  - Player Level (e.g. Level 1 Island Caretaker).
-  - Currencies with soft rounded bevels and clean vector icons: Fish (50), Coins (500), Gems (10) — marked as development seed data.
-  - Utility buttons: Mute Audio, Save Backup, Reset Game (with explicit confirmation dialog).
-- **Bottom Shelf Rack (2010s Social Island Aesthetic):**
-  - **Backpack / Inventory:** Filtered by Eggs, Food, All.
-  - **Creature Encyclopedia (Collection Book):** Shows all 5 species. Discovered entries show portrait, personality, and discovery date; undiscovered entries show silhouette with hints.
-  - **Hatchery Nest:** Manages egg slots.
+- **Top HUD:** Player Level, Fish counter, Coins counter, Gems counter (marked as dev seed data), audio mute toggle, save backup / reset menu.
+- **Bottom Shelf Rack (2010s Social Island Vibe):**
+  - Backpack / Inventory (Eggs, Fish, Props).
+  - Collection Encyclopedia (Shows all 5 species, silhouettes with hints for locked ones).
+  - Hatchery Nest (Manages egg incubation slots).
 - **Simulated NPC Neighbor Strip:**
-  - Nostalgic horizontal friend bar showing friendly local NPC penguins (e.g., *"Bác Gấu Tuyết"*, *"Hàng Xóm Cánh Cụt"*) with their level and visit buttons.
-  - Explicitly labeled as simulated local neighborhood to preserve nostalgic charm without misleading the player.
-
-### 6.2 Typed Event Bridge (`GameBridge`)
-Bidirectional communication between Vue 3 and Phaser 3:
-- **Phaser → Vue:**
-  - `PENGUIN_SELECTED(ownedId: string)`
-  - `EGG_SELECTED(slotId: number)`
-  - `ISLAND_READY()`
-- **Vue → Phaser:**
-  - `SPAWN_PENGUIN(penguin: OwnedPenguin)`
-  - `TRIGGER_PENGUIN_ACTION(ownedId: string, action: 'pet' | 'feed')`
-  - `FOCUS_CAMERA(x: number, y: number)`
+  - Horizontal friend bar showing simulated local NPC neighbors (e.g. *"Bác Gấu Tuyết"*, *"Hàng Xóm Cánh Cụt"*) with avatar and level badge. Explicitly noted as simulated local NPCs.
+- **Modals:**
+  - Hatching Celebration Modal (egg wobble, crack, reveal, validated nickname input).
+  - Penguin Inspect Modal (mood status, pet button, feed button consuming 1 fish).
+  - Confirmation Modal (required for destructive/reset actions).
 
 ---
 
-## 7. Testing & Quality Assurance Plan
+## 7. Performance & Quality Assurance Targets
 
-1. **Unit Tests (Vitest):**
-   - `@penguin/game-data` validation: ensure all drop tables sum correctly and referenced species exist.
-   - `RandomService` drop pool distribution tests.
-   - `inventoryStore`: feeding deducts 1 fish, rejects when 0 fish.
-   - `collectionStore`: discovering a penguin unlocks silhouette and tracks discovered count.
-   - Nickname validator: handles whitespace, length > 20, special characters, and XSS sanitization.
-   - `StorageService`: serialize, deserialize, schema migration fallback.
-2. **Runtime Verification:**
-   - Verify 60 FPS rendering in Chrome and mobile responsive viewports (390px, 768px, 1440px).
-   - Confirm complete player journey: open game → watch autonomous penguins waddle/slide/sleep → click penguin to pet & feed → place egg in incubator → hatch egg with animation & fanfare → set custom nickname → verify in Collection Book → verify state persisted across browser refresh.
+- **Desktop Target:** Solid 60 FPS in Chrome, Firefox, Edge, Safari.
+- **Mobile Target:** Smooth 30–60 FPS on modern mobile and tablet devices.
+- **No Frame Drops:** Vue/Phaser state synchronization runs asynchronously via event queues or debounced updates; zero per-frame DOM updates for game entities.
+- **Unit Tests (Vitest):**
+  - Drop table validation (positive weights, species existence, >= 1 entry, normalized roll distribution).
+  - Versioned `GameSaveData` schema loader, safe default fallbacks, schema migration handling.
+  - Nickname validator rules.
+  - Inventory store fish consumption & zero-fish rejection.
+  - Collection book discovery tracking.
+  - GameBridge subscribe/unsubscribe cleanup.
