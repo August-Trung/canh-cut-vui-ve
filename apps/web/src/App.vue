@@ -19,19 +19,63 @@
         />
       </footer>
     </div>
+
+    <!-- Modals Layer -->
+    <InventoryModal
+      v-if="activeModal === 'inventory'"
+      @close="closeModal"
+    />
+
+    <CollectionModal
+      v-if="activeModal === 'collection'"
+      @close="closeModal"
+    />
+
+    <HatcheryModal
+      v-if="activeModal === 'hatchery'"
+      @close="closeModal"
+      @hatch="openHatchModal"
+      @open-inventory="openModal('inventory')"
+    />
+
+    <HatchModal
+      v-if="activeModal === 'hatch'"
+      :slot-id="activeHatchSlotId"
+      @close="closeModal"
+    />
+
+    <PenguinInspectModal
+      v-if="activeModal === 'inspect' && inspectedPenguinId"
+      :penguin-id="inspectedPenguinId"
+      @close="closeModal"
+    />
+
+    <SettingsModal
+      v-if="activeModal === 'settings'"
+      @close="closeModal"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useGameStore } from './stores/gameStore';
+import { gameBridge } from './game/bridge/GameBridge';
 import IslandCanvas from './components/canvas/IslandCanvas.vue';
 import TopBar from './components/hud/TopBar.vue';
 import ShelfRack from './components/dock/ShelfRack.vue';
 import NeighborStrip from './components/dock/NeighborStrip.vue';
+import InventoryModal from './components/modals/InventoryModal.vue';
+import CollectionModal from './components/modals/CollectionModal.vue';
+import HatcheryModal from './components/modals/HatcheryModal.vue';
+import HatchModal from './components/modals/HatchModal.vue';
+import PenguinInspectModal from './components/modals/PenguinInspectModal.vue';
+import SettingsModal from './components/modals/SettingsModal.vue';
 
 const gameStore = useGameStore();
 const activeModal = ref<string | null>(null);
+const activeHatchSlotId = ref<number>(1);
+const inspectedPenguinId = ref<string | null>(null);
 
 function openModal(modalName: string) {
   activeModal.value = modalName;
@@ -41,16 +85,51 @@ function closeModal() {
   activeModal.value = null;
 }
 
+function openHatchModal(slotId: number) {
+  activeHatchSlotId.value = slotId;
+  activeModal.value = 'hatch';
+}
+
+let unsubs: (() => void)[] = [];
+
 onMounted(async () => {
   if (!gameStore.isLoaded) {
     await gameStore.initGame();
   }
+
+  // Subscribe to GameBridge events
+  const unsubPenguinClick = gameBridge.on('penguin:clicked', ({ ownedId }) => {
+    gameStore.selectPenguin(ownedId);
+    inspectedPenguinId.value = ownedId;
+    activeModal.value = 'inspect';
+  });
+
+  const unsubEggClick = gameBridge.on('egg:clicked', ({ slotId }) => {
+    const slot = gameStore.getSlotById(slotId);
+    if (slot?.state === 'READY_TO_HATCH') {
+      openHatchModal(slotId);
+    } else {
+      activeModal.value = 'hatchery';
+    }
+  });
+
+  unsubs.push(unsubPenguinClick, unsubEggClick);
+});
+
+onUnmounted(() => {
+  for (const unsub of unsubs) {
+    unsub();
+  }
+  unsubs = [];
 });
 
 defineExpose({
   activeModal,
+  activeHatchSlotId,
+  inspectedPenguinId,
   openModal,
   closeModal,
+  openHatchModal,
 });
 </script>
 
