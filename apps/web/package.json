@@ -12,6 +12,7 @@
     "@penguin/types": "*",
     "@penguin/game-data": "*",
     "pinia": "^4.0.3",
-    "vue": "^3.5.43"
+    "vue": "^3.5.43",
+    "phaser": "^4.2.1"
   }
 }

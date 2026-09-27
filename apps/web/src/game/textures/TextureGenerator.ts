@@ -22,19 +22,6 @@ export interface SceneLike {
   textures: TextureManagerLike;
 }
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Phaser {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface Scene {
-      textures: {
-        exists(key: string): boolean;
-        addCanvas(key: string, canvas: HTMLCanvasElement): unknown;
-      };
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Texture Key Dictionaries
 // ---------------------------------------------------------------------------
