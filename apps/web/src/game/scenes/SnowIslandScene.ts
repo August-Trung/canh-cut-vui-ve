@@ -244,6 +244,8 @@ export class SnowIslandScene extends Phaser.Scene {
   handleNestClick(): void {
     // Tactile squish & bounce animation
     if (this.nestContainer) {
+      this.tweens.killTweensOf(this.nestContainer);
+      this.nestContainer.setScale(1.0);
       this.tweens.add({
         targets: this.nestContainer,
         scaleX: 1.15,
@@ -379,6 +381,27 @@ export class SnowIslandScene extends Phaser.Scene {
       this.cameras.main.pan(x, y, 600, 'Power2');
     });
     this.unsubs.push(unsubFocus);
+
+    // 4. Synchronize world entities on startup, save reset, or save import
+    const unsubSync = gameBridge.on('world:sync', ({ penguins }) => {
+      this.syncPenguins(penguins);
+    });
+    this.unsubs.push(unsubSync);
+  }
+
+  /**
+   * Synchronizes island entities with the provided owned penguins array,
+   * clearing any previously active penguin entities and creating fresh ones.
+   */
+  syncPenguins(penguins: OwnedPenguin[]): void {
+    for (const penguin of this.penguins.values()) {
+      penguin.destroy();
+    }
+    this.penguins.clear();
+
+    for (const penguin of penguins) {
+      this.spawnPenguin(penguin);
+    }
   }
 
   /**

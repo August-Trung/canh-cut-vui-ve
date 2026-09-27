@@ -53,6 +53,7 @@
     <SettingsModal
       v-if="activeModal === 'settings'"
       @close="closeModal"
+      @sync="syncPenguins"
     />
   </div>
 </template>
@@ -77,6 +78,7 @@ const gameStore = useGameStore();
 const activeModal = ref<string | null>(null);
 const activeHatchSlotId = ref<number>(1);
 const inspectedPenguinId = ref<string | null>(null);
+const canvasReady = ref(false);
 
 function openModal(modalName: string) {
   soundService.playPop();
@@ -94,12 +96,19 @@ function openHatchModal(slotId: number) {
   activeModal.value = 'hatch';
 }
 
+function syncPenguins() {
+  if (!canvasReady.value || !gameStore.isLoaded) return;
+  gameBridge.emit('world:sync', { penguins: gameStore.ownedPenguins });
+}
+
 let unsubs: (() => void)[] = [];
 
 onMounted(async () => {
-  if (!gameStore.isLoaded) {
-    await gameStore.initGame();
-  }
+  // Subscribe to canvas:ready to synchronize penguins once the island scene is ready
+  const unsubCanvasReady = gameBridge.on('canvas:ready', () => {
+    canvasReady.value = true;
+    syncPenguins();
+  });
 
   // Subscribe to GameBridge events
   const unsubPenguinClick = gameBridge.on('penguin:clicked', ({ ownedId }) => {
@@ -127,11 +136,12 @@ onMounted(async () => {
     }
   });
 
-  const unsubPenguinSpawn = gameBridge.on('penguin:spawn', () => {
-    soundService.playHatchFanfare();
-  });
+  unsubs.push(unsubCanvasReady, unsubPenguinClick, unsubEggClick, unsubPenguinAction);
 
-  unsubs.push(unsubPenguinClick, unsubEggClick, unsubPenguinAction, unsubPenguinSpawn);
+  if (!gameStore.isLoaded) {
+    await gameStore.initGame();
+  }
+  syncPenguins();
 });
 
 onUnmounted(() => {
@@ -145,6 +155,8 @@ defineExpose({
   activeModal,
   activeHatchSlotId,
   inspectedPenguinId,
+  canvasReady,
+  syncPenguins,
   openModal,
   closeModal,
   openHatchModal,

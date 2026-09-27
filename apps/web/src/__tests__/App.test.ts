@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import App from '../App.vue';
 import { useGameStore } from '../stores/gameStore';
@@ -143,8 +143,92 @@ describe('App Component', () => {
     gameBridge.emit('penguin:action', { ownedId: 'p-1', action: 'feed' });
     expect(eatSpy).toHaveBeenCalled();
 
-    // Penguin spawn triggers fanfare
+    // Fanfare is deduplicated and NOT played in App.vue on penguin:spawn
     gameBridge.emit('penguin:spawn', { penguin: game.ownedPenguins[0] });
-    expect(fanfareSpy).toHaveBeenCalled();
+    expect(fanfareSpy).not.toHaveBeenCalled();
+  });
+
+  it('synchronizes owned penguins to Phaser canvas via world:sync when canvas:ready fires', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const syncHandler = vi.fn();
+    gameBridge.on('world:sync', syncHandler);
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    // Before canvas:ready, world:sync has not fired
+    expect(syncHandler).not.toHaveBeenCalled();
+
+    // Canvas signals it is ready
+    gameBridge.emit('canvas:ready');
+    await wrapper.vm.$nextTick();
+
+    expect(syncHandler).toHaveBeenCalledTimes(1);
+    expect(syncHandler).toHaveBeenCalledWith({
+      penguins: game.ownedPenguins,
+    });
+  });
+
+  it('synchronizes penguins when canvas:ready fires before initGame finishes', async () => {
+    const game = useGameStore();
+    let resolveInit: () => void;
+    const initPromise = new Promise<void>((resolve) => {
+      resolveInit = resolve;
+    });
+    vi.spyOn(game, 'initGame').mockImplementation(async () => {
+      await initPromise;
+      game.isLoaded = true;
+    });
+
+    const syncHandler = vi.fn();
+    gameBridge.on('world:sync', syncHandler);
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    // canvas:ready fires while initGame is still pending
+    gameBridge.emit('canvas:ready');
+    await wrapper.vm.$nextTick();
+    expect(syncHandler).not.toHaveBeenCalled();
+
+    // Now initGame completes
+    resolveInit!();
+    await flushPromises();
+
+    expect(syncHandler).toHaveBeenCalledTimes(1);
+    expect(syncHandler).toHaveBeenCalledWith({
+      penguins: game.ownedPenguins,
+    });
+  });
+
+  it('triggers world:sync when SettingsModal emits sync event', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    // Establish canvas readiness
+    gameBridge.emit('canvas:ready');
+    await wrapper.vm.$nextTick();
+
+    const syncHandler = vi.fn();
+    gameBridge.on('world:sync', syncHandler);
+
+    // Open settings modal
+    const vm = wrapper.vm as unknown as { openModal: (m: string) => void };
+    vm.openModal('settings');
+    await wrapper.vm.$nextTick();
+
+    const settingsModal = wrapper.findComponent({ name: 'SettingsModal' });
+    expect(settingsModal.exists()).toBe(true);
+
+    // Emit sync from SettingsModal
+    await settingsModal.vm.$emit('sync');
+    expect(syncHandler).toHaveBeenCalledWith({
+      penguins: game.ownedPenguins,
+    });
   });
 });

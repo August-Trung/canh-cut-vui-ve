@@ -127,31 +127,51 @@ describe('Phase 1 Integration - Complete Player Journey', () => {
     const { gameBridge } = await import('../game/bridge/GameBridge');
     const starterId = game.ownedPenguins[0].id;
 
-    // 1. Petting penguin triggers chirp audio chime
+    // 1. Establish canvas ready and verify world:sync emits initial penguins
+    const syncHandler = vi.fn();
+    gameBridge.on('world:sync', syncHandler);
+    gameBridge.emit('canvas:ready');
+    expect(syncHandler).toHaveBeenCalledWith({ penguins: game.ownedPenguins });
+
+    // 2. Petting penguin triggers chirp audio chime
     game.petPenguin(starterId);
     gameBridge.emit('penguin:action', { ownedId: starterId, action: 'pet' });
     expect(chirpSpy).toHaveBeenCalled();
 
-    // 2. Feeding penguin triggers eat audio chime and updates inventory
+    // 3. Feeding penguin triggers eat audio chime and updates inventory
     game.feedPenguin(starterId);
     gameBridge.emit('penguin:action', { ownedId: starterId, action: 'feed' });
     expect(eatSpy).toHaveBeenCalled();
     expect(game.currencies.fish).toBe(49);
 
-    // 3. Placing egg & readying
+    // 4. Placing egg & readying
     game.placeEggInIncubator(1, 'basic_egg');
     const slot = game.getSlotById(1)!;
     slot.readyAt = Date.now() - 1000;
     game.updateIncubatorTimers();
     expect(slot.state).toBe('READY_TO_HATCH');
 
-    // 4. Hatching triggers celebratory fanfare
-    const newPenguin = game.hatchEgg(1, 'Chim Nhỏ');
-    expect(newPenguin).toBeDefined();
-    gameBridge.emit('penguin:spawn', { penguin: newPenguin! });
+    // 5. Hatching via HatchModal triggers celebratory fanfare upon reveal
+    const vm = wrapper.vm as unknown as { openHatchModal: (slotId: number) => void };
+    vm.openHatchModal(1);
+    await wrapper.vm.$nextTick();
+
+    const hatchModal = wrapper.findComponent({ name: 'HatchModal' });
+    expect(hatchModal.exists()).toBe(true);
+
+    // Advance egg to reveal stage (wobble -> crack -> burst -> reveal)
+    const egg = hatchModal.find('[data-testid="interactive-egg"]');
+    await egg.trigger('click'); // crack
+    await egg.trigger('click'); // burst
+    await egg.trigger('click'); // reveal
     expect(fanfareSpy).toHaveBeenCalled();
 
-    // 5. Total penguin count is 2 and both exist on island
+    // Confirm hatch and welcome penguin to island
+    const confirmBtn = hatchModal.find('[data-testid="hatch-confirm-btn"]');
+    await confirmBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    // 6. Total penguin count is 2 and both exist on island
     expect(game.ownedPenguins.length).toBe(2);
   });
 });

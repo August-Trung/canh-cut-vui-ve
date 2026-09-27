@@ -124,6 +124,7 @@ describe('GameBridge', () => {
     const penguinSpawn = vi.fn();
     const penguinAction = vi.fn();
     const cameraFocus = vi.fn();
+    const worldSync = vi.fn();
 
     bridge.on('penguin:clicked', penguinClicked);
     bridge.on('egg:clicked', eggClicked);
@@ -131,6 +132,7 @@ describe('GameBridge', () => {
     bridge.on('penguin:spawn', penguinSpawn);
     bridge.on('penguin:action', penguinAction);
     bridge.on('camera:focus', cameraFocus);
+    bridge.on('world:sync', worldSync);
 
     const mockPenguin: OwnedPenguin = {
       id: 'p-1',
@@ -152,6 +154,7 @@ describe('GameBridge', () => {
     bridge.emit('penguin:spawn', { penguin: mockPenguin });
     bridge.emit('penguin:action', { ownedId: 'p-1', action: 'feed' });
     bridge.emit('camera:focus', { x: 100, y: 200 });
+    bridge.emit('world:sync', { penguins: [mockPenguin] });
 
     expect(penguinClicked).toHaveBeenCalledWith({ ownedId: 'p-1' });
     expect(eggClicked).toHaveBeenCalledWith({ slotId: 0 });
@@ -159,6 +162,7 @@ describe('GameBridge', () => {
     expect(penguinSpawn).toHaveBeenCalledWith({ penguin: mockPenguin });
     expect(penguinAction).toHaveBeenCalledWith({ ownedId: 'p-1', action: 'feed' });
     expect(cameraFocus).toHaveBeenCalledWith({ x: 100, y: 200 });
+    expect(worldSync).toHaveBeenCalledWith({ penguins: [mockPenguin] });
   });
 
   it('exports a default singleton instance', () => {

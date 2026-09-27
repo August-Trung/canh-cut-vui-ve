@@ -7,6 +7,7 @@ export type GameBridgeEventMap = {
   'penguin:spawn': { penguin: OwnedPenguin };
   'penguin:action': { ownedId: string; action: 'pet' | 'feed' };
   'camera:focus': { x: number; y: number };
+  'world:sync': { penguins: OwnedPenguin[] };
 };
 
 export type GameBridgeHandler<K extends keyof GameBridgeEventMap> = (

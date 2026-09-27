@@ -26,6 +26,11 @@ export interface SceneLike {
 // Texture Key Dictionaries
 // ---------------------------------------------------------------------------
 
+/**
+ * Texture key mapping dictionary for penguin species.
+ * Supports both unprefixed species keys (e.g., 'snowy') and canonical prefixed keys (e.g., 'penguin_snowy')
+ * to provide robust and flexible texture lookups across game data models, store items, and entity renderers.
+ */
 export const PENGUIN_TEXTURE_KEYS = {
   snowy: 'penguin_snowy',
   sleepy: 'penguin_sleepy',
@@ -39,6 +44,11 @@ export const PENGUIN_TEXTURE_KEYS = {
   penguin_hungry: 'penguin_hungry',
 } as const;
 
+/**
+ * Texture key mapping dictionary for incubator egg types.
+ * Supports both legacy/unprefixed keys (e.g., 'basic_egg') and canonical prefixed keys (e.g., 'egg_basic')
+ * to maintain backwards compatibility with egg item definitions and texture asset references.
+ */
 export const EGG_TEXTURE_KEYS = {
   basic_egg: 'egg_basic',
   frozen_egg: 'egg_frozen',

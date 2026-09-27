@@ -32,4 +32,19 @@ describe('NeighborStrip Component', () => {
 
     vi.useRealTimers();
   });
+
+  it('cleans up toastTimer when unmounted', async () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+
+    const wrapper = mount(NeighborStrip);
+    const waveBtn = wrapper.find('[data-testid="wave-btn-npc-bear"]');
+    await waveBtn.trigger('click');
+
+    wrapper.unmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    clearTimeoutSpy.mockRestore();
+    vi.useRealTimers();
+  });
 });

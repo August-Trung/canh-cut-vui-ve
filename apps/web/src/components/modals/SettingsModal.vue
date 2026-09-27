@@ -134,10 +134,12 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { useCollectionStore } from '../../stores/collectionStore';
 import { gameStorage } from '../../services/StorageService';
 import { soundService } from '../../services/SoundService';
+import { gameBridge } from '../../game/bridge/GameBridge';
 import ConfirmModal from './ConfirmModal.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
+  (e: 'sync'): void;
 }>();
 
 const gameStore = useGameStore();
@@ -206,6 +208,11 @@ function openImportDialog() {
   importJsonText.value = '';
 }
 
+function syncPenguins() {
+  gameBridge.emit('world:sync', { penguins: gameStore.ownedPenguins });
+  emit('sync');
+}
+
 async function handleConfirmImport() {
   if (!importJsonText.value.trim()) {
     showFeedback('Vui lòng dán dữ liệu JSON hợp lệ.', 'warning');
@@ -220,6 +227,7 @@ async function handleConfirmImport() {
 
   await gameStorage.save(parsed);
   await gameStore.initGame();
+  syncPenguins();
   showImportInput.value = false;
   showFeedback('Nhập dữ liệu thành công! Đã cập nhật đảo.', 'success');
 }
@@ -231,6 +239,7 @@ function promptResetSave() {
 async function handleConfirmReset() {
   showConfirmReset.value = false;
   await gameStore.resetSave();
+  syncPenguins();
   showFeedback('Đã đặt lại dữ liệu toàn bộ trò chơi.', 'success');
 }
 </script>

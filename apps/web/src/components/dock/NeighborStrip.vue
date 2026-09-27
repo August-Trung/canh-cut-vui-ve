@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 
 export interface SimulatedNeighbor {
   id: string;
@@ -132,6 +132,13 @@ function handleWave(neighbor: SimulatedNeighbor) {
     toastTimer = null;
   }, 2500);
 }
+
+onUnmounted(() => {
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+});
 </script>
 
 <style scoped>

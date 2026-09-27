@@ -98,6 +98,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
     };
     let mockTweens: {
       add: ReturnType<typeof vi.fn>;
+      killTweensOf: ReturnType<typeof vi.fn>;
     };
     let mockEvents: Phaser.Events.EventEmitter;
 
@@ -189,6 +190,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
 
       mockTweens = {
         add: vi.fn().mockReturnValue({ stop: vi.fn() }),
+        killTweensOf: vi.fn(),
       };
 
       mockEvents = new Phaser.Events.EventEmitter();
@@ -265,7 +267,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       expect(registeredEvents).toContain('wheel');
     });
 
-    it('emits egg:clicked over gameBridge when incubator nest is clicked', () => {
+    it('emits egg:clicked and resets/kills tweens on nestContainer when incubator nest is clicked', () => {
       const eggHandler = vi.fn();
       gameBridge.on('egg:clicked', eggHandler);
 
@@ -274,7 +276,60 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       // Trigger the nest click callback
       scene.handleNestClick();
 
+      expect(mockTweens.killTweensOf).toHaveBeenCalled();
+      expect(mockTweens.add).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scaleX: 1.15,
+          scaleY: 0.88,
+          duration: 90,
+          yoyo: true,
+        })
+      );
       expect(eggHandler).toHaveBeenCalledWith({ slotId: 1 });
+    });
+
+    it('synchronizes island entities on world:sync, clearing old entities and spawning incoming ones', () => {
+      scene.create();
+
+      const p1: OwnedPenguin = {
+        id: 'p_sync_1',
+        speciesId: 'snowy',
+        nickname: 'Snowy',
+        level: 1,
+        experience: 0,
+        happiness: 80,
+        energy: 100,
+        hunger: 20,
+        mood: 'happy',
+        acquiredAt: Date.now(),
+        generation: 1,
+      };
+
+      const p2: OwnedPenguin = {
+        id: 'p_sync_2',
+        speciesId: 'happy',
+        nickname: 'Happy',
+        level: 2,
+        experience: 50,
+        happiness: 90,
+        energy: 85,
+        hunger: 10,
+        mood: 'excited',
+        acquiredAt: Date.now(),
+        generation: 1,
+      };
+
+      // Initially spawn p1
+      gameBridge.emit('penguin:spawn', { penguin: p1 });
+      expect(scene.getPenguinCount()).toBe(1);
+      expect(scene.getPenguin('p_sync_1')).toBeDefined();
+
+      // Now emit world:sync with only p2
+      gameBridge.emit('world:sync', { penguins: [p2] });
+      expect(scene.getPenguinCount()).toBe(1);
+      expect(scene.getPenguin('p_sync_1')).toBeUndefined();
+      expect(scene.getPenguin('p_sync_2')).toBeDefined();
+      expect(scene.getPenguin('p_sync_2')?.ownedPenguin.nickname).toBe('Happy');
     });
 
     it('spawns a new penguin entity when penguin:spawn is received', () => {
@@ -375,8 +430,8 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       const initialListeners = gameBridge.listenerCount();
 
       scene.create();
-      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1)
-      expect(gameBridge.listenerCount()).toBe(initialListeners + 3);
+      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1)
+      expect(gameBridge.listenerCount()).toBe(initialListeners + 4);
 
       // Trigger shutdown event
       mockEvents.emit('shutdown');
