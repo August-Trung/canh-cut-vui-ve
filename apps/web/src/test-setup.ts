@@ -30,3 +30,44 @@ if (typeof globalThis.localStorage === 'undefined') {
 
   globalThis.localStorage = new MemoryStorage();
 }
+
+if (typeof globalThis.window === 'undefined') {
+  const dummyContext: Record<string, unknown> = new Proxy(
+    {
+      getImageData: () => ({ data: [0, 0, 0, 0] }),
+      createLinearGradient: () => ({ addColorStop: () => {} }),
+      createRadialGradient: () => ({ addColorStop: () => {} }),
+      measureText: () => ({ width: 0, actualBoundingBoxAscent: 0, actualBoundingBoxDescent: 0 }),
+    },
+    {
+      get(target, prop) {
+        if (prop in target) return (target as Record<string, unknown>)[prop as string];
+        return () => {};
+      },
+      set(target, prop, value) {
+        (target as Record<string, unknown>)[prop as string] = value;
+        return true;
+      },
+    }
+  );
+
+  globalThis.window = globalThis as unknown as Window & typeof globalThis;
+  globalThis.navigator = { userAgent: 'node' } as unknown as Navigator;
+  globalThis.Image = class {} as unknown as typeof Image;
+  globalThis.HTMLCanvasElement = class {} as unknown as typeof HTMLCanvasElement;
+  globalThis.HTMLVideoElement = class {} as unknown as typeof HTMLVideoElement;
+  globalThis.document = {
+    createElement: (tag: string) => {
+      if (tag === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => dummyContext,
+          toDataURL: () => 'data:image/png;base64,',
+        };
+      }
+      return {};
+    },
+    documentElement: {},
+  } as unknown as Document;
+}
