@@ -4,6 +4,7 @@ import { useGameStore } from '../gameStore';
 import { useInventoryStore } from '../inventoryStore';
 import { useCollectionStore } from '../collectionStore';
 import { SPECIES_LIST } from '@penguin/game-data';
+import { gameStorage } from '../../services/StorageService';
 
 describe('Pinia Game Stores', () => {
   beforeEach(() => {
@@ -32,6 +33,19 @@ describe('Pinia Game Stores', () => {
       const collection = useCollectionStore();
       expect(collection.discoveredCount).toBe(1);
       expect(collection.isDiscovered('snowy')).toBe(true);
+    });
+
+    it('does not write to storage if persistSave is called before store is loaded', async () => {
+      const game = useGameStore();
+      expect(game.isLoaded).toBe(false);
+
+      // Attempt to persist while uninitialized
+      await game.persistSave();
+
+      // Check localStorage has not been populated
+      expect(localStorage.getItem('penguin_island_save_v1')).toBeNull();
+      const loaded = await gameStorage.load();
+      expect(loaded).toBeNull();
     });
   });
 

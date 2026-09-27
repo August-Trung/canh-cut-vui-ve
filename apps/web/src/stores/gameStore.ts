@@ -85,6 +85,8 @@ export const useGameStore = defineStore('game', {
     },
 
     async persistSave(): Promise<void> {
+      if (!this.isLoaded) return;
+
       const invStore = useInventoryStore();
       const colStore = useCollectionStore();
 
@@ -123,7 +125,7 @@ export const useGameStore = defineStore('game', {
       penguin.hunger = Math.max(0, penguin.hunger - 25);
       penguin.mood = 'happy';
 
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
       return true;
     },
 
@@ -134,7 +136,7 @@ export const useGameStore = defineStore('game', {
       penguin.happiness = Math.min(100, penguin.happiness + 5);
       penguin.mood = 'excited';
 
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
       return true;
     },
 
@@ -157,7 +159,7 @@ export const useGameStore = defineStore('game', {
       slot.durationSec = durationSec;
       slot.readyAt = now + durationSec * 1000;
 
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
       return true;
     },
 
@@ -171,7 +173,7 @@ export const useGameStore = defineStore('game', {
         }
       }
       if (changed) {
-        this.persistSave();
+        this.persistSave().catch((err) => console.error('Save failed:', err));
       }
       return changed;
     },
@@ -220,7 +222,7 @@ export const useGameStore = defineStore('game', {
       slot.durationSec = undefined;
       slot.hatchedPenguinId = undefined;
 
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
       return newPenguin;
     },
 
@@ -238,12 +240,12 @@ export const useGameStore = defineStore('game', {
 
     addCoins(amount: number): void {
       this.currencies.coins += amount;
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
     },
 
     addGems(amount: number): void {
       this.currencies.gems += amount;
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
     },
 
     addFish(amount: number): void {
@@ -257,7 +259,7 @@ export const useGameStore = defineStore('game', {
         stackable: true,
       });
       this.currencies.fish = invStore.getItemCount('sardine');
-      this.persistSave();
+      this.persistSave().catch((err) => console.error('Save failed:', err));
     },
 
     async resetSave(): Promise<void> {
