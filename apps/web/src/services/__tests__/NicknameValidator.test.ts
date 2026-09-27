@@ -37,4 +37,13 @@ describe('NicknameValidator', () => {
     expect(res.valid).toBe(true);
     expect(res.value).toBe('P-1, Cool. Guy!?');
   });
+
+  it('normalizes decomposed Unicode (NFD) to NFC canonical composition', () => {
+    // 'Cánh Cụt' in decomposed form (NFD: base letter + combining diacritic)
+    const decomposed = 'Ca\u0301nh Cu\u0323t';
+    const res = validateNickname(decomposed, 'Snowy');
+    expect(res.valid).toBe(true);
+    expect(res.value).toBe('Cánh Cụt');
+    expect(res.value).toBe(decomposed.normalize('NFC'));
+  });
 });

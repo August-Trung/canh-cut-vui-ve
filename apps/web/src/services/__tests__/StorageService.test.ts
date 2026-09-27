@@ -48,6 +48,38 @@ describe('StorageService', () => {
     expect(empty).toBeNull();
   });
 
+  it('fills in missing fields with defaults when loading a partial save', async () => {
+    // Partial save with schemaVersion 1 but missing gems, inventory, incubatorSlots, etc.
+    const partialSave = {
+      schemaVersion: 1,
+      createdAt: 1000,
+      updatedAt: 2000,
+      currencies: {
+        coins: 1234,
+      },
+    };
+    localStorage.setItem('test_penguin_island_save', JSON.stringify(partialSave));
+
+    const loaded = await storage.load();
+    expect(loaded).not.toBeNull();
+    expect(loaded?.schemaVersion).toBe(1);
+    expect(loaded?.currencies.coins).toBe(1234);
+    // Missing currency fields filled from defaults
+    expect(loaded?.currencies.fish).toBe(50);
+    expect(loaded?.currencies.gems).toBe(10);
+    // Missing collections and slots filled from defaults
+    expect(loaded?.ownedPenguins.length).toBe(1);
+    expect(loaded?.incubatorSlots.length).toBe(2);
+    expect(loaded?.inventory.length).toBeGreaterThan(0);
+    expect(loaded?.player.displayName).toBe('Penguin Island Caretaker');
+  });
+
+  it('rejects save data where schemaVersion is not 1', async () => {
+    localStorage.setItem('test_penguin_island_save', JSON.stringify({ schemaVersion: 2 }));
+    const loaded = await storage.load();
+    expect(loaded).toBeNull();
+  });
+
   it('exports and imports JSON data correctly', () => {
     const data = createDefaultSaveData();
     const json = storage.exportJson(data);

@@ -59,6 +59,35 @@ export function createDefaultSaveData(): GameSaveData {
   };
 }
 
+function mergeWithDefaults(loaded: Partial<GameSaveData>): GameSaveData {
+  const defaults = createDefaultSaveData();
+
+  return {
+    schemaVersion: 1,
+    createdAt: loaded.createdAt ?? defaults.createdAt,
+    updatedAt: loaded.updatedAt ?? defaults.updatedAt,
+    player: {
+      ...defaults.player,
+      ...loaded.player,
+    },
+    currencies: {
+      ...defaults.currencies,
+      ...loaded.currencies,
+    },
+    inventory: Array.isArray(loaded.inventory) ? loaded.inventory : defaults.inventory,
+    ownedPenguins: Array.isArray(loaded.ownedPenguins) ? loaded.ownedPenguins : defaults.ownedPenguins,
+    collectionBook: Array.isArray(loaded.collectionBook) ? loaded.collectionBook : defaults.collectionBook,
+    incubatorSlots: Array.isArray(loaded.incubatorSlots) ? loaded.incubatorSlots : defaults.incubatorSlots,
+    islandState: {
+      ...defaults.islandState,
+      ...loaded.islandState,
+      decorationsPlaced: Array.isArray(loaded.islandState?.decorationsPlaced)
+        ? loaded.islandState.decorationsPlaced
+        : defaults.islandState.decorationsPlaced,
+    },
+  };
+}
+
 export class LocalStorageAdapter implements IGameStorage {
   private key: string;
 
@@ -71,10 +100,10 @@ export class LocalStorageAdapter implements IGameStorage {
       const raw = localStorage.getItem(this.key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || !parsed.schemaVersion) {
+      if (!parsed || typeof parsed !== 'object' || parsed.schemaVersion !== 1) {
         return null;
       }
-      return parsed as GameSaveData;
+      return mergeWithDefaults(parsed as Partial<GameSaveData>);
     } catch {
       return null;
     }
@@ -93,7 +122,7 @@ export class LocalStorageAdapter implements IGameStorage {
     try {
       const parsed = JSON.parse(json);
       if (parsed && typeof parsed === 'object' && parsed.schemaVersion === 1) {
-        return parsed as GameSaveData;
+        return mergeWithDefaults(parsed as Partial<GameSaveData>);
       }
       return null;
     } catch {

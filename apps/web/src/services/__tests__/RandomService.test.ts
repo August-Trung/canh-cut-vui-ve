@@ -27,6 +27,17 @@ describe('LocalRandomService', () => {
     expect(['a', 'b']).toContain(picked);
   });
 
+  it('never picks an entry with weight 0', () => {
+    const pool = [
+      { speciesId: 'never_picked', weight: 0 },
+      { speciesId: 'always_picked', weight: 50 },
+    ];
+    for (let i = 0; i < 100; i++) {
+      const rolled = rng.rollDrop(pool);
+      expect(rolled).toBe('always_picked');
+    }
+  });
+
   it('throws an error if drop pool is empty', () => {
     expect(() => rng.rollDrop([])).toThrow('Drop pool is empty.');
   });
@@ -43,6 +54,15 @@ describe('LocalRandomService', () => {
   it('generates random numbers in range [min, max]', () => {
     for (let i = 0; i < 100; i++) {
       const val = rng.randomRange(5, 10);
+      expect(val).toBeGreaterThanOrEqual(5);
+      expect(val).toBeLessThanOrEqual(10);
+      expect(Number.isInteger(val)).toBe(true);
+    }
+  });
+
+  it('handles inverted bounds in randomRange [max, min]', () => {
+    for (let i = 0; i < 50; i++) {
+      const val = rng.randomRange(10, 5);
       expect(val).toBeGreaterThanOrEqual(5);
       expect(val).toBeLessThanOrEqual(10);
       expect(Number.isInteger(val)).toBe(true);

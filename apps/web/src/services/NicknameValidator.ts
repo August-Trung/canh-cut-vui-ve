@@ -8,8 +8,8 @@ export function validateNickname(
   input: string,
   fallbackName: string
 ): NicknameValidationResult {
-  // Trim and normalize multiple spaces to a single space
-  const normalized = input.trim().replace(/\s+/g, ' ');
+  // Normalize Unicode to NFC, trim and normalize multiple spaces to a single space
+  const normalized = input.normalize('NFC').trim().replace(/\s+/g, ' ');
 
   if (!normalized) {
     return { valid: true, value: fallbackName };

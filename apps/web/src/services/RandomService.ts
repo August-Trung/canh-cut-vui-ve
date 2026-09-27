@@ -11,26 +11,30 @@ export class LocalRandomService implements IRandomService {
       throw new Error('Drop pool is empty.');
     }
 
-    const totalWeight = dropPool.reduce((acc, entry) => acc + Math.max(0, entry.weight), 0);
-    if (totalWeight <= 0) {
+    // Filter out entries where weight <= 0 to ensure 0-weight entries are never selected
+    const validEntries = dropPool.filter((entry) => entry.weight > 0);
+    if (validEntries.length === 0) {
       return dropPool[0].speciesId;
     }
 
+    const totalWeight = validEntries.reduce((acc, entry) => acc + entry.weight, 0);
     const roll = Math.random() * totalWeight;
     let accumulated = 0;
 
-    for (const entry of dropPool) {
-      accumulated += Math.max(0, entry.weight);
+    for (const entry of validEntries) {
+      accumulated += entry.weight;
       if (roll <= accumulated) {
         return entry.speciesId;
       }
     }
 
-    return dropPool[dropPool.length - 1].speciesId;
+    return validEntries[validEntries.length - 1].speciesId;
   }
 
   randomRange(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    const lower = Math.min(min, max);
+    const upper = Math.max(min, max);
+    return Math.floor(Math.random() * (upper - lower + 1)) + lower;
   }
 }
 
