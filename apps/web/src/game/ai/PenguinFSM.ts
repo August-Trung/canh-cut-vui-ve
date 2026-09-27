@@ -99,7 +99,7 @@ export class PenguinFSM {
 
   /**
    * Transition to a new state.
-   * Rejects redundant transitions to the same state.
+   * Supports transitions across all states including self-transitions.
    */
   transitionTo(nextState: PenguinState, customDuration?: number): boolean {
     const prev = this._currentState;
@@ -123,14 +123,10 @@ export class PenguinFSM {
   /**
    * Trigger immediate reaction (e.g. on click).
    * Takes precedence over and immediately interrupts all other states.
+   * If already in REACT, resets state timer and re-notifies listeners
+   * to provide responsive visual feedback on rapid clicking.
    */
   triggerReaction(customDuration?: number): void {
-    if (this._currentState === 'REACT') {
-      this._stateTime = 0;
-      this._stateDuration = customDuration ?? this.config.reactionDuration;
-      return;
-    }
-
     this.transitionTo('REACT', customDuration ?? this.config.reactionDuration);
   }
 

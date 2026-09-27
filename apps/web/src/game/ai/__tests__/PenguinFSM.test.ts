@@ -90,15 +90,19 @@ describe('PenguinFSM', () => {
     expect(fsm.stateTime).toBe(0);
   });
 
-  it('resets reaction timer when triggerReaction is called while already in REACT', () => {
+  it('resets reaction timer and notifies listeners when triggerReaction is called while already in REACT', () => {
     fsm.transitionTo('REACT', 1000);
     fsm.update(700);
     expect(fsm.stateTime).toBe(700);
+
+    const listener = vi.fn();
+    fsm.onStateChange(listener);
 
     fsm.triggerReaction(1500);
     expect(fsm.currentState).toBe('REACT');
     expect(fsm.stateTime).toBe(0);
     expect(fsm.stateDuration).toBe(1500);
+    expect(listener).toHaveBeenCalledWith('REACT', 'REACT');
   });
 
   it('autonomously transitions from IDLE to a new activity when timer expires', () => {

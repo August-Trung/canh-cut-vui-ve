@@ -156,6 +156,23 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   }
 
   /**
+   * Navigate towards target coordinates in FOLLOW state.
+   */
+  follow(x: number, y: number): void {
+    this.targetX = x;
+    this.targetY = y;
+    this.fsm.transitionTo('FOLLOW');
+  }
+
+  /**
+   * Follow another penguin entity with a slight offset.
+   */
+  followPenguin(target: PenguinEntity): void {
+    const offsetX = target.bodySprite?.flipX ? 28 : -28;
+    this.follow(target.x + offsetX, target.y + 6);
+  }
+
+  /**
    * Update island wander bounds.
    */
   setBounds(bounds: IslandBounds): void {
@@ -173,7 +190,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
     // Movement & pathing logic
     const state = this.fsm.currentState;
-    if (state === 'WADDLE' || state === 'BELLY_SLIDE' || state === 'FOLLOW') {
+    if (state === 'WADDLE' || state === 'BELLY_SLIDE' || state === 'FOLLOW' || state === 'FISH') {
       this.stepMovement(delta, state);
     }
 
@@ -188,15 +205,18 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
     if (dist < 4) {
       // Arrived at destination
-      if (state === 'BELLY_SLIDE') {
+      if (state === 'BELLY_SLIDE' || state === 'WADDLE') {
         this.fsm.transitionTo('IDLE');
-      } else if (state === 'WADDLE') {
-        this.fsm.transitionTo('IDLE');
+      } else if (state === 'FISH') {
+        this.startFishingPeeking();
+      } else if (state === 'FOLLOW') {
+        this.stopWobbleTween();
+        this.resetBodyTransform();
       }
       return;
     }
 
-    // Movement speed: Waddle (42 px/s), Slide (140 px/s)
+    // Movement speed: Waddle/Follow/Fish (42 px/s), Slide (140 px/s)
     const speed = state === 'BELLY_SLIDE' ? 140 : 42;
     const step = (speed * delta) / 1000;
     const moveDist = Math.min(step, dist);
@@ -279,15 +299,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.targetX = wanderX;
     this.targetY = wanderY;
 
-    // Playful side-to-side waddle wobble rotation
-    this.activeWobbleTween = this.scene.tweens.add({
-      targets: this.bodySprite,
-      angle: { from: -8, to: 8 },
-      duration: 240,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    this.startWaddleWobble();
   }
 
   private enterBellySlideState(): void {
@@ -399,29 +411,51 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.targetX = hole.x + Phaser.Math.Between(-15, 15);
     this.targetY = hole.y + Phaser.Math.Between(-10, 10);
 
-    // Curious tilt forward peering into the water
-    this.activeBodyTween = this.scene.tweens.add({
-      targets: this.bodySprite,
-      angle: this.bodySprite.flipX ? -15 : 15,
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    const dist = Math.hypot(this.targetX - this.x, this.targetY - this.y);
+    if (dist < 8) {
+      this.startFishingPeeking();
+    } else {
+      this.startWaddleWobble();
+    }
+  }
+
+  private startFishingPeeking(): void {
+    this.stopWobbleTween();
+    if (!this.activeBodyTween) {
+      this.activeBodyTween = this.scene.tweens.add({
+        targets: this.bodySprite,
+        angle: this.bodySprite.flipX ? -15 : 15,
+        duration: 600,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+  }
+
+  private startWaddleWobble(): void {
+    if (!this.activeWobbleTween) {
+      this.activeWobbleTween = this.scene.tweens.add({
+        targets: this.bodySprite,
+        angle: { from: -8, to: 8 },
+        duration: 240,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+  }
+
+  private stopWobbleTween(): void {
+    if (this.activeWobbleTween) {
+      this.activeWobbleTween.stop();
+      this.activeWobbleTween = null;
+    }
   }
 
   private enterFollowState(): void {
     this.resetBodyTransform();
-
-    // Waddle wobble towards target
-    this.activeWobbleTween = this.scene.tweens.add({
-      targets: this.bodySprite,
-      angle: { from: -8, to: 8 },
-      duration: 240,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    this.startWaddleWobble();
   }
 
   private enterCelebrateState(): void {
@@ -437,6 +471,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
       duration: 650,
       ease: 'Quad.easeInOut',
       onComplete: () => {
+        if (!this.active) return;
         this.resetBodyTransform();
         this.spawnFloatingHeart(0, -35);
       },
@@ -458,13 +493,15 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.resetBodyTransform();
 
     // Squash down first, then joyful jump
-    this.scene.tweens.add({
+    this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
       scaleX: 0.60,
       scaleY: 0.42,
       duration: 90,
       ease: 'Quad.easeOut',
       onComplete: () => {
+        if (!this.active) return;
+
         // Jump upward with heart
         this.activeBodyTween = this.scene.tweens.add({
           targets: this.bodySprite,
@@ -475,6 +512,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
           yoyo: true,
           ease: 'Back.easeOut',
           onComplete: () => {
+            if (!this.active) return;
             this.resetBodyTransform();
           },
         });
@@ -603,6 +641,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.stopActiveTweens();
     this.unsubFsm?.();
     this.unsubFsm = null;
+    this.scene.input?.setDefaultCursor?.('default');
     super.destroy(fromScene);
   }
 }
