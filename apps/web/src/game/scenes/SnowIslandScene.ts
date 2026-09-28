@@ -226,12 +226,13 @@ export class SnowIslandScene extends Phaser.Scene {
 
     container.add(nestGraphics);
 
-    // Interactive click area
+    // Interactive click area accurately centered over the visible nest bowl and egg
     container.setSize(72, 72);
-    container.setInteractive(
-      new Phaser.Geom.Circle(0, 0, 36),
-      Phaser.Geom.Circle.Contains
-    );
+    container.setInteractive({
+      hitArea: new Phaser.Geom.Circle(36, 32, 38),
+      hitAreaCallback: Phaser.Geom.Circle.Contains,
+      useHandCursor: true,
+    });
 
     container.on('pointerdown', () => {
       this.handleNestClick();
@@ -522,6 +523,19 @@ export class SnowIslandScene extends Phaser.Scene {
       this.updateNestState(slot);
     });
     this.unsubs.push(unsubNestSync);
+
+    // 6. Pause / resume scene input when Vue modals open / close
+    const unsubModal = gameBridge.on('ui:modal', ({ open }) => {
+      if (this.input) {
+        this.input.enabled = !open;
+        if (open) {
+          this.isDragging = false;
+          this.lastPinchDistance = 0;
+          this.input.setDefaultCursor?.('default');
+        }
+      }
+    });
+    this.unsubs.push(unsubModal);
   }
 
   /**

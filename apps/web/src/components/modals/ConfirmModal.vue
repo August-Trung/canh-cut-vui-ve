@@ -1,6 +1,24 @@
 <template>
-  <div class="modal-backdrop" data-testid="modal-backdrop" @click.self="emit('cancel')">
-    <div class="confirm-card" role="dialog" aria-modal="true" :aria-label="title">
+  <div
+    class="modal-backdrop"
+    data-testid="modal-backdrop"
+    @pointerdown.stop
+    @pointerup.stop
+    @mousedown.stop
+    @mouseup.stop
+    @click.self.stop="emit('cancel')"
+  >
+    <div
+      class="confirm-card"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="title"
+      @pointerdown.stop
+      @pointerup.stop
+      @mousedown.stop
+      @mouseup.stop
+      @click.stop
+    >
       <!-- Frost Header Border -->
       <div class="confirm-card__header">
         <div class="confirm-card__icon" :class="{ 'confirm-card__icon--danger': danger }">
@@ -25,7 +43,11 @@
           type="button"
           class="btn-action btn-action--cancel"
           data-testid="confirm-modal-btn-cancel"
-          @click="emit('cancel')"
+          @pointerdown.stop
+          @pointerup.stop
+          @mousedown.stop
+          @mouseup.stop
+          @click.stop="emit('cancel')"
         >
           {{ cancelText || 'Hủy Bỏ' }}
         </button>
@@ -34,7 +56,11 @@
           class="btn-action"
           :class="danger ? 'btn-action--danger' : 'btn-action--primary'"
           data-testid="confirm-modal-btn-confirm"
-          @click="emit('confirm')"
+          @pointerdown.stop
+          @pointerup.stop
+          @mousedown.stop
+          @mouseup.stop
+          @click.stop="emit('confirm')"
         >
           {{ confirmText || 'Xác Nhận' }}
         </button>

@@ -304,4 +304,55 @@ describe('App Component', () => {
       }),
     });
   });
+
+  it('emits ui:modal { open: true } when a modal is opened and { open: false } when closed', async () => {
+    const uiModalHandler = vi.fn();
+    gameBridge.on('ui:modal', uiModalHandler);
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    uiModalHandler.mockClear();
+
+    const vm = wrapper.vm as unknown as { openModal: (m: string) => void; closeModal: () => void };
+    vm.openModal('inventory');
+    await wrapper.vm.$nextTick();
+
+    expect(uiModalHandler).toHaveBeenCalledWith({ open: true });
+    uiModalHandler.mockClear();
+
+    vm.closeModal();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(uiModalHandler).toHaveBeenCalledWith({ open: false });
+  });
+
+  it('closing PenguinInspectModal does not trigger egg:clicked or open HatcheryModal', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const eggClickHandler = vi.fn();
+    gameBridge.on('egg:clicked', eggClickHandler);
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    // Open inspect modal by clicking penguin
+    gameBridge.emit('penguin:clicked', { ownedId: game.ownedPenguins[0].id });
+    await wrapper.vm.$nextTick();
+
+    const inspectModal = wrapper.findComponent({ name: 'PenguinInspectModal' });
+    expect(inspectModal.exists()).toBe(true);
+
+    // Click close button on inspect modal
+    const closeBtn = inspectModal.find('[data-testid="modal-close-btn"]');
+    await closeBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    const vm = wrapper.vm as unknown as { activeModal: string | null };
+    expect(vm.activeModal).toBeNull();
+    expect(eggClickHandler).not.toHaveBeenCalled();
+    expect(wrapper.findComponent({ name: 'HatcheryModal' }).exists()).toBe(false);
+  });
 });

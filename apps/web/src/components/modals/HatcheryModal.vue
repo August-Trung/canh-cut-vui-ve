@@ -1,6 +1,24 @@
 <template>
-  <div class="modal-backdrop" data-testid="modal-backdrop" @click.self="emit('close')">
-    <div class="hatchery-dialog" role="dialog" aria-modal="true" aria-label="Tổ Ấp Trứng">
+  <div
+    class="modal-backdrop"
+    data-testid="modal-backdrop"
+    @pointerdown.stop
+    @pointerup.stop
+    @mousedown.stop
+    @mouseup.stop
+    @click.self.stop="emit('close')"
+  >
+    <div
+      class="hatchery-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tổ Ấp Trứng"
+      @pointerdown.stop
+      @pointerup.stop
+      @mousedown.stop
+      @mouseup.stop
+      @click.stop
+    >
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="modal-header__title-group">
@@ -12,7 +30,11 @@
           class="modal-close-btn"
           data-testid="modal-close-btn"
           aria-label="Đóng"
-          @click="emit('close')"
+          @pointerdown.stop
+          @pointerup.stop
+          @mousedown.stop
+          @mouseup.stop
+          @click.stop="emit('close')"
         >
           ✕
         </button>

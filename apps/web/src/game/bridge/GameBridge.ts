@@ -9,6 +9,7 @@ export type GameBridgeEventMap = {
   'camera:focus': { x: number; y: number };
   'world:sync': { penguins: OwnedPenguin[]; nestSlot?: IncubatorSlot | null };
   'nest:sync': { slot: IncubatorSlot | null };
+  'ui:modal': { open: boolean };
 };
 
 export type GameBridgeHandler<K extends keyof GameBridgeEventMap> = (

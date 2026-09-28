@@ -1,13 +1,35 @@
 <template>
-  <div class="modal-backdrop" data-testid="modal-backdrop" @click.self="emit('close')">
-    <div class="inspect-dialog" role="dialog" aria-modal="true" aria-label="Thông Tin Chim Cánh Cụt">
+  <div
+    class="modal-backdrop"
+    data-testid="modal-backdrop"
+    @pointerdown.stop
+    @pointerup.stop
+    @mousedown.stop
+    @mouseup.stop
+    @click.self.stop="emit('close')"
+  >
+    <div
+      class="inspect-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Thông Tin Chim Cánh Cụt"
+      @pointerdown.stop
+      @pointerup.stop
+      @mousedown.stop
+      @mouseup.stop
+      @click.stop
+    >
       <!-- Modal Close Button -->
       <button
         type="button"
         class="modal-close-btn"
         data-testid="modal-close-btn"
         aria-label="Đóng"
-        @click="emit('close')"
+        @pointerdown.stop
+        @pointerup.stop
+        @mousedown.stop
+        @mouseup.stop
+        @click.stop="emit('close')"
       >
         ✕
       </button>

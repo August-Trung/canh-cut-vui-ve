@@ -92,6 +92,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       off: ReturnType<typeof vi.fn>;
       enable?: ReturnType<typeof vi.fn>;
       disable?: ReturnType<typeof vi.fn>;
+      enabled: boolean;
       setDefaultCursor: ReturnType<typeof vi.fn>;
       pointer1?: { isDown: boolean; x: number; y: number };
       pointer2?: { isDown: boolean; x: number; y: number };
@@ -187,6 +188,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         off: vi.fn().mockReturnThis(),
         enable: vi.fn(),
         disable: vi.fn(),
+        enabled: true,
         setDefaultCursor: vi.fn(),
       };
 
@@ -433,8 +435,8 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       const initialListeners = gameBridge.listenerCount();
 
       scene.create();
-      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1)
-      expect(gameBridge.listenerCount()).toBe(initialListeners + 5);
+      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1), ui:modal (+1)
+      expect(gameBridge.listenerCount()).toBe(initialListeners + 6);
 
       // Trigger shutdown event
       mockEvents.emit('shutdown');
@@ -541,6 +543,59 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
           })
         );
         expect(eggHandler).toHaveBeenCalledWith({ slotId: 1 });
+      });
+
+      it('configures incubator nest container with centered circular hitArea matching nest and egg geometry', () => {
+        scene.create();
+
+        const nestContainer = scene.getNestContainer();
+        expect(nestContainer).not.toBeNull();
+
+        // Inspect setInteractive call on the nest container
+        expect(nestContainer?.setSize).toHaveBeenCalledWith(72, 72);
+        expect(nestContainer?.setInteractive).toHaveBeenCalledWith(
+          expect.objectContaining({
+            hitArea: expect.any(Phaser.Geom.Circle),
+            hitAreaCallback: Phaser.Geom.Circle.Contains,
+            useHandCursor: true,
+          })
+        );
+
+        // Verify the Circle geometry: center (36, 32) with radius 38
+        const interactiveConfig = (nestContainer?.setInteractive as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        const circle = interactiveConfig.hitArea as Phaser.Geom.Circle;
+        expect(circle.x).toBe(36);
+        expect(circle.y).toBe(32);
+        expect(circle.radius).toBe(38);
+
+        // Center point (36, 36) in Container hit-test space corresponds to visual (0, 0)
+        expect(Phaser.Geom.Circle.Contains(circle, 36, 36)).toBe(true);
+
+        // Top of egg (36, 6) corresponds to visual (0, -26)
+        expect(Phaser.Geom.Circle.Contains(circle, 36, 6)).toBe(true);
+
+        // Bottom of nest (36, 61) corresponds to visual (0, +29)
+        expect(Phaser.Geom.Circle.Contains(circle, 36, 61)).toBe(true);
+
+        // Upper-left shifted point (0, 0) is correctly outside the circle (distance ~48 > 38)
+        expect(Phaser.Geom.Circle.Contains(circle, 0, 0)).toBe(false);
+
+        // Distant outside point (100, 100) is rejected
+        expect(Phaser.Geom.Circle.Contains(circle, 100, 100)).toBe(false);
+      });
+
+      it('disables scene input and resets cursor when ui:modal is open, and restores scene input when closed', () => {
+        scene.create();
+        expect(scene.input.enabled).toBe(true);
+
+        // Modal opened: scene input disabled and cursor reset to default
+        gameBridge.emit('ui:modal', { open: true });
+        expect(scene.input.enabled).toBe(false);
+        expect(mockInput.setDefaultCursor).toHaveBeenCalledWith('default');
+
+        // Modal closed: scene input re-enabled
+        gameBridge.emit('ui:modal', { open: false });
+        expect(scene.input.enabled).toBe(true);
       });
     });
   });

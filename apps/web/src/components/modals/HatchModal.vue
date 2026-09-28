@@ -1,6 +1,24 @@
 <template>
-  <div class="modal-backdrop" data-testid="modal-backdrop" @click.self="emit('close')">
-    <div class="hatch-dialog" role="dialog" aria-modal="true" aria-label="Ấp Trứng Cánh Cụt">
+  <div
+    class="modal-backdrop"
+    data-testid="modal-backdrop"
+    @pointerdown.stop
+    @pointerup.stop
+    @mousedown.stop
+    @mouseup.stop
+    @click.self.stop="emit('close')"
+  >
+    <div
+      class="hatch-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Ấp Trứng Cánh Cụt"
+      @pointerdown.stop
+      @pointerup.stop
+      @mousedown.stop
+      @mouseup.stop
+      @click.stop
+    >
       <!-- Hidden stage indicator for accessibility & tests -->
       <div data-testid="hatch-stage-indicator" class="sr-only">{{ currentStage }}</div>
 
@@ -10,7 +28,11 @@
         class="modal-close-btn"
         data-testid="modal-close-btn"
         aria-label="Đóng"
-        @click="emit('close')"
+        @pointerdown.stop
+        @pointerup.stop
+        @mousedown.stop
+        @mouseup.stop
+        @click.stop="emit('close')"
       >
         ✕
       </button>

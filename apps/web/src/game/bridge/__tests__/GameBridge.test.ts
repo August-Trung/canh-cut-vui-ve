@@ -150,6 +150,9 @@ describe('GameBridge', () => {
       generation: 1,
     };
 
+    const uiModal = vi.fn();
+    bridge.on('ui:modal', uiModal);
+
     bridge.emit('penguin:clicked', { ownedId: 'p-1' });
     bridge.emit('egg:clicked', { slotId: 0 });
     bridge.emit('canvas:ready', undefined);
@@ -158,6 +161,7 @@ describe('GameBridge', () => {
     bridge.emit('camera:focus', { x: 100, y: 200 });
     bridge.emit('world:sync', { penguins: [mockPenguin] });
     bridge.emit('nest:sync', { slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'basic_egg' } });
+    bridge.emit('ui:modal', { open: true });
 
     expect(penguinClicked).toHaveBeenCalledWith({ ownedId: 'p-1' });
     expect(eggClicked).toHaveBeenCalledWith({ slotId: 0 });
@@ -167,6 +171,7 @@ describe('GameBridge', () => {
     expect(cameraFocus).toHaveBeenCalledWith({ x: 100, y: 200 });
     expect(worldSync).toHaveBeenCalledWith({ penguins: [mockPenguin] });
     expect(nestSync).toHaveBeenCalledWith({ slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'basic_egg' } });
+    expect(uiModal).toHaveBeenCalledWith({ open: true });
   });
 
   it('exports a default singleton instance', () => {

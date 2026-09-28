@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useGameStore } from './stores/gameStore';
 import { gameBridge } from './game/bridge/GameBridge';
 import { soundService } from './services/SoundService';
@@ -118,6 +118,23 @@ watch(
     syncNest();
   },
   { deep: true }
+);
+
+// Synchronize modal state with Phaser input layer:
+// Disables world interaction while modal is open, and safely re-enables on nextTick
+// to prevent modal close click/pointerup events from leaking into underlying scene entities.
+watch(
+  () => activeModal.value !== null,
+  (isOpen) => {
+    if (isOpen) {
+      gameBridge.emit('ui:modal', { open: true });
+    } else {
+      nextTick(() => {
+        gameBridge.emit('ui:modal', { open: false });
+      });
+    }
+  },
+  { immediate: true }
 );
 
 let unsubs: (() => void)[] = [];
