@@ -64,7 +64,37 @@
         <span class="shelf-btn__label">Ấp Trứng</span>
       </button>
 
-      <!-- 4. Cửa Hàng (Shop) -->
+      <!-- 4. Phối Giống (Breeding) -->
+      <button
+        type="button"
+        class="shelf-btn shelf-btn--breeding"
+        data-testid="btn-breeding"
+        title="Phối Giống"
+        aria-label="Phối Giống"
+        @click="emit('open-breeding')"
+      >
+        <div class="shelf-btn__icon-plate">
+          <GameIcon name="pet" size="md" alt="Phối Giống" />
+        </div>
+        <span class="shelf-btn__label">Phối Giống</span>
+      </button>
+
+      <!-- 5. Câu Cá (Catch Fish Mini-game) -->
+      <button
+        type="button"
+        class="shelf-btn shelf-btn--minigame"
+        data-testid="btn-catch-fish"
+        title="Câu Cá"
+        aria-label="Câu Cá"
+        @click="emit('open-catch-fish')"
+      >
+        <div class="shelf-btn__icon-plate">
+          <GameIcon name="fish" size="md" alt="Câu Cá" />
+        </div>
+        <span class="shelf-btn__label">Câu Cá</span>
+      </button>
+
+      <!-- 6. Cửa Hàng (Shop) -->
       <button
         type="button"
         class="shelf-btn shelf-btn--shop"
@@ -79,7 +109,7 @@
         <span class="shelf-btn__label">Cửa Hàng</span>
       </button>
 
-      <!-- 5. Nhiệm Vụ (Quests) -->
+      <!-- 7. Nhiệm Vụ (Quests) -->
       <button
         type="button"
         class="shelf-btn shelf-btn--quests"
@@ -94,7 +124,7 @@
         <span class="shelf-btn__label">Nhiệm Vụ</span>
       </button>
 
-      <!-- 6. Cài Đặt (Settings) -->
+      <!-- 8. Cài Đặt (Settings) -->
       <button
         type="button"
         class="shelf-btn shelf-btn--settings"
@@ -119,6 +149,8 @@ const emit = defineEmits<{
   (e: 'open-inventory'): void;
   (e: 'open-collection'): void;
   (e: 'open-hatchery'): void;
+  (e: 'open-breeding'): void;
+  (e: 'open-catch-fish'): void;
   (e: 'open-shop'): void;
   (e: 'open-quests'): void;
   (e: 'open-settings'): void;

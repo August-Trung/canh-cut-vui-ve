@@ -14,6 +14,8 @@
           @open-inventory="openModal('inventory')"
           @open-collection="openModal('collection')"
           @open-hatchery="openModal('hatchery')"
+          @open-breeding="openModal('breeding')"
+          @open-catch-fish="openModal('minigame')"
           @open-shop="openModal('shop')"
           @open-quests="openModal('quest')"
           @open-settings="openModal('settings')"
@@ -22,6 +24,17 @@
     </div>
 
     <!-- Modals Layer -->
+    <BreedingModal
+      v-if="activeModal === 'breeding'"
+      @close="closeModal"
+      @open-hatchery="openModal('hatchery')"
+    />
+
+    <CatchFishModal
+      v-if="activeModal === 'minigame'"
+      @close="closeModal"
+    />
+
     <InventoryModal
       v-if="activeModal === 'inventory'"
       @close="closeModal"
@@ -101,6 +114,8 @@ import QuestModal from './components/modals/QuestModal.vue';
 import DecorationModal from './components/modals/DecorationModal.vue';
 import LevelUpModal from './components/modals/LevelUpModal.vue';
 import SettingsModal from './components/modals/SettingsModal.vue';
+import BreedingModal from './components/modals/BreedingModal.vue';
+import CatchFishModal from './components/modals/CatchFishModal.vue';
 
 const gameStore = useGameStore();
 const activeModal = ref<string | null>(null);
