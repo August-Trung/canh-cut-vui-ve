@@ -98,8 +98,22 @@
 
           <!-- Slot Info & Controls -->
           <div class="slot-card__controls">
+            <!-- 0. LOCKED STATE -->
+            <template v-if="slot.unlocked === false">
+              <p class="slot-desc">Tổ #{{ slot.slotId }} chưa mở khóa.</p>
+              <button
+                type="button"
+                class="btn-slot-action btn-slot-action--unlock"
+                :data-testid="`btn-unlock-slot-${slot.slotId}`"
+                :disabled="gameStore.currencies.gems < (slot.unlockCost ?? 50)"
+                @click="gameStore.unlockIncubatorSlot(slot.slotId)"
+              >
+                💎 Mở Khóa ({{ slot.unlockCost ?? 50 }} Kim Cương)
+              </button>
+            </template>
+
             <!-- 1. EMPTY STATE -->
-            <template v-if="slot.state === 'EMPTY'">
+            <template v-else-if="slot.state === 'EMPTY'">
               <p class="slot-desc">Tổ đang trống. Hãy đặt trứng từ túi đồ vào ấp!</p>
               <button
                 type="button"
@@ -121,6 +135,16 @@
                 <div class="progress-bar-fill" :style="{ width: `${getProgressPercent(slot)}%` }"></div>
               </div>
               <p class="incubating-hint">Đang giữ ấm cho bé... Hãy kiên nhẫn!</p>
+              <button
+                type="button"
+                class="btn-slot-action btn-slot-action--nurture"
+                :data-testid="`btn-nurture-slot-${slot.slotId}`"
+                :disabled="!canNurture(slot)"
+                @click="handleNurture(slot.slotId)"
+              >
+                💖 Ấp Nhanh (-15s) [{{ slot.nurtureCount || 0 }}/10]
+                <span v-if="getNurtureCooldown(slot) > 0">({{ getNurtureCooldown(slot) }}s)</span>
+              </button>
             </template>
 
             <!-- 3. READY TO HATCH STATE -->
@@ -202,6 +226,24 @@ function getProgressPercent(slot: IncubatorSlot): number {
   if (total <= 0) return 100;
   const elapsed = now.value - slot.startTime;
   return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+}
+
+function canNurture(slot: IncubatorSlot): boolean {
+  if (slot.unlocked === false) return false;
+  if (slot.state !== 'INCUBATING') return false;
+  if ((slot.nurtureCount || 0) >= 10) return false;
+  if (slot.lastNurtureAt && (now.value - slot.lastNurtureAt) < 30000) return false;
+  return true;
+}
+
+function getNurtureCooldown(slot: IncubatorSlot): number {
+  if (!slot.lastNurtureAt) return 0;
+  const remaining = Math.ceil((30000 - (now.value - slot.lastNurtureAt)) / 1000);
+  return Math.max(0, remaining);
+}
+
+function handleNurture(slotId: number) {
+  gameStore.nurtureEgg(slotId);
 }
 </script>
 

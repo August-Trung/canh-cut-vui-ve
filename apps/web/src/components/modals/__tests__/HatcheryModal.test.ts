@@ -71,4 +71,42 @@ describe('HatcheryModal.vue', () => {
     await closeBtn.trigger('click');
     expect(wrapper.emitted('close')).toBeTruthy();
   });
+
+  it('shows nurture button when incubating and calls gameStore.nurtureEgg on click', async () => {
+    const game = useGameStore();
+    const slot = game.incubatorSlots.find((s) => s.slotId === 1)!;
+    slot.state = 'INCUBATING';
+    slot.durationSec = 60;
+    slot.readyAt = Date.now() + 50000;
+    slot.nurtureCount = 0;
+    slot.lastNurtureAt = undefined;
+
+    const nurtureSpy = vi.spyOn(game, 'nurtureEgg');
+
+    const wrapper = mount(HatcheryModal);
+    const nurtureBtn = wrapper.find('[data-testid="btn-nurture-slot-1"]');
+    expect(nurtureBtn.exists()).toBe(true);
+
+    await nurtureBtn.trigger('click');
+    expect(nurtureSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('shows unlock button for locked Slot 2 and calls gameStore.unlockIncubatorSlot on click', async () => {
+    const game = useGameStore();
+    const slot2 = game.incubatorSlots.find((s) => s.slotId === 2)!;
+    slot2.unlocked = false;
+    slot2.unlockCost = 50;
+    game.currencies.gems = 100;
+
+    const unlockSpy = vi.spyOn(game, 'unlockIncubatorSlot');
+
+    const wrapper = mount(HatcheryModal);
+    const unlockBtn = wrapper.find('[data-testid="btn-unlock-slot-2"]');
+    expect(unlockBtn.exists()).toBe(true);
+    expect(unlockBtn.text()).toContain('50 Kim Cương');
+
+    await unlockBtn.trigger('click');
+    expect(unlockSpy).toHaveBeenCalledWith(2);
+  });
 });
+

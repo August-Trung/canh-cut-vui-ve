@@ -126,7 +126,7 @@
             <span class="btn-emoji">✋</span>
             <div class="btn-text-wrap">
               <span class="btn-main-text">Vuốt Ve</span>
-              <span class="btn-sub-text">+5 Vui Vẻ</span>
+              <span class="btn-sub-text">+15 EXP (+10 Vui)</span>
             </div>
           </button>
 
@@ -136,12 +136,37 @@
             data-testid="btn-action-feed"
             @click="handleFeed"
           >
-            <span class="btn-emoji">🐟</span>
+            <span class="btn-emoji">{{ selectedFoodDef?.icon || '🐟' }}</span>
             <div class="btn-text-wrap">
-              <span class="btn-main-text">Cho Ăn Cá</span>
-              <span class="btn-sub-text">-1 Cá (+15 Vui Vẻ)</span>
+              <span class="btn-main-text">Cho Ăn {{ selectedFoodDef?.name || 'Cá' }}</span>
+              <span class="btn-sub-text">
+                <template v-if="isFavoriteFood">⭐ Khoái Khẩu (+50% EXP)</template>
+                <template v-else>-1 {{ selectedFoodDef?.name || 'Cá' }}</template>
+              </span>
             </div>
           </button>
+        </div>
+
+        <!-- Food Selector Drawer -->
+        <div class="food-selector" data-testid="food-selector">
+          <div class="food-selector__title">Chọn Món Ăn:</div>
+          <div class="food-chips">
+            <button
+              v-for="food in availableFoods"
+              :key="food.id"
+              type="button"
+              class="food-chip"
+              :class="{
+                'food-chip--selected': selectedFoodId === food.id,
+                'food-chip--favorite': speciesDef?.favoriteFoodId === food.id,
+              }"
+              :data-testid="`food-chip-${food.id}`"
+              @click="selectedFoodId = food.id"
+            >
+              <span>{{ food.icon }} {{ food.name }} ({{ food.count }})</span>
+              <span v-if="speciesDef?.favoriteFoodId === food.id" class="fav-star">⭐</span>
+            </button>
+          </div>
         </div>
       </template>
 
@@ -154,7 +179,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { SPECIES_MAP } from '@penguin/game-data';
+import { SPECIES_MAP, FOOD_CATALOG } from '@penguin/game-data';
 import { PenguinMood } from '@penguin/types';
 import { useGameStore } from '../../stores/gameStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
@@ -173,6 +198,7 @@ const invStore = useInventoryStore();
 
 const feedbackMessage = ref<string | null>(null);
 const feedbackType = ref<'success' | 'warning' | 'info'>('info');
+const selectedFoodId = ref<string>('sardine');
 
 const penguin = computed(() => {
   return gameStore.getPenguinById(props.penguinId);
@@ -182,6 +208,26 @@ const speciesName = computed(() => {
   if (!penguin.value?.speciesId) return 'Chim Cánh Cụt';
   const def = SPECIES_MAP.get(penguin.value.speciesId);
   return def?.name ?? 'Chim Cánh Cụt';
+});
+
+const speciesDef = computed(() => {
+  if (!penguin.value?.speciesId) return null;
+  return SPECIES_MAP.get(penguin.value.speciesId) ?? null;
+});
+
+const isFavoriteFood = computed(() => {
+  return speciesDef.value?.favoriteFoodId === selectedFoodId.value;
+});
+
+const selectedFoodDef = computed(() => {
+  return FOOD_CATALOG[selectedFoodId.value] ?? FOOD_CATALOG['sardine'];
+});
+
+const availableFoods = computed(() => {
+  return Object.values(FOOD_CATALOG).map((f) => ({
+    ...f,
+    count: invStore.getItemCount(f.id),
+  }));
 });
 
 const speciesColor = computed(() => {
@@ -232,28 +278,31 @@ function handlePet() {
       ownedId: penguin.value.id,
       action: 'pet',
     });
-    showFeedback(`${penguin.value.nickname} rất thích khi được bạn vuốt ve! 🥰`, 'success');
+    showFeedback(`${penguin.value.nickname} rất thích khi được bạn vuốt ve! 🥰 (+15 EXP)`, 'success');
+  } else {
+    showFeedback('Bé đang nghỉ ngơi, hãy đợi một chút nhé!', 'warning');
   }
 }
 
 function handleFeed() {
   if (!penguin.value) return;
 
-  const fishCount = invStore.getItemCount('sardine');
-  if (fishCount < 1) {
-    showFeedback('Hết cá rồi! Hãy kiếm thêm cá nhé.', 'warning');
+  const foodCount = invStore.getItemCount(selectedFoodId.value);
+  if (foodCount < 1) {
+    showFeedback(`Hết ${selectedFoodDef.value.name} rồi! Hãy mua thêm tại Cửa Hàng nhé.`, 'warning');
     return;
   }
 
-  const success = gameStore.feedPenguin(penguin.value.id);
+  const success = gameStore.feedPenguin(penguin.value.id, selectedFoodId.value);
   if (success) {
     gameBridge.emit('penguin:action', {
       ownedId: penguin.value.id,
       action: 'feed',
     });
-    showFeedback(`Đã cho ${penguin.value.nickname} ăn cá no nê! 🐟✨`, 'success');
+    const bonusText = isFavoriteFood.value ? ' (Món khoái khẩu! +50% EXP ⭐)' : '';
+    showFeedback(`Đã cho ${penguin.value.nickname} ăn ${selectedFoodDef.value.name}! 😋${bonusText}`, 'success');
   } else {
-    showFeedback('Hết cá rồi! Hãy kiếm thêm cá nhé.', 'warning');
+    showFeedback(`${penguin.value.nickname} đã no rồi, không muốn ăn nữa đâu!`, 'info');
   }
 }
 </script>
@@ -539,11 +588,67 @@ function handleFeed() {
   color: #FFFFFF;
 }
 
+.food-selector {
+  margin-top: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.food-selector__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.food-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.food-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.food-chip:hover {
+  border-color: #38bdf8;
+}
+
+.food-chip--selected {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.food-chip--favorite {
+  border-color: #f59e0b;
+}
+
+.fav-star {
+  font-size: 0.75rem;
+}
+
 .not-found-state {
   padding: 24px;
   text-align: center;
   color: #64748B;
 }
+
 
 @keyframes fadeIn {
   from { opacity: 0; }

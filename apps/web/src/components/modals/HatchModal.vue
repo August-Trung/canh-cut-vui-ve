@@ -6,7 +6,7 @@
     @pointerup.stop
     @mousedown.stop
     @mouseup.stop
-    @click.self.stop="emit('close')"
+    @click.self.stop="handleClose"
   >
     <div
       class="hatch-dialog"
@@ -32,7 +32,7 @@
         @pointerup.stop
         @mousedown.stop
         @mouseup.stop
-        @click.stop="emit('close')"
+        @click.stop="handleClose"
       >
         ✕
       </button>
@@ -284,14 +284,14 @@ function advanceStage() {
     currentStage.value = 'reveal';
     soundService.playHatchFanfare();
     if (!revealedSpecies.value) {
-      if (currentEggDef.value?.dropPool) {
-        const rolledId = randomService.rollDrop(currentEggDef.value.dropPool);
-        revealedSpecies.value = SPECIES_MAP.get(rolledId) ?? SPECIES_LIST[0]!;
+      const prep = gameStore.prepareHatch(props.slotId);
+      if (prep?.success && prep.pendingSpeciesId) {
+        revealedSpecies.value = SPECIES_MAP.get(prep.pendingSpeciesId) ?? SPECIES_LIST[0]!;
       } else {
         revealedSpecies.value = SPECIES_LIST[0]!;
       }
     }
-    nicknameInput.value = revealedSpecies.value.name;
+    nicknameInput.value = revealedSpecies.value?.name ?? '';
     validateCurrentNickname();
   }
 }
@@ -301,7 +301,7 @@ function onNicknameInput() {
 }
 
 function validateCurrentNickname() {
-  const trimmed = nicknameInput.value.trim();
+  const trimmed = (nicknameInput.value || '').trim();
   if (!trimmed) {
     nicknameError.value = null;
     return;
@@ -322,8 +322,7 @@ function completeHatching() {
 
   const newPenguin = gameStore.hatchEgg(
     props.slotId,
-    nameToPass,
-    activeSpecies.value.id
+    nameToPass
   );
   if (newPenguin) {
     gameBridge.emit('penguin:spawn', { penguin: newPenguin });
@@ -333,6 +332,12 @@ function completeHatching() {
   soundService.playPop();
   emit('close');
 }
+
+function handleClose() {
+  gameStore.cancelHatch(props.slotId);
+  emit('close');
+}
+
 
 function getSpeciesColor(speciesId: string): string {
   switch (speciesId) {

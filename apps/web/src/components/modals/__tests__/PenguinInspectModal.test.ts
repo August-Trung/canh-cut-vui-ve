@@ -73,14 +73,14 @@ describe('PenguinInspectModal.vue', () => {
     const feedBtn = wrapper.find('[data-testid="btn-action-feed"]');
     await feedBtn.trigger('click');
 
-    expect(feedSpy).toHaveBeenCalledWith(penguinId);
+    expect(feedSpy).toHaveBeenCalledWith(penguinId, 'sardine');
     expect(bridgeSpy).toHaveBeenCalledWith('penguin:action', {
       ownedId: penguinId,
       action: 'feed',
     });
   });
 
-  it('shows out-of-fish toast and prevents feeding when fish count is 0', async () => {
+  it('shows out-of-food toast and prevents feeding when food count is 0', async () => {
     const game = useGameStore();
     const invStore = useInventoryStore();
     invStore.setItemCount('sardine', 0);
@@ -95,7 +95,27 @@ describe('PenguinInspectModal.vue', () => {
     await feedBtn.trigger('click');
 
     expect(feedSpy).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain('Hết cá rồi! Hãy kiếm thêm cá nhé.');
+    expect(wrapper.text()).toContain('Hết Cá Mòi');
+  });
+
+  it('allows selecting different foods from the food drawer', async () => {
+    const game = useGameStore();
+    const invStore = useInventoryStore();
+    invStore.setItemCount('krill', 3);
+
+    const feedSpy = vi.spyOn(game, 'feedPenguin');
+
+    const wrapper = mount(PenguinInspectModal, {
+      props: { penguinId },
+    });
+
+    // Click krill chip
+    await wrapper.find('[data-testid="food-chip-krill"]').trigger('click');
+
+    // Click feed button
+    await wrapper.find('[data-testid="btn-action-feed"]').trigger('click');
+
+    expect(feedSpy).toHaveBeenCalledWith(penguinId, 'krill');
   });
 
   it('emits close event when close button or backdrop is clicked', async () => {
@@ -112,3 +132,4 @@ describe('PenguinInspectModal.vue', () => {
     expect(wrapper.emitted('close')?.length).toBe(2);
   });
 });
+

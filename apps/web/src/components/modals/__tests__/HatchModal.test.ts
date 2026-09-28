@@ -127,7 +127,7 @@ describe('HatchModal.vue', () => {
     const confirmBtn = wrapper.find('[data-testid="hatch-confirm-btn"]');
     await confirmBtn.trigger('click');
 
-    expect(hatchSpy).toHaveBeenCalledWith(1, 'Bé Tuyết Nhỏ', expect.any(String));
+    expect(hatchSpy).toHaveBeenCalledWith(1, 'Bé Tuyết Nhỏ');
 
     // Verify penguin:spawn payload
     expect(bridgeSpy).toHaveBeenCalledWith('penguin:spawn', expect.objectContaining({
@@ -169,7 +169,31 @@ describe('HatchModal.vue', () => {
     const confirmBtn = wrapper.find('[data-testid="hatch-confirm-btn"]');
     await confirmBtn.trigger('click');
 
-    expect(hatchSpy).toHaveBeenCalledWith(1, '', expect.any(String));
+    expect(hatchSpy).toHaveBeenCalledWith(1, '');
+    expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
+  it('calls prepareHatch on reveal and cancelHatch when modal is closed without hatching', async () => {
+    const game = useGameStore();
+    const prepSpy = vi.spyOn(game, 'prepareHatch');
+    const cancelSpy = vi.spyOn(game, 'cancelHatch');
+
+    const wrapper = mount(HatchModal, {
+      props: {
+        slotId: 1,
+      },
+    });
+
+    const egg = wrapper.find('[data-testid="interactive-egg"]');
+    await egg.trigger('click');
+    await egg.trigger('click');
+    await egg.trigger('click');
+
+    expect(prepSpy).toHaveBeenCalledWith(1);
+
+    await wrapper.find('[data-testid="modal-close-btn"]').trigger('click');
+    expect(cancelSpy).toHaveBeenCalledWith(1);
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 });
+
