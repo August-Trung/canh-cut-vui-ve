@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the complete Phase 2 core game loop of *Penguin Island*: player and penguin leveling (Lv. 1–10), comprehensive care mechanics (offline & online piecewise hunger/happiness decay with deterministic mood priority), care economy (petting/favorite-food rewards, coin drops with Cozy bonus; petting grants strictly 0 coins), Island Shop (*Cửa Hàng* with atomic purchases), decoration placement on 6 anchor plots with lifetime placement EXP anti-exploit, deterministic calendar-day login rewards with `getLocalDateString()`, daily quests (array-reorder-immune date + stable ID hashing, hatch quest requires successful hatch), multi-slot incubation with speed-up limits and authoritative hatch randomization, flock capacity gating, and pure idempotent save migration.
+**Goal:** Build the complete Phase 2 core game loop of *Penguin Island*: player and penguin leveling (Lv. 1–10), comprehensive care mechanics (offline & online piecewise hunger/happiness decay with deterministic mood priority), care economy (petting/favorite-food rewards, coin drops with Cozy bonus; petting grants strictly 0 coins), Island Shop (*Cửa Hàng* with atomic purchases), decoration placement on 6 anchor plots with lifetime placement EXP anti-exploit, deterministic calendar-day login rewards with `getLocalDateString()`, daily quests (array-reorder-immune date + stable ID hashing, decoupled action observer, hatch quest requires successful hatch), multi-slot incubation with speed-up limits and authoritative hatch randomization (scoped `pendingSpeciesId` lifecycle), flock capacity gating, simulation timer lifecycle, and pure idempotent save migration with safe missing-timestamp handling.
 
-**Architecture:** Monorepo workspace (`apps/web`, `packages/types`, `packages/game-data`). Phaser 3 renders the 2.5D Snow Island, entities, anchor plot decorations, and particle effects; Vue 3 powers the HUD, Shelf Rack, Shop, Quests, Decoration, and Inspect modals. Decoupled via typed `GameBridge` events and Pinia stores (`gameStore`, `shopStore`, `decorationStore`, `questStore`, `inventoryStore`). Authoritative calculations live in dedicated pure services (`ProgressionService`, `NeedsService`, `DecorationService`, `QuestService`, `HatchService`) to prevent store bloat and circular dependencies.
+**Architecture:** Monorepo workspace (`apps/web`, `packages/types`, `packages/game-data`). Phaser 3 renders the 2.5D Snow Island, entities, anchor plot decorations, and particle effects; Vue 3 powers the HUD, Shelf Rack, Shop, Quests, Decoration, and Inspect modals. Decoupled via typed `GameBridge` events and Pinia stores (`gameStore`, `shopStore`, `decorationStore`, `questStore`, `inventoryStore`). Authoritative calculations live in dedicated pure services (`ProgressionService`, `NeedsService`, `DecorationService`, `QuestService`, `HatchService`). Unidirectional, acyclic store dependencies: `questStore` observes decoupled action events on `GameBridge`; `gameStore`, `shopStore`, and `decorationStore` never import `questStore`.
 
 **Tech Stack:** Vue 3, Vite, TypeScript, Pinia, Phaser 3, Vitest, Web Audio API, npm workspaces.
 
@@ -22,12 +22,13 @@
 - **No Feeding Cooldown:** Phase 2 has no feeding cooldown; players can feed whenever they have food and hunger > 0. `lastFedAt` is updated on feed, but is strictly informational and future-facing.
 - **Level-Up Rewards Transition Guard:** Rewards are granted exclusively when `addPlayerExp()` causes an actual level transition (`oldLevel < newLevel`). Loading, migration, recalculating level, or boot-time simulation must NEVER grant level-up rewards.
 - **Flock Capacity Gating:** Lv 1: max 2, Lv 2–4: max 3, Lv 5–7: max 4, Lv 8–10: max 5. Full flock prevents hatching without consuming egg or granting rewards.
-- **Authoritative Hatch Randomization:** `hatchEgg(slotId, nickname)` does NOT accept `speciesId` from the caller. The egg drop pool and `RandomService` determine the species behind a service abstraction (`HatchService`).
-- **Atomic Shop Purchases:** All purchase requirements (catalog existence, player level, sufficient coins/gems) must be validated before state mutation. Any failure results in zero currency deduction and zero inventory mutation.
+- **Authoritative Hatch Randomization & Scoped Pending Species:** `hatchEgg(slotId, nickname)` does NOT accept `speciesId` from the caller. `pendingSpeciesId` is set only on `prepareHatch(slotId)` and is cleared on successful hatch, cancel, slot replacement, or failure. Never leaks across eggs.
+- **Atomic Shop Purchases:** All purchase requirements (catalog existence, player level, sufficient coins/gems, valid quantity) must be validated before state mutation. Deduction and inventory addition happen as one synchronous logical mutation. Failed purchases produce zero state changes and emit zero events.
 - **Decoration Placement EXP Anti-Exploit:** +15 Player EXP is awarded at most once per decoration type for the lifetime of the save, tracked in `IslandState.unlockedPlacementExpIds`. Removing and re-placing does not grant EXP.
 - **Deterministic Quests with Reorder Immunity:** Daily quest selection hashes the local date with stable quest IDs and sorts templates, ensuring code reordering of `QUEST_POOL` cannot alter assigned quests for any date.
-- **Clean Store Architecture:** Stores orchestrate domain actions; pure calculations live in dedicated services. Zero circular store dependencies (`shopStore`, `decorationStore`, `questStore` consume `useGameStore` and `useInventoryStore`; `gameStore` and `inventoryStore` never import high-level feature stores).
-- **Pure Idempotent Migration:** `migrateSaveData()` is a pure normalization function. It does not perform simulation and does not depend on `Date.now()`. Boot-time simulation occurs in `loadGame()` using migrated timestamps. `schemaVersion >= 2` is canonical V2 data (`currencies.fish = 0`). `V1 -> V2 -> V2` is strictly idempotent.
+- **Acyclic Store Architecture:** `questStore` observes gameplay events (`action:pet`, `action:feed`, `action:hatch`, `action:shop_purchase`, `action:decorate`) over `GameBridge`. `gameStore`, `shopStore`, and `decorationStore` never depend on `questStore`.
+- **Simulation Timer Lifecycle:** `gameStore` exposes `startNeedsSimulation()` and `stopNeedsSimulation()`. Duplicate intervals are guarded against; cleanup occurs on unmount.
+- **Pure Idempotent Migration & Missing-Timestamp Safety:** `migrateSaveData()` is a pure normalization function. It does not call `Date.now()` or `getLocalDateString()` and does not generate daily quests. Missing historical timestamps do not default to epoch 0; boot-time initialization initializes them to `bootTime` without simulating decades of decay.
 - **Modal Input Isolation:** All modal components must use `@pointerdown.stop`, `@pointerup.stop`, `@mousedown.stop`, `@mouseup.stop`, and `@click.stop` to prevent event leaking to Phaser.
 - **Target Performance:** Solid 60 FPS on desktop, smooth 30–60 FPS on supported mobile devices. No per-frame Vue/DOM updates for gameplay entities.
 
@@ -48,14 +49,14 @@
 
 **Interfaces:**
 - Produces: `PlayerProfile`, `PlacedDecoration`, `DecorationPlot`, `DecorationDefinition`, `FoodItemDefinition`, `EggShopDefinition`, `DailyLoginState`, `ActiveQuest`, `QuestTemplate`, `QuestState`, `GameSaveDataV2`, `DECORATION_PLOTS`, `DECORATION_CATALOG`, `FOOD_CATALOG`, `EGG_CATALOG`, `QUEST_POOL`.
-- Note: `isFavorite` is removed from `OwnedPenguin` (favorite food is derived from `species.favoriteFoodId`). `lastFedAt` is added as informational/future-facing.
+- Note: `isFavorite` is removed from `OwnedPenguin` (favorite food is derived from `species.favoriteFoodId`). `lastFedAt` is added as informational/future-facing. `pendingSpeciesId?: string` added to `IncubatorSlot`.
 
 - [ ] **Step 1: Write failing tests for Phase 2 types and catalogs**
 
 ```typescript
 // packages/types/src/__tests__/types.test.ts
 import { describe, it, expect } from 'vitest';
-import type { PlayerProfile, PlacedDecoration, IslandState, OwnedPenguin, GameSaveDataV2 } from '../index';
+import type { PlayerProfile, PlacedDecoration, IslandState, OwnedPenguin, IncubatorSlot, GameSaveDataV2 } from '../index';
 
 describe('Phase 2 Types', () => {
   it('constructs valid PlayerProfile, PlacedDecoration, and IslandState with unlockedPlacementExpIds', () => {
@@ -93,6 +94,17 @@ describe('Phase 2 Types', () => {
     expect(penguin.lastFedAt).toBe(0);
     // @ts-expect-error isFavorite should not exist on OwnedPenguin
     expect(penguin.isFavorite).toBeUndefined();
+  });
+
+  it('constructs IncubatorSlot with pendingSpeciesId', () => {
+    const slot: IncubatorSlot = {
+      slotId: 1,
+      state: 'READY_TO_HATCH',
+      eggTypeId: 'basic_egg',
+      unlocked: true,
+      pendingSpeciesId: 'snowy',
+    };
+    expect(slot.pendingSpeciesId).toBe('snowy');
   });
 });
 ```
@@ -198,9 +210,9 @@ Commit: `git commit -m "feat(services): implement Phase 2 pure calculation servi
 
 **Interfaces:**
 - Consumes: `GameSaveDataV2`, `migrateSaveData()` from `StorageService.ts`.
-- Produces: Pure, side-effect-free save migration supporting canonical V2 with fish-to-sardine conversion, decoupled from boot-time simulation.
+- Produces: Pure, side-effect-free save migration supporting canonical V2 with fish-to-sardine conversion, decoupled from boot-time simulation, with safe handling of missing timestamps.
 
-- [ ] **Step 1: Write failing tests for pure V1 -> V2 migration and idempotence**
+- [ ] **Step 1: Write failing tests for pure V1 -> V2 migration, idempotence, and timestamp safety**
 
 ```typescript
 it('converts legacy currencies.fish into sardine inventory items and sets currencies.fish = 0 without side effects', () => {
@@ -229,6 +241,24 @@ it('is strictly idempotent on repeated migration (V1 -> V2 -> V2)', () => {
   const sardine = v2Second.inventory.find(i => i.itemId === 'sardine');
   expect(sardine?.quantity).toBe(10); // Not doubled
 });
+
+it('is pure and does not call Date.now() or getLocalDateString() or generate daily quests', () => {
+  const v1Data = { schemaVersion: 1 };
+  const v2 = migrateSaveData(v1Data);
+  // Does not generate today's quests during migration
+  expect(v2.questState.assignedDate).toBe('');
+  expect(v2.questState.quests).toEqual([]);
+});
+
+it('does not set epoch 0 when timestamps are missing from source data', () => {
+  const v1Data = {
+    schemaVersion: 1,
+    ownedPenguins: [{ id: 'p1', speciesId: 'snowy' }],
+  };
+  const v2 = migrateSaveData(v1Data);
+  // Missing timestamps stay 0 or unassigned so boot initialization can handle them safely
+  expect(v2.ownedPenguins[0].lastNeedsUpdateAt).toBe(0);
+});
 ```
 
 - [ ] **Step 2: Run test to verify failure**
@@ -238,49 +268,59 @@ Run: `npx vitest run apps/web/src/services/__tests__/StorageService.test.ts`.
 - [ ] **Step 3: Update `StorageService.ts` with pure V1 -> V2 migration**
 
 Implement pure migration:
+- Does NOT call `Date.now()`.
+- Does NOT call `getLocalDateString()`.
 - Converts legacy fish currency to `sardine` quantity once.
 - Sets `currencies.fish = 0`.
 - Preserves all currencies, inventory items, collection, and incubator slots.
-- Safe defaults for `dailyLogin`, `questState` (using `getLocalDateString()`), and `island.unlockedPlacementExpIds`.
-- Preserves existing timestamps without calling `simulatePenguinNeeds()`.
+- Normalizes persisted `questState` without generating new quests.
+- Preserves valid positive historical timestamps; sets missing timestamps to 0 without simulating decay.
 - Strips `isFavorite` from penguin objects.
 
 - [ ] **Step 4: Run tests to verify green**
 
 Run: `npx vitest run apps/web/src/services/__tests__/StorageService.test.ts`.
-Commit: `git commit -m "feat(storage): implement pure idempotent V1 to V2 save migration"`
+Commit: `git commit -m "feat(storage): implement pure idempotent V1 to V2 save migration with timestamp safety"`
 
 ---
 
-### Task 4: Authoritative Care, Economy & Progression State (`apps/web/src/stores/gameStore.ts`)
+### Task 4: Authoritative Care, Progression & Simulation State (`apps/web/src/stores/gameStore.ts`)
 
 **Files:**
 - Modify: `apps/web/src/stores/gameStore.ts`
 - Modify: `apps/web/src/stores/__tests__/gameStore.test.ts`
 
 **Interfaces:**
-- Consumes: `ProgressionService`, `NeedsService`, `HatchService`, `StorageService`.
-- Produces: `petPenguin()`, `feedPenguin()`, `addPlayerExp()`, `prepareHatch()`, `hatchEgg()` with flock capacity checks, `nurtureEgg()`, boot-time needs simulation.
+- Consumes: `ProgressionService`, `NeedsService`, `HatchService`, `StorageService`, `gameBridge`.
+- Produces: `petPenguin()`, `feedPenguin()`, `addPlayerExp()`, `prepareHatch()`, `cancelHatch()`, `hatchEgg()`, `nurtureEgg()`, `startNeedsSimulation()`, `stopNeedsSimulation()`, boot-time needs simulation.
+- Emits over GameBridge: `'action:pet'`, `'action:feed'`, `'action:hatch'`, `'penguin:spawn'`, `'camera:focus'`.
+- Does NOT import `questStore`.
 
-- [ ] **Step 1: Write failing tests for store actions, level transitions, and anti-exploit rules**
+- [ ] **Step 1: Write failing tests for store actions, level transitions, timer lifecycle, and hatch state**
 
 1. Petting:
    - Succeeds and grants +2 Player EXP, +8 happiness, +3 penguin EXP, **0 Coins**.
+   - Emits `'action:pet'` over GameBridge.
    - Second call within 15s fails with `{ success: false, reason: 'COOLDOWN' }` and 0 rewards.
 2. Feeding:
    - Fails if food count < 1.
-   - Succeeds without cooldown when food is available; consumes 1 food item; grants favorite food bonus (+18 Penguin EXP for Hungry + fat_salmon); updates `lastFedAt`.
+   - Succeeds without cooldown when food is available; consumes 1 food item; grants favorite food bonus (+18 Penguin EXP for Hungry + fat_salmon); updates `lastFedAt`; emits `'action:feed'`.
 3. Level-up:
    - `addPlayerExp` grants rewards ONLY when level transitions (`oldLevel < newLevel`).
    - Jumping multiple levels grants rewards for all intermediate and destination levels.
-4. Loading / Boot:
+4. Loading / Boot Timestamp Safety:
    - Loading an existing Level 2 save with 150 EXP does NOT grant duplicate level-up rewards.
-   - `initGame()` runs `simulatePenguinNeeds()` for all loaded penguins and persists the simulated state.
-5. Flock capacity & Authoritative Hatching:
+   - `initGame()` initializes `penguin.lastNeedsUpdateAt = bootTime` for penguins with `lastNeedsUpdateAt <= 0` WITHOUT simulating historical decay.
+   - `initGame()` simulates needs only for penguins with valid positive historical timestamps.
+5. Flock capacity & Scoped Hatch Pending-State:
    - Lv1 max 2 penguins: if `ownedPenguins.length === 2`, `hatchEgg(slotId, nickname)` fails with `{ success: false, reason: 'FLOCK_FULL' }`, egg remains `READY_TO_HATCH`.
-   - `hatchEgg(slotId, nickname)` does NOT take `speciesId` from the caller; resolves species authoritatively via `HatchService`.
-6. Nurture speed-up:
-   - Deducts 30s, capped at max 10 speed-ups per egg, floor at 1s remaining, 30s cooldown per slot.
+   - `prepareHatch(slotId)` assigns `slot.pendingSpeciesId = rolledSpeciesId`.
+   - `cancelHatch(slotId)` clears `slot.pendingSpeciesId = undefined`.
+   - `hatchEgg(slotId, nickname)` creates penguin, resets slot to `EMPTY`, clears `slot.pendingSpeciesId = undefined`, and emits `'action:hatch'`.
+   - `hatchEgg` does NOT accept `speciesId` from the caller.
+6. Simulation timer lifecycle:
+   - Calling `startNeedsSimulation()` multiple times creates only 1 active interval.
+   - `stopNeedsSimulation()` cleans up the active interval.
 
 - [ ] **Step 2: Run test to verify failure**
 
@@ -290,19 +330,20 @@ Run: `npx vitest run apps/web/src/stores/__tests__/gameStore.test.ts`.
 
 Update `gameStore.ts` to manage:
 - `player: PlayerProfile`.
-- Authoritative `petPenguin(ownedId)` (15s cooldown, 0 Coins).
-- Authoritative `feedPenguin(ownedId, foodId)` (no cooldown, inventory deduction, favorite food matching, `lastFedAt` timestamp update).
+- Authoritative `petPenguin(ownedId)` (15s cooldown, 0 Coins, emits `'action:pet'`).
+- Authoritative `feedPenguin(ownedId, foodId)` (no cooldown, inventory deduction, favorite food matching, `lastFedAt` update, emits `'action:feed'`).
 - Authoritative `addPlayerExp(amount)` (delegates level transition check to `ProgressionService.calculateLevelUpRewards` and grants rewards only on actual level transition).
-- Authoritative `prepareHatch(slotId)`: rolls and caches `slot.pendingSpeciesId = hatchService.rollSpeciesForEgg(...)`.
-- Authoritative `hatchEgg(slotId, nickname)`: checks `getMaxFlockCapacity()`, uses pre-rolled or rolled species from `HatchService`, does NOT accept `speciesId` argument from caller.
+- Authoritative `prepareHatch(slotId)`: rolls and assigns `slot.pendingSpeciesId = hatchService.rollSpeciesForEgg(...)`.
+- Authoritative `cancelHatch(slotId)`: clears `slot.pendingSpeciesId = undefined`.
+- Authoritative `hatchEgg(slotId, nickname)`: checks `getMaxFlockCapacity()`, consumes egg, creates penguin with `pendingSpeciesId`, clears `slot.pendingSpeciesId = undefined`, emits `'action:hatch'`.
 - Authoritative `nurtureEgg(slotId)`: 30s cooldown, 10 speed-up cap, 1s minimum floor.
-- In `initGame()`: perform pure migration, assign store state (setting `player.level` without calling `addPlayerExp` to prevent duplicate rewards), run `simulatePenguinNeeds()` on all penguins using `Date.now()`, then persist.
-- Periodic interval timer (every 10s) simulating real-time needs.
+- Simulation timer lifecycle: `startNeedsSimulation()`, `stopNeedsSimulation()`.
+- In `initGame()`: perform pure migration, assign store state (setting `player.level` without calling `addPlayerExp`), safely initialize missing timestamps to `Date.now()` without decay, simulate decay only for valid historical timestamps, then persist.
 
 - [ ] **Step 4: Run tests to verify green**
 
 Run: `npx vitest run apps/web/src/stores/__tests__/gameStore.test.ts`.
-Commit: `git commit -m "feat(store): implement authoritative care, progression, and flock capacity checks in gameStore"`
+Commit: `git commit -m "feat(store): implement authoritative care, progression, simulation lifecycle, and hatch state in gameStore"`
 
 ---
 
@@ -316,17 +357,20 @@ Commit: `git commit -m "feat(store): implement authoritative care, progression, 
 
 **Interfaces:**
 - Produces: `useShopStore()`, `buyFood()`, `buyEgg()`, `buyDecoration()`, `availableFoods`, `availableEggs`, `availableDecorations`.
-- Non-circular imports: `shopStore` imports `useGameStore` and `useInventoryStore`. Foundational stores never import `shopStore`.
+- Emits over GameBridge: `'action:shop_purchase'`.
+- Does NOT import `questStore`.
 
-- [ ] **Step 1: Write failing tests for atomic shop purchases**
+- [ ] **Step 1: Write failing tests for atomic shop purchases and event emission**
 
 1. Level requirement check: cannot buy Krill at Lv1 (returns `{ success: false, reason: 'LEVEL_LOCKED' }`), succeeds at Lv2.
 2. Currency validation: fails if insufficient coins or gems (returns `{ success: false, reason: 'INSUFFICIENT_FUNDS' }`).
-3. **Atomicity Guarantee:** When a purchase fails (e.g. level locked or insufficient coins), verify:
+3. Quantity validation: fails if quantity <= 0.
+4. **Atomicity Guarantee:** When a purchase fails, verify:
    - 0 coins deducted.
    - 0 gems deducted.
    - 0 items added to inventory.
-4. Successful purchase: deducts exact currency and adds exact item atomically.
+   - Zero `'action:shop_purchase'` events emitted.
+5. Successful purchase: deducts currency, adds inventory item, and emits `'action:shop_purchase'` atomically.
 
 - [ ] **Step 2: Run test to verify failure**
 
@@ -335,9 +379,9 @@ Run: `npx vitest run apps/web/src/stores/__tests__/shopStore.test.ts`.
 - [ ] **Step 3: Implement `apps/web/src/stores/shopStore.ts`**
 
 Implement `useShopStore` with Pinia:
-- Pre-purchase validation: checks item existence in catalogs, player level, and coin/gem balances before mutating anything.
-- Atomic mutation on success: deducts currency from `gameStore`, adds item to `inventoryStore`, and notifies `questStore.onShopPurchase()`.
-- Zero state mutation on failure.
+- Pre-purchase validation: checks quantity, catalog existence, player level, and currency balances before mutating state.
+- Atomic mutation on success: deducts currency from `gameStore`, adds item to `inventoryStore`, emits `'action:shop_purchase'` on GameBridge, and plays purchase chime.
+- Zero state mutation and zero events emitted on failure.
 
 - [ ] **Step 4: Run tests to verify green**
 
@@ -354,11 +398,12 @@ Commit: `git commit -m "feat(shop): implement atomic shopStore for food, eggs, a
 
 **Interfaces:**
 - Produces: `useDecorationStore()`, `placeDecoration()`, `removeDecoration()`, `replaceDecoration()`, `cozyRating`, `coinDropMultiplier`.
-- Non-circular imports: `decorationStore` imports `useInventoryStore` and `useGameStore`.
+- Emits over GameBridge: `'decorations:sync'`, `'action:decorate'`.
+- Does NOT import `questStore`.
 
-- [ ] **Step 1: Write failing tests for 6 anchor plots and placement EXP anti-exploit**
+- [ ] **Step 1: Write failing tests for 6 anchor plots, placement EXP anti-exploit, and event emission**
 
-1. Place item on empty Plot 1 (deducts from inventory, adds to `placedDecorations`, awards +15 Player EXP).
+1. Place item on empty Plot 1 (deducts from inventory, adds to `placedDecorations`, awards +15 Player EXP, emits `'action:decorate'`).
 2. Remove and re-place the same decoration type (does NOT award +15 Player EXP again).
 3. Reject placing on occupied plot without replace.
 4. Remove item from Plot 1 (clears plot, returns item to inventory).
@@ -377,7 +422,7 @@ Implement `useDecorationStore` managing `island.decorations` and `island.unlocke
 - Checks `unlockedPlacementExpIds` before awarding 15 Player EXP via `gameStore.addPlayerExp(15)`.
 - Places, removes, replaces items via `inventoryStore`.
 - Computes `cozyRating` and `coinDropMultiplier` using `DecorationService`.
-- Emits `decorations:sync` on GameBridge.
+- Emits `decorations:sync` and `'action:decorate'` on GameBridge.
 
 - [ ] **Step 4: Run tests to verify green**
 
@@ -386,26 +431,31 @@ Commit: `git commit -m "feat(decorations): implement decorationStore for 6 islan
 
 ---
 
-### Task 7: Daily Login & Quest State with Local Date & Hatch Quest (`apps/web/src/stores/questStore.ts`)
+### Task 7: Daily Login & Quest State (Decoupled Observer) (`apps/web/src/stores/questStore.ts`)
 
 **Files:**
 - Create: `apps/web/src/stores/questStore.ts`
 - Test: `apps/web/src/stores/__tests__/questStore.test.ts`
 
 **Interfaces:**
-- Produces: `useQuestStore()`, `claimDailyLogin()`, `recordAction()`, `claimQuestReward()`, `activeQuests`, `loginState`.
-- Non-circular imports: `questStore` imports `useGameStore` and `useInventoryStore`.
+- Produces: `useQuestStore()`, `initQuests()`, `claimDailyLogin()`, `claimQuestReward()`, `activeQuests`, `loginState`.
+- Subscribes to GameBridge: `'action:pet'`, `'action:feed'`, `'action:hatch'`, `'action:shop_purchase'`, `'action:decorate'`.
+- Unidirectional dependency: imports `useGameStore` and `useInventoryStore` for reward grants only.
 
-- [ ] **Step 1: Write failing tests for daily login streak and quests**
+- [ ] **Step 1: Write failing tests for daily login streak, decoupled quest action observer, and claim rewards**
 
 1. Daily login uses `getLocalDateString()`: claim Day 1 on fresh save.
 2. Same-day second claim is rejected.
 3. Consecutive calendar day claim advances streak to Day 2.
 4. Missed calendar day resets streak to Day 1.
 5. Claim on Day 7 loops back to Day 1 next day.
-6. `quest_hatch` increments ONLY upon successful egg hatch (placing egg into incubator does not advance quest).
-7. Action tracking updates quest count (`onPet`, `onFeed`, `onHatch`, `onShop`, `onDecorate`).
-8. Claiming completed quest awards Coins, Player EXP, Gems.
+6. Decoupled quest progress:
+   - Emitting `'action:pet'` over GameBridge increments `quest_pet`.
+   - Emitting `'action:feed'` increments `quest_feed`.
+   - Emitting `'action:hatch'` increments `quest_hatch` (successful hatch only).
+   - Emitting `'action:shop_purchase'` increments `quest_shop`.
+   - Emitting `'action:decorate'` increments `quest_decorate`.
+7. Claiming completed quest awards Coins, Player EXP, Gems via `gameStore`.
 
 - [ ] **Step 2: Run test to verify failure**
 
@@ -416,13 +466,14 @@ Run: `npx vitest run apps/web/src/stores/__tests__/questStore.test.ts`.
 Implement `useQuestStore`:
 - Calendar date checking using `QuestService.getLocalDateString()`.
 - 7-day reward calendar claims.
-- 3 deterministic active daily quests using `QuestService.getDeterministicDailyQuests()`.
-- Action recording hooks (`onHatchEgg` called strictly from `gameStore.hatchEgg` upon success).
+- `initQuests(todayStr)`: checks if `questState.assignedDate !== todayStr`; rotates quests using `QuestService.getDeterministicDailyQuests(todayStr)`.
+- Subscribes to GameBridge action events on initialization; increments corresponding quest progress.
+- Cleanly unregisters listeners on dispose/unmount.
 
 - [ ] **Step 4: Run tests to verify green**
 
 Run: `npx vitest run apps/web/src/stores/__tests__/questStore.test.ts`.
-Commit: `git commit -m "feat(quests): implement questStore for daily login calendar and deterministic daily quests"`
+Commit: `git commit -m "feat(quests): implement decoupled questStore observing GameBridge gameplay actions"`
 
 ---
 
@@ -435,11 +486,11 @@ Commit: `git commit -m "feat(quests): implement questStore for daily login calen
 - Test: `apps/web/src/services/__tests__/SoundService.test.ts`
 
 **Interfaces:**
-- Produces: `'decorations:sync'`, `'plot:clicked'`, `'effect:coin_drop'`, `'effect:level_up'` in `GameBridgeEventMap`, `playCoinDrop()`, `playLevelUp()`, `playBuySuccess()`.
+- Produces: `'decorations:sync'`, `'plot:clicked'`, `'effect:coin_drop'`, `'effect:level_up'`, `'action:pet'`, `'action:feed'`, `'action:hatch'`, `'action:shop_purchase'`, `'action:decorate'` in `GameBridgeEventMap`, `playCoinDrop()`, `playLevelUp()`, `playBuySuccess()`.
 
 - [ ] **Step 1: Write failing tests for new GameBridge events and sound chimes**
 
-Test event emission and handler invocation for Phase 2 events in `GameBridge.test.ts`. Test audio synthesis methods in `SoundService.test.ts`.
+Test event emission and handler invocation for Phase 2 events and decoupled action events in `GameBridge.test.ts`. Test audio synthesis methods in `SoundService.test.ts`.
 
 - [ ] **Step 2: Update `GameBridge.ts` and `SoundService.ts`**
 
@@ -448,7 +499,7 @@ Add typed event signatures to `GameBridgeEventMap`. Add Web Audio synthesized ch
 - [ ] **Step 3: Run tests to verify green**
 
 Run: `npx vitest run apps/web/src/game/bridge/ apps/web/src/services/__tests__/SoundService.test.ts`.
-Commit: `git commit -m "feat(bridge): add Phase 2 GameBridge events and audio synthesis chimes"`
+Commit: `git commit -m "feat(bridge): add Phase 2 GameBridge action events and audio synthesis chimes"`
 
 ---
 
@@ -506,15 +557,15 @@ Commit: `git commit -m "feat(phaser): render 2.5D anchor plot decorations, depth
 - Test: `apps/web/src/components/modals/__tests__/HatchModal.test.ts`
 
 **Interfaces:**
-- Produces: Vue 3 modal components with full pointer/click event isolation, tabbed UI, and store bindings. `HatchModal.vue` does NOT pass `speciesId` to `hatchEgg()`.
+- Produces: Vue 3 modal components with full pointer/click event isolation, tabbed UI, and store bindings. `HatchModal.vue` calls `prepareHatch(slotId)` and `cancelHatch(slotId)` to scope `pendingSpeciesId`.
 
-- [ ] **Step 1: Write failing tests for new modals and updated hatch flow**
+- [ ] **Step 1: Write failing tests for new modals and scoped hatch flow**
 
 Test:
 - `ShopModal`: tab switching, level requirement locks, atomic purchase action calling `shopStore`.
 - `QuestModal`: 7-day login claim button state, quest progress display, claim reward action.
 - `DecorationModal`: plot selection, place/remove/replace actions calling `decorationStore`.
-- `HatchModal`: calls `gameStore.prepareHatch(slotId)` on reveal; calls `gameStore.hatchEgg(slotId, nickname)` on confirm without passing `speciesId`.
+- `HatchModal`: calls `gameStore.prepareHatch(slotId)` on reveal; calls `gameStore.cancelHatch(slotId)` on modal dismiss; calls `gameStore.hatchEgg(slotId, nickname)` on confirm without passing `speciesId`.
 - `PenguinInspectModal`: food inventory selector with favorite food indicator; feeding has no cooldown; petting grants 0 coins.
 - `HatcheryModal`: nurture speed-up button with 30s cooldown and 10 uses counter; Slot 2 unlock button.
 
@@ -546,20 +597,21 @@ Commit: `git commit -m "feat(ui): implement ShopModal, QuestModal, DecorationMod
 - Test: `apps/web/src/__tests__/App.test.ts`
 
 **Interfaces:**
-- Produces: Integrated Phase 2 game shell with level progression bar, Shop button, Quests button, plot click modal opening, and automatic LevelUpModal presentation.
+- Produces: Integrated Phase 2 game shell with level progression bar, Shop button, Quests button, plot click modal opening, simulation timer lifecycle management in `App.vue`, and automatic LevelUpModal presentation.
 
-- [ ] **Step 1: Write failing tests for HUD & App integration**
+- [ ] **Step 1: Write failing tests for HUD, App integration, and simulation timer lifecycle**
 
 1. `TopBar`: shows Player Level badge (Lv. 1–10) and interactive EXP progress tooltip; shows Coins and Gems.
 2. `ShelfRack`: renders Cửa Hàng (Shop) and Nhiệm Vụ (Quests) buttons.
 3. `App.vue`: clicking Shop or Quests opens respective modals; clicking an anchor plot in Phaser opens `DecorationModal` for that plot ID.
 4. `App.vue`: level-up event triggers `LevelUpModal`.
+5. `App.vue`: starts needs simulation timer on mount; stops needs simulation timer on unmount.
 
 - [ ] **Step 2: Update `TopBar.vue`, `ShelfRack.vue`, and `App.vue`**
 
 1. In `TopBar.vue`: bind player level and EXP progress bar; format Coins and Gems with pill badges.
 2. In `ShelfRack.vue`: add wooden buttons for Shop (🛍️ Cửa Hàng) and Quests (📜 Nhiệm Vụ).
-3. In `App.vue`: wire modal states (`activeModal: 'shop' | 'quest' | 'decoration' | 'levelup'`), listen for `plot:clicked` on GameBridge, and bind level-up presentation.
+3. In `App.vue`: wire modal states (`activeModal: 'shop' | 'quest' | 'decoration' | 'levelup'`), listen for `plot:clicked` on GameBridge, bind level-up presentation, start simulation timer in `onMounted()`, and stop simulation timer in `onUnmounted()`.
 
 - [ ] **Step 3: Run tests to verify green**
 
@@ -583,14 +635,14 @@ Verify the complete player journey in `apps/web/src/__tests__/integration.test.t
 1. Starter island with Snowy (Level 1, max capacity 2).
 2. Pet Snowy -> grants Player EXP, happiness, **0 Coins**.
 3. Feed Snowy with Small Sardine (favorite food) -> hunger drops, happiness boosts, bonus Penguin EXP + coins.
-4. Purchase Krill & Wooden Bench in Shop -> coins deducted, inventory updated.
+4. Purchase Krill & Wooden Bench in Shop -> coins deducted, inventory updated atomically; failed purchase leaves currency and inventory unchanged.
 5. Place Wooden Bench on Plot 1 -> grants +15 Player EXP once, Cozy rating increases, coin multiplier applies. Removing and re-placing grants 0 EXP.
 6. Incubate Basic Egg -> Nurture speed-up decreases timer by 30s.
-7. Hatch egg -> checks flock capacity (now 2 penguins). Attempting to hatch a 3rd egg at Lv1 is blocked by flock capacity. Species is determined authoritatively without caller providing `speciesId`.
+7. Hatch egg -> checks flock capacity (now 2 penguins). Attempting to hatch a 3rd egg at Lv1 is blocked by flock capacity. Species is determined authoritatively without caller providing `speciesId`. `pendingSpeciesId` is properly cleared.
 8. Player earns EXP -> Level up to Level 2 -> capacity expands to 3, rewards granted.
 9. Claim Day 1 login reward with `getLocalDateString()` -> Coins and sardines added.
 10. Claim completed Daily Quest -> EXP and Coins added.
-11. Save to localStorage -> reload with simulated elapsed time -> verifies piecewise offline hunger/happiness decay (crossing hunger 80) and mood updates. Loading Level 2 save does not grant duplicate level-up rewards.
+11. Save to localStorage -> reload with simulated elapsed time -> verifies piecewise offline hunger/happiness decay (crossing hunger 80) and mood updates. Loading Level 2 save does not grant duplicate level-up rewards. Missing timestamps do not trigger historical decay.
 
 - [ ] **Step 2: Run full Vitest test suite**
 

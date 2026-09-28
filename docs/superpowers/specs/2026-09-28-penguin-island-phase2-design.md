@@ -2,7 +2,7 @@
 
 - **Date:** 2026-09-28
 - **Status:** Finalized & Approved for Implementation Planning
-- **Target Milestone:** Deeply engaging, self-sustaining casual social-island loop: player & penguin leveling, comprehensive care mechanics (offline & online piecewise hunger/happiness decay with deterministic mood priority), reward economy (care rewards, atomic shop sinks), daily login rewards with deterministic streak evaluation, daily quests with deterministic date + stable quest ID hashing, multi-slot incubation with speed-up limits, authoritative hatch randomization, flock capacity gating, and interactive island decoration placement on 6 anchor plots with placement EXP anti-exploit tracking.
+- **Target Milestone:** Deeply engaging, self-sustaining casual social-island loop: player & penguin leveling, comprehensive care mechanics (offline & online piecewise hunger/happiness decay with deterministic mood priority), reward economy (care rewards, atomic shop sinks), daily login rewards with deterministic streak evaluation, daily quests with deterministic date + stable quest ID hashing, multi-slot incubation with speed-up limits, authoritative hatch randomization with scoped pending-state lifecycle, flock capacity gating, and interactive island decoration placement on 6 anchor plots with placement EXP anti-exploit tracking.
 
 ---
 
@@ -42,6 +42,7 @@ Phase 2 transforms this foundation into a **self-sustaining, intrinsically rewar
        │    - Multi-slot Incubator: Basic, Frozen, Golden Eggs  │
        │    - Speed-up "Nurture" mechanic with 30s cooldown     │
        │    - Authoritative Hatch Randomization via Service     │
+       │    - Scoped pendingSpeciesId lifecycle                 │
        └────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -67,18 +68,20 @@ Phase 2 transforms this foundation into a **self-sustaining, intrinsically rewar
 2. **Store Orchestration & Pure Calculation Services:**
    - Stores (`gameStore`, `inventoryStore`, `shopStore`, `decorationStore`, `questStore`) orchestrate state and domain actions.
    - Heavy calculation algorithms (piecewise decay, mood derivation, EXP thresholds, cozy rating, daily quest selection, login streak evaluation) live in **pure, dedicated services** (`ProgressionService`, `NeedsService`, `DecorationService`, `QuestService`, `HatchService`). Services are pure TypeScript, zero Pinia imports, and easily unit-tested.
-   - **Zero Circular Store Dependencies:**
+   - **Decoupled Store Dependency Architecture (Zero Circular Dependencies):**
      - Leaf services depend only on `@penguin/types` and `@penguin/game-data`.
      - `gameStore` and `inventoryStore` are foundational stores that never import other stores.
      - `shopStore` imports `useGameStore` and `useInventoryStore`.
      - `decorationStore` imports `useInventoryStore` and `useGameStore`.
-     - `questStore` imports `useGameStore` and `useInventoryStore`.
+     - **`questStore` observes gameplay events over `GameBridge`:** `gameStore`, `shopStore`, and `decorationStore` **never** import `questStore`. Instead, they emit typed action events (`action:pet`, `action:feed`, `action:hatch`, `action:shop_purchase`, `action:decorate`). `questStore` listens to these events to update quest progress. `questStore` may import `gameStore` and `inventoryStore` to grant claim rewards, resulting in a strictly unidirectional, acyclic dependency graph.
 3. **Pure Save Migration vs. Boot-Time Simulation:**
-   - `migrateSaveData(data)` is a **pure, side-effect-free** normalization function (does not take `Date.now()`, does not mutate timestamps, preserves `currencies.fish = 0` for V2 idempotence).
-   - `loadGame()` / `initGame()` runs `migrateSaveData()` first, executes `simulatePenguinNeeds(penguin, Date.now())` second, and persists the updated state.
+   - `migrateSaveData(data)` is a **strictly pure, deterministic, and idempotent** normalization function. It does **not** call `Date.now()` or `getLocalDateString()`, and does **not** generate or rotate daily quests.
+   - Preserves `currencies.fish = 0` for V2 idempotence.
+   - Preserves valid historical timestamps; if missing, does not default to Unix epoch 0 (which would cause decades of simulated starvation).
+   - `loadGame()` / `initGame()` executes `migrateSaveData()` first. If a penguin has no valid historical timestamp (`<= 0`), its `lastNeedsUpdateAt` is initialized to the current boot timestamp **without simulating historical decay**. If a valid historical timestamp exists, `simulatePenguinNeeds(penguin, bootTime)` runs. Daily quests and login streaks are initialized/rotated using the current local date after migration.
 4. **Authoritative State & Anti-Exploit:**
    - Cooldowns, inventory checks, price deductions, flock capacity limits, and level-up rewards are evaluated strictly within store actions and services.
-   - Shop purchases are strictly atomic: all requirements are verified before any mutation; failures produce 0 state changes.
+   - Shop purchases are strictly atomic: all requirements are verified before any mutation; failures produce zero state changes and emit zero success events.
    - Decoration placement EXP (+15 EXP) is awarded at most once per decoration type for the lifetime of the save.
 
 ---
@@ -213,7 +216,13 @@ export function simulatePenguinNeeds(
   - Before 960s: happiness decays at 1 point / 180s. At 960s, $\lfloor 960 / 180 \rfloor = 5$ points decay.
   - After 960s: happiness decays at 1 point / 90s for remaining elapsed time.
 
-### 4.3 Deterministic Mood Priority Rules
+### 4.3 Simulation Timer Lifecycle
+`gameStore` manages an explicit start/stop lifecycle for the 10-second needs simulation interval:
+- `gameStore.startNeedsSimulation()`: clears any active interval first (`stopNeedsSimulation()`), then launches `setInterval(() => tickNeedsSimulation(), 10000)`. Multiple calls to `boot` or `initGame` never create duplicate running timers.
+- `gameStore.stopNeedsSimulation()`: clears the active interval and resets `needsSimulationIntervalId = null`.
+- `App.vue` invokes `startNeedsSimulation()` in `onMounted()` and `stopNeedsSimulation()` in `onUnmounted()`.
+
+### 4.4 Deterministic Mood Priority Rules
 Penguin mood is derived in strict priority order:
 
 1. **`hungry`:** `hunger >= 80` (Crying for food takes absolute priority over other moods).
@@ -236,7 +245,7 @@ export function derivePenguinMood(
 }
 ```
 
-### 4.4 Cumulative Penguin EXP & Level Thresholds (Lv. 1–10)
+### 4.5 Cumulative Penguin EXP & Level Thresholds (Lv. 1–10)
 ```typescript
 export const PENGUIN_EXP_THRESHOLDS = [
   0,     // Level 1
@@ -434,7 +443,8 @@ All care actions and rewards are strictly executed and validated inside Pinia st
  4. Grant Coins (Feeding only; Petting grants 0 Coins)
  5. Add EXP to player & penguin state
  6. Emit GameBridge Events (particles, sound)
- 7. Trigger debounced save
+ 7. Emit Decoupled Action Event ('action:pet' / 'action:feed')
+ 8. Trigger debounced save
 ```
 
 ### 6.3 Explicit Care Rewards
@@ -455,18 +465,20 @@ The Island Shop (`shopStore.ts`) sells items across three categories: Food, Eggs
 
 **Atomicity Guarantee:**
 1. **Pre-Purchase Validation:**
+   - Verify `quantity > 0` and is an integer.
    - Verify item exists in `FOOD_CATALOG`, `EGG_CATALOG`, or `DECORATION_CATALOG`.
    - Verify `gameStore.player.level >= item.playerLevelRequired`.
-   - Calculate total cost in Coins and Gems.
+   - Calculate total cost in Coins and Gems (`unitPrice * quantity`).
    - Verify `gameStore.currencies.coins >= totalCoins` and `gameStore.currencies.gems >= totalGems`.
 2. **Failure Handling:**
    - If any validation fails, the operation immediately aborts and returns `{ success: false, reason: '...' }`.
-   - **Zero currency is deducted, zero items are added.**
+   - **Zero currency is deducted, zero items are added, and no events are emitted.**
 3. **Atomic Execution:**
    - If all validations pass:
      - Deduct exact Coins and Gems from `gameStore.currencies`.
      - Add exact item quantity to `inventoryStore`.
-     - Notify `questStore.onShopPurchase()`.
+     - Emit `gameBridge.emit('action:shop_purchase', { itemId, category: item.category, quantity })`.
+     - Play purchase audio chime.
      - Return `{ success: true }`.
 
 ---
@@ -497,7 +509,7 @@ export const DECORATION_PLOTS: DecorationPlot[] = [
 
 ### 7.2 Plot Rules & Placement EXP Anti-Exploit
 - Each plot can hold **at most one** decoration (`plotId: 1..6`).
-- **Placement Flow:** In `DecorationModal.vue`, player clicks an empty plot -> selects decoration from inventory -> item moves from inventory to `island.decorations`.
+- **Placement Flow:** In `DecorationModal.vue`, player clicks an empty plot -> selects decoration from inventory -> item moves from inventory to `island.decorations`. Emits `'action:decorate'` over `GameBridge`.
 - **Remove / Replace Flow:** Player clicks an occupied plot -> chooses "Thu Hồi" (returns to inventory) or "Thay Thế" (swaps with another item in inventory).
 - **Placement EXP Anti-Exploit:**
   - Placing a decoration awards `+15 Player EXP`, but **at most once per decoration type for the lifetime of the save**.
@@ -749,7 +761,7 @@ export function getDeterministicDailyQuests(dateStr: string): ActiveQuest[] {
 }
 ```
 
-*Note on Hatch Quest:* `quest_hatch` increments **strictly upon successful egg hatch** in `gameStore.hatchEgg()` when an `OwnedPenguin` is created. Placing an egg into the incubator does not complete this quest. If hatching is blocked by flock capacity, progress does not increment.
+*Note on Hatch Quest:* `quest_hatch` increments **strictly upon successful egg hatch** when `'action:hatch'` is emitted and an `OwnedPenguin` is created. Placing an egg into the incubator does not complete this quest. If hatching is blocked by flock capacity, progress does not increment.
 
 ---
 
@@ -808,15 +820,17 @@ export const EGG_CATALOG: Record<string, EggShopDefinition> = {
   `slot.targetHatchTime = Math.max(now + 1000, slot.targetHatchTime - 30000)`.
 - **Scope:** Available only while the game is open.
 
-### 9.3 Authoritative Hatch Randomization
+### 9.3 Authoritative Hatch Randomization & Pending-State Lifecycle
 `hatchEgg(slotId: number, nickname: string)` takes **strictly `slotId` and `nickname`**. It **does NOT accept `speciesId` from the UI or caller**.
 
-- Species resolution is delegated to `HatchService.rollSpeciesForEgg(eggTypeId)` using the egg's drop pool and `RandomService`.
-- If the UI needs to display the hatched species during the reveal animation stage (wobble -> crack -> burst -> reveal):
-  - `gameStore.prepareHatch(slotId)` pre-determines and saves `slot.pendingSpeciesId = hatchService.rollSpeciesForEgg(slot.eggTypeId)`.
-  - When the player inputs a nickname and confirms, `gameStore.hatchEgg(slotId, nickname)` creates the `OwnedPenguin` using `slot.pendingSpeciesId`.
-  - Closing the modal without confirming preserves `slot.pendingSpeciesId` so reopening does not re-roll.
-  - This architecture cleanly supports future Phase 4 server authorization where species is resolved exclusively on the backend.
+- **Scoped Pending-State Lifecycle:**
+  - `pendingSpeciesId` is strictly scoped to the active egg in the slot.
+  - Set **only** when `gameStore.prepareHatch(slotId)` is explicitly called on a valid egg with `slot.state === 'READY_TO_HATCH'`.
+  - Species resolution is delegated to `HatchService.rollSpeciesForEgg(slot.eggTypeId)` using the egg's drop pool and `RandomService`.
+  - When the player inputs a nickname and confirms: `gameStore.hatchEgg(slotId, nickname)` creates the `OwnedPenguin`, transitions `slot.state = 'EMPTY'`, `slot.eggTypeId = undefined`, and **clears `slot.pendingSpeciesId = undefined`**.
+  - On cancellation (`gameStore.cancelHatch(slotId)`), slot replacement, slot reset, or any failed hatch flow: `slot.pendingSpeciesId = undefined`.
+  - `pendingSpeciesId` is never carried over to another egg or another slot.
+  - Emits `'action:hatch'` over `GameBridge` upon successful creation of the `OwnedPenguin`.
 
 ---
 
@@ -860,7 +874,7 @@ export interface IncubatorSlot {
   unlockCost?: number;
   lastNurtureAt?: number;
   nurtureCount?: number;
-  pendingSpeciesId?: string;  // Pre-determined by HatchService for animation consistency
+  pendingSpeciesId?: string;  // Scoped strictly to current hatch flow
 }
 
 // --- Island Decorations ---
@@ -908,11 +922,13 @@ export interface QuestState {
 ## 11. Save Migration & Offline Simulation Lifecycle
 
 ### 11.1 Pure Migration (`migrateSaveData`)
-`migrateSaveData(data: Record<string, unknown>): GameSaveDataV2` is a **pure, side-effect-free** function:
-- Does not call `Date.now()`.
-- Does not run needs simulation.
+`migrateSaveData(data: Record<string, unknown>): GameSaveDataV2` is a **strictly pure, deterministic, and idempotent** function:
+- Does NOT call `Date.now()`.
+- Does NOT call `getLocalDateString()`.
+- Does NOT generate or rotate daily quests; preserves persisted `questState` or sets empty `{ assignedDate: '', quests: [] }`.
 - Retires legacy `currencies.fish` by adding count to `sardine` inventory and setting `currencies.fish = 0`.
 - Idempotent: `migrateSaveData(migrateSaveData(v1))` preserves `currencies.fish = 0` without duplicate conversion.
+- Preserves valid positive historical timestamps; if missing, does not set epoch 0.
 
 ```typescript
 export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
@@ -950,23 +966,28 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
 
   const rawPenguins = (data.ownedPenguins as Record<string, unknown>[]) ?? [];
   const rawTimestamps = (data.timestamps as Record<string, unknown>) ?? {};
-  const baseTimestamp = Number(rawTimestamps.lastSavedAt ?? rawTimestamps.createdAt ?? 0);
+  const savedAt = Number(rawTimestamps.lastSavedAt ?? rawTimestamps.createdAt ?? 0);
 
-  const ownedPenguins: OwnedPenguin[] = rawPenguins.map((p) => ({
-    id: String(p.id),
-    speciesId: String(p.speciesId),
-    nickname: String(p.nickname ?? 'Cánh Cụt'),
-    level: Number(p.level ?? 1),
-    exp: Number(p.exp ?? 0),
-    happiness: Number(p.happiness ?? 80),
-    hunger: Number(p.hunger ?? 20),
-    mood: (p.mood as PenguinMood) ?? 'happy',
-    lastPetAt: Number(p.lastPetAt ?? 0),
-    lastFedAt: Number(p.lastFedAt ?? 0),
-    lastNeedsUpdateAt: Number(p.lastNeedsUpdateAt ?? baseTimestamp),
-    generation: Number(p.generation ?? 1),
-    createdAt: Number(p.createdAt ?? baseTimestamp),
-  }));
+  const ownedPenguins: OwnedPenguin[] = rawPenguins.map((p) => {
+    const rawNeedsUpdate = Number(p.lastNeedsUpdateAt ?? 0);
+    // Preserve valid positive historical timestamp; if missing/invalid, use savedAt if > 0, else 0
+    const lastNeedsUpdateAt = rawNeedsUpdate > 0 ? rawNeedsUpdate : (savedAt > 0 ? savedAt : 0);
+    return {
+      id: String(p.id),
+      speciesId: String(p.speciesId),
+      nickname: String(p.nickname ?? 'Cánh Cụt'),
+      level: Number(p.level ?? 1),
+      exp: Number(p.exp ?? 0),
+      happiness: Number(p.happiness ?? 80),
+      hunger: Number(p.hunger ?? 20),
+      mood: (p.mood as PenguinMood) ?? 'happy',
+      lastPetAt: Number(p.lastPetAt ?? 0),
+      lastFedAt: Number(p.lastFedAt ?? 0),
+      lastNeedsUpdateAt,
+      generation: Number(p.generation ?? 1),
+      createdAt: Number(p.createdAt ?? savedAt),
+    };
+  });
 
   const rawSlots = (data.incubatorSlots as Record<string, unknown>[]) ?? [];
   const incubatorSlots: IncubatorSlot[] = [
@@ -1003,10 +1024,10 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     currentStreak: Number(rawDailyLogin.currentStreak ?? 1),
   };
 
-  const todayStr = getLocalDateString();
+  const rawQuestState = (data.questState as Record<string, unknown>) ?? {};
   const questState: QuestState = {
-    assignedDate: todayStr,
-    quests: getDeterministicDailyQuests(todayStr),
+    assignedDate: String(rawQuestState.assignedDate ?? ''),
+    quests: (rawQuestState.quests as ActiveQuest[]) ?? [],
   };
 
   const rawPlayer = (data.player as Record<string, unknown>) ?? {};
@@ -1028,9 +1049,9 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     dailyLogin,
     questState,
     timestamps: {
-      createdAt: Number(rawTimestamps.createdAt ?? baseTimestamp),
-      lastSavedAt: Number(rawTimestamps.lastSavedAt ?? baseTimestamp),
-      lastLoginAt: Number(rawTimestamps.lastLoginAt ?? baseTimestamp),
+      createdAt: Number(rawTimestamps.createdAt ?? savedAt),
+      lastSavedAt: Number(rawTimestamps.lastSavedAt ?? savedAt),
+      lastLoginAt: Number(rawTimestamps.lastLoginAt ?? savedAt),
     },
   };
 }
@@ -1039,11 +1060,17 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
 ### 11.2 Boot-Time Simulation Lifecycle in `loadGame()`
 When `gameStore.initGame()` runs on game boot:
 1. Load raw JSON from storage.
-2. `const dataV2 = migrateSaveData(rawData);` (Pure migration)
-3. For each penguin in `dataV2.ownedPenguins`:
-   `simulatePenguinNeeds(penguin, Date.now());` (Simulation using migrated `lastNeedsUpdateAt`)
-4. Populate Pinia stores with simulated state without triggering level-up rewards.
-5. Persist the updated state to storage.
+2. `const dataV2 = migrateSaveData(rawData);` (Pure normalization)
+3. `const bootTime = Date.now();`
+4. For each penguin in `dataV2.ownedPenguins`:
+   - If `!penguin.lastNeedsUpdateAt || penguin.lastNeedsUpdateAt <= 0`:
+     `penguin.lastNeedsUpdateAt = bootTime;` (No valid historical timestamp: initialize to bootTime without simulating decay)
+   - Else:
+     `simulatePenguinNeeds(penguin, bootTime);` (Valid historical timestamp: simulate elapsed needs decay)
+5. Populate Pinia stores with simulated state without triggering level-up rewards.
+6. Initialize/rotate daily quests via `questStore.initQuests(getLocalDateString())`.
+7. Persist the updated state to storage.
+8. `gameStore.startNeedsSimulation()`: starts the 10-second interval cleanly.
 
 ---
 
@@ -1062,6 +1089,13 @@ export interface GameBridgeEventMap {
   'camera:focus': { x: number; y: number };
   'effect:coin_drop': { x: number; y: number; amount: number };
   'effect:level_up': { newLevel: number };
+
+  // --- Decoupled Gameplay Action Events (Observed by QuestStore & Audio) ---
+  'action:pet': { ownedId: string; penguin: OwnedPenguin };
+  'action:feed': { ownedId: string; foodId: string; penguin: OwnedPenguin };
+  'action:hatch': { ownedId: string; penguin: OwnedPenguin };
+  'action:shop_purchase': { itemId: string; category: string; quantity: number };
+  'action:decorate': { plotId: number; decorationId: string };
 }
 ```
 
@@ -1090,6 +1124,10 @@ The bottom shelf rack adds two prominent, nostalgic wooden/ice buttons:
    - Shows current placed item, Cozy rating breakdown, and inventory placement drawer.
 4. **`LevelUpModal.vue`:**
    - Presentation-only celebration modal triggered when player levels up, showing rewards already granted by the store.
+5. **`HatchModal.vue`:**
+   - Prepares hatch via `gameStore.prepareHatch(slotId)` upon reveal.
+   - Confirms hatch via `gameStore.hatchEgg(slotId, nickname)` without caller dictating species.
+   - Cancels hatch via `gameStore.cancelHatch(slotId)` if closed before confirmation.
 
 ---
 
@@ -1100,29 +1138,33 @@ The Phase 2 implementation must include comprehensive automated tests covering a
 1. **`test('V1 -> V2 migration preserves existing currencies, inventory, and penguins without loss')`**
 2. **`test('V1 -> V2 migration converts legacy currencies.fish into sardine inventory items and sets currencies.fish = 0')`**
 3. **`test('V1 -> V2 migration is idempotent when run repeatedly (V1 -> V2 -> V2 preserves currencies.fish = 0 without re-converting)')`**
-4. **`test('offline hunger decay increases hunger by 1 point per 120s for normal species, clamped to 100')`**
-5. **`test('offline hunger decay increases hunger by 1 point per 96s for hungry species (1.25x accumulation), clamped to 100')`**
-6. **`test('normal species starting at hunger 70 reaches 80 after 1200s, decaying 6 happiness before 80 and 1/90s thereafter')`**
-7. **`test('hungry species starting at hunger 70 reaches 80 after 960s, decaying 5 happiness before 80 and 1/90s thereafter')`**
-8. **`test('mood priority derives hungry when hunger >= 80, sad when happiness <= 25, happy when happiness >= 80')`**
-9. **`test('petting enforces 15-second cooldown per penguin, grants strictly 0 coins, and rejects duplicate calls with zero rewards')`**
-10. **`test('feeding consumes exact food item atomically without cooldown and updates lastFedAt')`**
-11. **`test('favorite food bonus grants 1.5x hunger, 2.0x happiness, bonus EXP, extra coins, and 18 Penguin EXP for Hungry species')`**
-12. **`test('penguin cumulative EXP thresholds correctly calculate level up from 1 to 10')`**
-13. **`test('player cumulative EXP thresholds correctly calculate level up from 1 to 10 and grant rewards automatically on transition')`**
-14. **`test('loading an existing Level 2 save does not grant duplicate level-up rewards')`**
-15. **`test('crossing multiple levels in one EXP grant awards rewards for all attained levels sequentially')`**
-16. **`test('hatchEgg determines species authoritatively via egg drop pool and does not accept speciesId from caller')`**
-17. **`test('shop purchase validates requirements atomically; failure produces zero currency and inventory changes')`**
-18. **`test('Cozy Rating recalculates dynamically from placed decorations and caps coin bonus at +25%')`**
-19. **`test('decoration plots enforce maximum 1 decoration per plot and support replace/remove')`**
-20. **`test('decoration placement EXP (+15 EXP) is granted once per decoration type and cannot be farmed by remove/replace')`**
-21. **`test('daily login rejects same-day second claim and grants reward once per calendar day using getLocalDateString()')`**
-22. **`test('daily login resets streak to Day 1 when one or more calendar days are missed, loops after Day 7')`**
-23. **`test('daily quest selection is deterministic by date + stable quest IDs, immune to QUEST_POOL array reordering')`**
-24. **`test('daily hatch quest increments only upon successful egg hatch creating an OwnedPenguin')`**
-25. **`test('flock capacity gates hatching when at maximum capacity without consuming egg or granting rewards')`**
-26. **`test('incubator speed-up respects 30s cooldown, max 10 speed-ups per egg, and 1s minimum floor')`**
+4. **`test('V1 -> V2 migration is pure and does not call Date.now() or getLocalDateString()')`**
+5. **`test('boot initialization with missing timestamp initializes lastNeedsUpdateAt without simulating historical decay')`**
+6. **`test('offline hunger decay increases hunger by 1 point per 120s for normal species, clamped to 100')`**
+7. **`test('offline hunger decay increases hunger by 1 point per 96s for hungry species (1.25x accumulation), clamped to 100')`**
+8. **`test('normal species starting at hunger 70 reaches 80 after 1200s, decaying 6 happiness before 80 and 1/90s thereafter')`**
+9. **`test('hungry species starting at hunger 70 reaches 80 after 960s, decaying 5 happiness before 80 and 1/90s thereafter')`**
+10. **`test('mood priority derives hungry when hunger >= 80, sad when happiness <= 25, happy when happiness >= 80')`**
+11. **`test('petting enforces 15-second cooldown per penguin, grants strictly 0 coins, and rejects duplicate calls with zero rewards')`**
+12. **`test('feeding consumes exact food item atomically without cooldown and updates lastFedAt')`**
+13. **`test('favorite food bonus grants 1.5x hunger, 2.0x happiness, bonus EXP, extra coins, and 18 Penguin EXP for Hungry species')`**
+14. **`test('penguin cumulative EXP thresholds correctly calculate level up from 1 to 10')`**
+15. **`test('player cumulative EXP thresholds correctly calculate level up from 1 to 10 and grant rewards automatically on transition')`**
+16. **`test('loading an existing Level 2 save does not grant duplicate level-up rewards')`**
+17. **`test('crossing multiple levels in one EXP grant awards rewards for all attained levels sequentially')`**
+18. **`test('hatchEgg determines species authoritatively via egg drop pool and does not accept speciesId from caller')`**
+19. **`test('pendingSpeciesId is cleared on successful hatch, cancel, or slot reset and never leaks between eggs')`**
+20. **`test('shop purchase validates requirements atomically; failure produces zero currency, zero inventory changes, and zero events')`**
+21. **`test('Cozy Rating recalculates dynamically from placed decorations and caps coin bonus at +25%')`**
+22. **`test('decoration plots enforce maximum 1 decoration per plot and support replace/remove')`**
+23. **`test('decoration placement EXP (+15 EXP) is granted once per decoration type and cannot be farmed by remove/replace')`**
+24. **`test('daily login rejects same-day second claim and grants reward once per calendar day using getLocalDateString()')`**
+25. **`test('daily login resets streak to Day 1 when one or more calendar days are missed, loops after Day 7')`**
+26. **`test('daily quest selection is deterministic by date + stable quest IDs, immune to QUEST_POOL array reordering')`**
+27. **`test('daily hatch quest increments only upon successful egg hatch creating an OwnedPenguin')`**
+28. **`test('gameStore simulation timer lifecycle starts cleanly without duplicate intervals and stops on cleanup')`**
+29. **`test('flock capacity gates hatching when at maximum capacity without consuming egg or granting rewards')`**
+30. **`test('incubator speed-up respects 30s cooldown, max 10 speed-ups per egg, and 1s minimum floor')`**
 
 ---
 
@@ -1139,10 +1181,11 @@ The Phase 2 implementation must include comprehensive automated tests covering a
 
 Phase 2 will be accepted as complete when:
 1. **Flock Progression & Capacity:** Feeding and petting Snowy or new penguins properly updates hunger, happiness, and EXP. Reaching 100 EXP advances the penguin to Level 2. Flock capacity gates hatching when at maximum.
-2. **Piecewise Offline Simulation:** Changing system time or mocking `lastNeedsUpdateAt` demonstrates accurate piecewise offline hunger and happiness decay on reload (starting 70 hunger reaches 80 after 1200s for normal, 960s for hungry).
-3. **Island Shop & Economy:** Player can earn Coins from caring, buy Krill, Eggs, or a Wooden Bench in the Shop, and observe correct balance deductions. Petting awards strictly 0 Coins. Failed purchases produce zero changes.
+2. **Piecewise Offline Simulation:** Changing system time or mocking `lastNeedsUpdateAt` demonstrates accurate piecewise offline hunger and happiness decay on reload (starting 70 hunger reaches 80 after 1200s for normal, 960s for hungry). Missing timestamps initialize safely without simulating historical decay.
+3. **Island Shop & Economy:** Player can earn Coins from caring, buy Krill, Eggs, or a Wooden Bench in the Shop, and observe correct balance deductions. Petting awards strictly 0 Coins. Failed purchases produce zero changes and zero events.
 4. **Anchor Plot Decoration & EXP Anti-Exploit:** Player can place the Wooden Bench on Plot 1, receive 15 EXP once, verify its 2.5D visual appearance on the island canvas, and observe the dynamically derived Cozy Rating bonus. Removing and re-placing does not farm EXP.
 5. **Daily Quests & Streak:** Player can claim Day 1 login reward and complete deterministic daily quests. Hatch quest completes only on successful hatch. Reordering quest templates preserves assignments.
-6. **Incubation & Authoritative Hatching:** Player can nurture an incubating egg up to 10 times with 30s cooldown down to 1s floor. Hatching determines species authoritatively without accepting speciesId from caller.
-7. **Pure Flawless Migration:** Pure `migrateSaveData()` converts fish currency to sardines, sets fish to 0, and upgrades the save to V2 idempotently without console errors, followed by boot-time simulation.
-8. **Automated Verification:** All Phase 1 and Phase 2 Vitest tests must pass 100%, including the required Phase 2 integration scenarios, with a clean `npm run build`.
+6. **Incubation & Authoritative Hatching:** Player can nurture an incubating egg up to 10 times with 30s cooldown down to 1s floor. Hatching determines species authoritatively without accepting speciesId from caller. `pendingSpeciesId` lifecycle is properly scoped and cleared.
+7. **Pure Flawless Migration:** Pure `migrateSaveData()` converts fish currency to sardines, sets fish to 0, and upgrades the save to V2 idempotently without calling `Date.now()` or `getLocalDateString()`. Boot-time simulation executes safely afterwards.
+8. **Decoupled Architecture & Simulation Lifecycle:** Zero circular store dependencies; simulation timer starts and stops cleanly without duplicate intervals.
+9. **Automated Verification:** All Phase 1 and Phase 2 Vitest tests must pass 100%, including the required Phase 2 integration scenarios, with a clean `npm run build`.
