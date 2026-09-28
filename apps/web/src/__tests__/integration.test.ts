@@ -40,19 +40,19 @@ describe('Phase 1 Integration - Complete Player Journey', () => {
     // Initial resources: 50 sardines, 1 basic egg
     expect(inventory.getItemCount('sardine')).toBe(50);
     expect(inventory.getItemCount('basic_egg')).toBe(1);
-    expect(game.currencies.fish).toBe(50);
+    expect(game.currencies.fish).toBe(0);
 
     // 2. Interact with penguin (Pet increases happiness/excitement, Feed consumes 1 sardine)
     const initialHappiness = starterPenguin.happiness;
     const petSuccess = game.petPenguin(starterPenguin.id);
     expect(petSuccess).toBe(true);
-    expect(starterPenguin.happiness).toBe(Math.min(100, initialHappiness + 5));
-    expect(starterPenguin.mood).toBe('excited');
+    expect(starterPenguin.happiness).toBe(Math.min(100, initialHappiness + 8));
+    expect(starterPenguin.mood).toBe('happy');
 
     const feedSuccess = game.feedPenguin(starterPenguin.id);
     expect(feedSuccess).toBe(true);
     expect(inventory.getItemCount('sardine')).toBe(49);
-    expect(game.currencies.fish).toBe(49);
+    expect(game.currencies.fish).toBe(0);
     expect(starterPenguin.mood).toBe('happy');
 
     // 3. Place Basic Egg into Incubator Slot 1
@@ -106,7 +106,7 @@ describe('Phase 1 Integration - Complete Player Journey', () => {
 
     expect(reloadedInventory.getItemCount('sardine')).toBe(49);
     expect(reloadedInventory.getItemCount('basic_egg')).toBe(0);
-    expect(reloadedGame.currencies.fish).toBe(49);
+    expect(reloadedGame.currencies.fish).toBe(0);
     expect(reloadedCollection.isDiscovered(hatchedPenguin!.speciesId)).toBe(true);
     expect(reloadedGame.getSlotById(1)?.state).toBe('EMPTY');
   });
@@ -142,7 +142,7 @@ describe('Phase 1 Integration - Complete Player Journey', () => {
     game.feedPenguin(starterId);
     gameBridge.emit('penguin:action', { ownedId: starterId, action: 'feed' });
     expect(eatSpy).toHaveBeenCalled();
-    expect(game.currencies.fish).toBe(49);
+    expect(game.currencies.fish).toBe(0);
 
     // 4. Placing egg & readying
     game.placeEggInIncubator(1, 'basic_egg');

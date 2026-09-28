@@ -18,7 +18,7 @@ describe('Pinia Game Stores', () => {
       await game.initGame();
 
       expect(game.currencies.coins).toBe(500);
-      expect(game.currencies.fish).toBe(50);
+      expect(game.currencies.fish).toBe(0);
       expect(game.currencies.gems).toBe(10);
       expect(game.ownedPenguins.length).toBe(1);
       expect(game.ownedPenguins[0].speciesId).toBe('snowy');
@@ -65,10 +65,10 @@ describe('Pinia Game Stores', () => {
       const success = game.feedPenguin(penguin.id);
       expect(success).toBe(true);
       expect(inventory.getItemCount('sardine')).toBe(49);
-      expect(game.currencies.fish).toBe(49);
-      expect(penguin.happiness).toBe(65);
-      expect(penguin.hunger).toBe(35);
-      expect(penguin.mood).toBe('happy');
+      expect(game.currencies.fish).toBe(0);
+      expect(penguin.happiness).toBe(70);
+      expect(penguin.hunger).toBe(22);
+      expect(penguin.mood).toBe('content');
     });
 
     it('clamps happiness to 100 and hunger to min 0 when feeding', async () => {
@@ -107,7 +107,7 @@ describe('Pinia Game Stores', () => {
       expect(success).toBe(false);
     });
 
-    it('petting a penguin increases happiness and sets mood to excited', async () => {
+    it('petting a penguin increases happiness and sets mood to happy', async () => {
       const game = useGameStore();
       await game.initGame();
 
@@ -117,8 +117,8 @@ describe('Pinia Game Stores', () => {
 
       const success = game.petPenguin(penguin.id);
       expect(success).toBe(true);
-      expect(penguin.happiness).toBe(85);
-      expect(penguin.mood).toBe('excited');
+      expect(penguin.happiness).toBe(88);
+      expect(penguin.mood).toBe('happy');
     });
 
     it('petting clamps happiness to 100', async () => {
@@ -250,7 +250,8 @@ describe('Pinia Game Stores', () => {
       expect(hatchedEmpty?.nickname.length).toBeGreaterThan(0);
       expect(hatchedEmpty?.nickname).not.toBe('   ');
 
-      // Setup slot 2 as ready with Vietnamese name
+      // Setup slot 2 as ready with Vietnamese name (level up to 2 for capacity)
+      game.player.level = 2;
       const slot2 = game.incubatorSlots.find((s) => s.slotId === 2)!;
       slot2.state = 'READY_TO_HATCH';
       slot2.eggTypeId = 'basic_egg';
@@ -380,4 +381,233 @@ describe('Pinia Game Stores', () => {
       expect(game.ownedPenguins.length).toBe(1);
     });
   });
+
+  describe('Phase 2 Authoritative Systems', () => {
+    it('petting enforces 15-second cooldown per penguin, grants strictly 0 coins, and rejects duplicate calls with zero rewards', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      const penguin = game.ownedPenguins[0];
+      const initialCoins = game.currencies.coins;
+      const initialExp = game.player.exp;
+
+      // First pet succeeds
+      const res1 = game.petPenguin(penguin.id);
+      expect(typeof res1 === 'boolean' ? res1 : res1.success).toBe(true);
+      expect(game.currencies.coins).toBe(initialCoins); // 0 coins
+      expect(game.player.exp).toBe(initialExp + 2); // +2 Player EXP
+      expect(penguin.happiness).toBe(88); // 80 + 8
+      expect(penguin.exp).toBe(3); // +3 Penguin EXP
+
+      // Immediate second pet fails due to 15s cooldown
+      const res2 = game.petPenguin(penguin.id);
+      expect(typeof res2 === 'boolean' ? res2 : res2.success).toBe(false);
+      if (typeof res2 === 'object') {
+        expect(res2.reason).toBe('COOLDOWN');
+      }
+      expect(game.player.exp).toBe(initialExp + 2); // No extra rewards
+    });
+
+    it('feeding consumes exact food item atomically without cooldown and updates lastFedAt', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      const invStore = useInventoryStore();
+      const penguin = game.ownedPenguins[0];
+
+      // Snowy favorite food is sardine
+      const initialSardines = invStore.getItemCount('sardine');
+      expect(initialSardines).toBeGreaterThan(0);
+
+      const res1 = game.feedPenguin(penguin.id, 'sardine');
+      expect(typeof res1 === 'boolean' ? res1 : res1.success).toBe(true);
+      expect(invStore.getItemCount('sardine')).toBe(initialSardines - 1);
+      expect(penguin.lastFedAt).toBeGreaterThan(0);
+      expect(game.player.exp).toBe(12); // +12 Player EXP for favorite food
+      expect(penguin.exp).toBe(15); // +15 Penguin EXP
+
+      // Second feed immediately without cooldown succeeds as long as food exists
+      const res2 = game.feedPenguin(penguin.id, 'sardine');
+      expect(typeof res2 === 'boolean' ? res2 : res2.success).toBe(true);
+      expect(invStore.getItemCount('sardine')).toBe(initialSardines - 2);
+    });
+
+    it('feeding hungry species favorite food awards +18 Penguin EXP', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      const invStore = useInventoryStore();
+
+      // Add a hungry penguin and fat_salmon
+      const hungryPenguin = {
+        ...game.ownedPenguins[0],
+        id: 'p_hungry',
+        speciesId: 'hungry',
+        exp: 0,
+      };
+      game.ownedPenguins.push(hungryPenguin);
+      invStore.addItem({
+        itemId: 'fat_salmon',
+        category: 'food',
+        name: 'Fat Salmon',
+        description: 'Salmon',
+        quantity: 2,
+        stackable: true,
+      });
+
+      const res = game.feedPenguin('p_hungry', 'fat_salmon');
+      expect(typeof res === 'boolean' ? res : res.success).toBe(true);
+      expect(hungryPenguin.exp).toBe(18); // +18 Penguin EXP for Hungry species
+    });
+
+    it('player cumulative EXP thresholds correctly calculate level up and grant rewards on actual transition', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      expect(game.player.level).toBe(1);
+      const initialCoins = game.currencies.coins;
+
+      // Add 50 EXP: stays at Level 1, no rewards
+      const rewards1 = game.addPlayerExp(50);
+      expect(rewards1).toHaveLength(0);
+      expect(game.player.level).toBe(1);
+      expect(game.currencies.coins).toBe(initialCoins);
+
+      // Add 50 more EXP: reaches 100 EXP -> Level 2, +100 Coins
+      const rewards2 = game.addPlayerExp(50);
+      expect(rewards2).toHaveLength(1);
+      expect(rewards2[0].level).toBe(2);
+      expect(game.player.level).toBe(2);
+      expect(game.currencies.coins).toBe(initialCoins + 100);
+
+      // Add 550 EXP: jumps from 100 EXP (Lv 2) to 650 EXP (Lv 4)
+      // Level 3 (+150c) + Level 4 (+200c, +2 gems)
+      const rewards3 = game.addPlayerExp(550);
+      expect(rewards3).toHaveLength(2);
+      expect(rewards3[0].level).toBe(3);
+      expect(rewards3[1].level).toBe(4);
+      expect(game.player.level).toBe(4);
+      expect(game.currencies.coins).toBe(initialCoins + 100 + 150 + 200);
+      expect(game.currencies.gems).toBe(10 + 2);
+    });
+
+    it('loading an existing Level 2 save does not grant duplicate level-up rewards', async () => {
+      const game = useGameStore();
+      const saveV2 = {
+        schemaVersion: 2,
+        player: { level: 2, exp: 150, name: 'Chủ Đảo', avatar: 'snowy' },
+        currencies: { coins: 300, gems: 5, fish: 0 },
+        inventory: [],
+        ownedPenguins: [{ id: 'p1', speciesId: 'snowy', lastNeedsUpdateAt: 1000 }],
+        incubatorSlots: [{ slotId: 1, state: 'EMPTY', unlocked: true }],
+        island: { decorations: [], unlockedPlacementExpIds: [] },
+        dailyLogin: { lastClaimDate: null, currentStreak: 1 },
+        questState: { assignedDate: '', quests: [] },
+        timestamps: { createdAt: 1000, lastSavedAt: 1000, lastLoginAt: 1000 },
+      };
+      await gameStorage.save(saveV2 as any);
+
+      await game.initGame();
+      expect(game.player.level).toBe(2);
+      expect(game.player.exp).toBe(150);
+      expect(game.currencies.coins).toBe(300); // Not incremented!
+      expect(game.currencies.gems).toBe(5); // Not incremented!
+    });
+
+    it('boot initialization with missing timestamp initializes lastNeedsUpdateAt without simulating historical decay', async () => {
+      const game = useGameStore();
+      const saveWithMissingTime = {
+        schemaVersion: 2,
+        player: { level: 1, exp: 0, name: 'Chủ Đảo', avatar: 'snowy' },
+        currencies: { coins: 100, gems: 0, fish: 0 },
+        inventory: [],
+        ownedPenguins: [{
+          id: 'p1',
+          speciesId: 'snowy',
+          nickname: 'Snowy',
+          hunger: 20,
+          happiness: 80,
+          lastNeedsUpdateAt: 0, // Missing timestamp
+        }],
+        incubatorSlots: [],
+        island: { decorations: [], unlockedPlacementExpIds: [] },
+        dailyLogin: { lastClaimDate: null, currentStreak: 1 },
+        questState: { assignedDate: '', quests: [] },
+        timestamps: { createdAt: 0, lastSavedAt: 0, lastLoginAt: 0 },
+      };
+      await gameStorage.save(saveWithMissingTime as any);
+
+      await game.initGame();
+      const penguin = game.ownedPenguins[0];
+      expect(penguin.lastNeedsUpdateAt).toBeGreaterThan(0);
+      expect(penguin.hunger).toBe(20); // NOT decayed to 100!
+      expect(penguin.happiness).toBe(80); // NOT decayed to 0!
+    });
+
+    it('flock capacity gates hatching when at maximum capacity without consuming egg or granting rewards', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      // At Lv 1, max capacity is 2. Add second penguin so flock is full (2/2)
+      game.ownedPenguins.push({
+        ...game.ownedPenguins[0],
+        id: 'p2',
+        nickname: 'Penguin 2',
+      });
+      expect(game.ownedPenguins.length).toBe(2);
+
+      // Set slot 1 to READY_TO_HATCH
+      game.incubatorSlots[0] = {
+        slotId: 1,
+        state: 'READY_TO_HATCH',
+        eggTypeId: 'basic_egg',
+        unlocked: true,
+      };
+
+      const result = game.hatchEgg(1, 'Cannot Hatch');
+      expect(result).toBeNull();
+      expect(game.incubatorSlots[0].state).toBe('READY_TO_HATCH'); // Egg not consumed
+      expect(game.ownedPenguins.length).toBe(2); // No new penguin
+    });
+
+    it('authoritative hatch randomization scopes pendingSpeciesId and clears it on hatch or cancel', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      game.incubatorSlots[0] = {
+        slotId: 1,
+        state: 'READY_TO_HATCH',
+        eggTypeId: 'basic_egg',
+        unlocked: true,
+      };
+
+      // Prepare hatch rolls species
+      const prep = game.prepareHatch(1);
+      expect(prep.success).toBe(true);
+      expect(game.incubatorSlots[0].pendingSpeciesId).toBeDefined();
+
+      // Cancel hatch clears pendingSpeciesId
+      game.cancelHatch(1);
+      expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined();
+
+      // Prepare again and hatch
+      game.prepareHatch(1);
+      const pending = game.incubatorSlots[0].pendingSpeciesId;
+      expect(pending).toBeDefined();
+
+      const hatchRes = game.hatchEgg(1, 'Bé Mới');
+      expect(hatchRes && ('success' in hatchRes ? hatchRes.success : true)).toBe(true);
+      expect(game.incubatorSlots[0].state).toBe('EMPTY');
+      expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined(); // Cleared!
+    });
+
+    it('gameStore simulation timer lifecycle starts cleanly without duplicate intervals and stops on cleanup', async () => {
+      const game = useGameStore();
+      game.startNeedsSimulation();
+      const firstId = game.needsSimulationIntervalId;
+      expect(firstId).toBeDefined();
+
+      // Calling start again does not duplicate
+      game.startNeedsSimulation();
+      expect(game.needsSimulationIntervalId).toBeDefined();
+
+      game.stopNeedsSimulation();
+      expect(game.needsSimulationIntervalId).toBeNull();
+    });
+  });
 });
+

@@ -1,15 +1,26 @@
-import { OwnedPenguin, IncubatorSlot } from '@penguin/types';
+import { OwnedPenguin, IncubatorSlot, PlacedDecoration } from '@penguin/types';
 
 export type GameBridgeEventMap = {
   'penguin:clicked': { ownedId: string };
   'egg:clicked': { slotId: number };
+  'plot:clicked': { plotId: number };
+  'decorations:sync': { decorations: PlacedDecoration[] };
   'canvas:ready': void;
-  'penguin:spawn': { penguin: OwnedPenguin };
-  'penguin:action': { ownedId: string; action: 'pet' | 'feed' };
-  'camera:focus': { x: number; y: number };
   'world:sync': { penguins: OwnedPenguin[]; nestSlot?: IncubatorSlot | null };
   'nest:sync': { slot: IncubatorSlot | null };
   'ui:modal': { open: boolean };
+  'penguin:spawn': { penguin: OwnedPenguin };
+  'penguin:action': { ownedId: string; action: 'pet' | 'feed' };
+  'camera:focus': { x: number; y: number };
+  'effect:coin_drop': { x: number; y: number; amount: number };
+  'effect:level_up': { newLevel: number };
+
+  // Decoupled action events
+  'action:pet': { ownedId: string; penguin: OwnedPenguin };
+  'action:feed': { ownedId: string; foodId: string; penguin: OwnedPenguin };
+  'action:hatch': { ownedId: string; penguin: OwnedPenguin };
+  'action:shop_purchase': { itemId: string; category: string; quantity: number };
+  'action:decorate': { plotId: number; decorationId: string };
 };
 
 export type GameBridgeHandler<K extends keyof GameBridgeEventMap> = (
