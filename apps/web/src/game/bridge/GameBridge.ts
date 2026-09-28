@@ -14,6 +14,7 @@ export type GameBridgeEventMap = {
   'camera:focus': { x: number; y: number };
   'effect:coin_drop': { x: number; y: number; amount: number };
   'effect:level_up': { newLevel: number };
+  'effect:penguin_level_up': { penguinId: string; newLevel: number };
 
   // Decoupled action events
   'action:pet': { ownedId: string; penguin: OwnedPenguin };
@@ -21,6 +22,8 @@ export type GameBridgeEventMap = {
   'action:hatch': { ownedId: string; penguin: OwnedPenguin };
   'action:shop_purchase': { itemId: string; category: string; quantity: number };
   'action:decorate': { plotId: number; decorationId: string };
+  'action:breed': { parentAId: string; parentBId: string; eggItemId: string };
+  'action:minigame_complete': { gameId: string; score: number; tier: string };
 };
 
 export type GameBridgeHandler<K extends keyof GameBridgeEventMap> = (

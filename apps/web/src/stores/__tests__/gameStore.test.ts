@@ -820,5 +820,116 @@ describe('Pinia Game Stores', () => {
       });
     });
   });
+
+  describe('Phase 3: Penguin Progression & Individual Identity', () => {
+    it('initializes breedingSlot and miniGameState in store state', async () => {
+      const game = useGameStore();
+      await game.initGame();
+
+      expect(game.breedingSlot).toBeDefined();
+      expect(game.breedingSlot.state).toBe('EMPTY');
+      expect(game.miniGameState).toBeDefined();
+      expect(game.miniGameState.dailyPlaysCount).toEqual({});
+    });
+
+    it('addPenguinExp increases penguin exp, computes new level, and caps at 2700', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      const penguin = game.ownedPenguins[0];
+
+      expect(penguin.level).toBe(1);
+      expect(penguin.exp).toBe(0);
+
+      // Add 100 exp -> level 2
+      const res1 = game.addPenguinExp(penguin.id, 100);
+      expect(res1.levelUp).toBe(true);
+      expect(res1.oldLevel).toBe(1);
+      expect(res1.newLevel).toBe(2);
+      expect(penguin.level).toBe(2);
+      expect(penguin.exp).toBe(100);
+      expect(penguin.experience).toBe(100);
+
+      // Add 50 exp -> still level 2
+      const res2 = game.addPenguinExp(penguin.id, 50);
+      expect(res2.levelUp).toBe(false);
+      expect(res2.newLevel).toBe(2);
+      expect(penguin.exp).toBe(150);
+
+      // Add 5000 exp -> capped at 2700, level 10
+      const res3 = game.addPenguinExp(penguin.id, 5000);
+      expect(res3.levelUp).toBe(true);
+      expect(res3.newLevel).toBe(10);
+      expect(penguin.level).toBe(10);
+      expect(penguin.exp).toBe(2700);
+      expect(penguin.experience).toBe(2700);
+    });
+
+    it('emits effect:penguin_level_up event when a penguin levels up', async () => {
+      const { gameBridge } = await import('../../game/bridge/GameBridge');
+      const game = useGameStore();
+      await game.initGame();
+      const penguin = game.ownedPenguins[0];
+
+      let emittedEvent: { penguinId: string; newLevel: number } | null = null;
+      gameBridge.on('effect:penguin_level_up', (data) => {
+        emittedEvent = data;
+      });
+
+      // Level up to 2
+      game.addPenguinExp(penguin.id, 100);
+      expect(emittedEvent).toEqual({
+        penguinId: penguin.id,
+        newLevel: 2,
+      });
+
+      // No level up when gaining 10 EXP
+      emittedEvent = null;
+      game.addPenguinExp(penguin.id, 10);
+      expect(emittedEvent).toBeNull();
+    });
+
+    it('petPenguin calls addPenguinExp (+3 EXP) and increments stats.totalPets', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      const penguin = game.ownedPenguins[0];
+      penguin.stats = { fishCaught: 0, totalPets: 0, totalFeedings: 0, gamesPlayed: 0 };
+
+      const initialExp = penguin.exp;
+      const success = game.petPenguin(penguin.id);
+
+      expect(success).toBe(true);
+      expect(penguin.exp).toBe(initialExp + 3);
+      expect(penguin.stats.totalPets).toBe(1);
+    });
+
+    it('feedPenguin calls addPenguinExp (+5 EXP standard), increments totalFeedings, and applies glutton bonus', async () => {
+      const game = useGameStore();
+      await game.initGame();
+      const penguin = game.ownedPenguins[0];
+      // Set to species where sardine is NOT favorite (sleepy loves warm_milk)
+      penguin.speciesId = 'sleepy';
+      penguin.stats = { fishCaught: 0, totalPets: 0, totalFeedings: 0, gamesPlayed: 0 };
+      penguin.hunger = 50;
+
+      // Standard feeding (non-favorite food: +5 EXP)
+      game.feedPenguin(penguin.id, 'sardine');
+      expect(penguin.exp).toBe(5);
+      expect(penguin.stats.totalFeedings).toBe(1);
+
+      // Glutton trait penguin (+25% EXP: Math.round(5 * 1.25) = 6)
+      penguin.traits = ['glutton'];
+      penguin.hunger = 50;
+      game.feedPenguin(penguin.id, 'sardine');
+      expect(penguin.exp).toBe(5 + 6);
+      expect(penguin.stats.totalFeedings).toBe(2);
+
+      // Favorite food feeding on snowy (+15 EXP, and with glutton: Math.round(15 * 1.25) = 19)
+      penguin.speciesId = 'snowy';
+      penguin.hunger = 50;
+      game.feedPenguin(penguin.id, 'sardine');
+      expect(penguin.exp).toBe(11 + 19);
+      expect(penguin.stats.totalFeedings).toBe(3);
+    });
+  });
 });
 

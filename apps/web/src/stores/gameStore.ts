@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import type {
   Currencies,
   GameSaveDataV2,
+  GameSaveDataV3,
   OwnedPenguin,
   IncubatorSlot,
   PlayerProfile,
@@ -9,6 +10,8 @@ import type {
   DailyLoginState,
   QuestState,
   PlacedDecoration,
+  BreedingSlot,
+  MiniGameState,
 } from '@penguin/types';
 import { EGG_TYPES_MAP, SPECIES_MAP } from '@penguin/game-data';
 import { gameStorage, createDefaultSaveDataV2, migrateSaveData } from '../services/StorageService';
@@ -74,6 +77,14 @@ export const useGameStore = defineStore('game', {
       assignedDate: '',
       quests: [],
     } as QuestState,
+    breedingSlot: {
+      slotId: 1,
+      state: 'EMPTY',
+    } as BreedingSlot,
+    miniGameState: {
+      lastPlayedDate: '',
+      dailyPlaysCount: {},
+    } as MiniGameState,
     timestamps: {
       createdAt: 0,
       lastSavedAt: 0,
@@ -105,11 +116,11 @@ export const useGameStore = defineStore('game', {
       }
 
       // Pure migration: deterministic, no Date.now(), no quest generation
-      const dataV2 = migrateSaveData(raw as unknown as Record<string, unknown>);
+      const dataV3 = migrateSaveData(raw as unknown as Record<string, unknown>);
 
       // Safe boot-time needs simulation:
       const bootTime = Date.now();
-      for (const penguin of dataV2.ownedPenguins) {
+      for (const penguin of dataV3.ownedPenguins) {
         if (!penguin.lastNeedsUpdateAt || penguin.lastNeedsUpdateAt <= 0) {
           // Missing historical timestamp: do not simulate decades of starvation!
           penguin.lastNeedsUpdateAt = bootTime;
@@ -119,41 +130,43 @@ export const useGameStore = defineStore('game', {
       }
 
       // Assign state directly WITHOUT addPlayerExp to avoid duplicate level-up rewards
-      this.createdAt = dataV2.timestamps.createdAt || bootTime;
+      this.createdAt = dataV3.timestamps.createdAt || bootTime;
       this.player = {
         id: 'player_local_01',
-        displayName: dataV2.player.name,
-        name: dataV2.player.name,
-        level: dataV2.player.level,
-        exp: dataV2.player.exp,
-        experience: dataV2.player.exp,
-        avatar: dataV2.player.avatar,
-        avatarId: dataV2.player.avatar,
+        displayName: dataV3.player.name,
+        name: dataV3.player.name,
+        level: dataV3.player.level,
+        exp: dataV3.player.exp,
+        experience: dataV3.player.exp,
+        avatar: dataV3.player.avatar,
+        avatarId: dataV3.player.avatar,
       };
-      this.currencies = { ...dataV2.currencies };
-      this.ownedPenguins = dataV2.ownedPenguins.map((p) => ({ ...p }));
-      this.incubatorSlots = dataV2.incubatorSlots.map((s) => ({ ...s }));
-      this.island = { ...dataV2.island };
+      this.currencies = { ...dataV3.currencies };
+      this.ownedPenguins = dataV3.ownedPenguins.map((p) => ({ ...p }));
+      this.incubatorSlots = dataV3.incubatorSlots.map((s) => ({ ...s }));
+      this.island = { ...dataV3.island };
       this.islandState = {
         islandId: 'snow_island_01',
         theme: 'snow',
-        decorationsPlaced: dataV2.island.decorations.map((d) => ({
+        decorationsPlaced: dataV3.island.decorations.map((d) => ({
           id: d.instanceId,
           itemId: d.decorationId,
           x: 0,
           y: 0,
         })),
       };
-      this.dailyLogin = { ...dataV2.dailyLogin };
-      this.questState = { ...dataV2.questState };
+      this.dailyLogin = { ...dataV3.dailyLogin };
+      this.questState = { ...dataV3.questState };
+      this.breedingSlot = dataV3.breedingSlot ? { ...dataV3.breedingSlot } : { slotId: 1, state: 'EMPTY' };
+      this.miniGameState = dataV3.miniGameState ? { ...dataV3.miniGameState } : { lastPlayedDate: '', dailyPlaysCount: {} };
       this.timestamps = {
-        ...dataV2.timestamps,
+        ...dataV3.timestamps,
         lastLoginAt: bootTime,
         lastSavedAt: bootTime,
       };
 
       const invStore = useInventoryStore();
-      invStore.setItems(dataV2.inventory);
+      invStore.setItems(dataV3.inventory);
 
       const colStore = useCollectionStore();
       if (Array.isArray((raw as any).collectionBook)) {
@@ -174,11 +187,10 @@ export const useGameStore = defineStore('game', {
       if (!this.isLoaded) return;
 
       const invStore = useInventoryStore();
-      const colStore = useCollectionStore();
       const now = Date.now();
 
-      const saveData: GameSaveDataV2 = {
-        schemaVersion: 2,
+      const saveData: GameSaveDataV3 = {
+        schemaVersion: 3,
         player: {
           level: this.player.level,
           exp: this.player.exp,
@@ -192,6 +204,8 @@ export const useGameStore = defineStore('game', {
         island: { ...this.island },
         dailyLogin: { ...this.dailyLogin },
         questState: { ...this.questState },
+        breedingSlot: { ...this.breedingSlot },
+        miniGameState: { ...this.miniGameState },
         timestamps: {
           createdAt: this.createdAt,
           lastSavedAt: now,
@@ -223,6 +237,33 @@ export const useGameStore = defineStore('game', {
       return rewards;
     },
 
+    addPenguinExp(
+      penguinId: string,
+      amount: number
+    ): { levelUp: boolean; oldLevel: number; newLevel: number } {
+      const penguin = this.ownedPenguins.find((p) => p.id === penguinId);
+      if (!penguin) {
+        return { levelUp: false, oldLevel: 0, newLevel: 0 };
+      }
+
+      const oldLevel = penguin.level || 1;
+      const currentExp = penguin.exp ?? 0;
+      const newExp = Math.min(2700, Math.max(0, currentExp + amount));
+      penguin.exp = newExp;
+      penguin.experience = newExp;
+
+      const levelInfo = getPenguinLevelFromExp(newExp);
+      penguin.level = levelInfo.level;
+      const levelUp = levelInfo.level > oldLevel;
+
+      if (levelUp) {
+        gameBridge.emit('effect:penguin_level_up', { penguinId: penguin.id, newLevel: levelInfo.level });
+      }
+
+      this.persistSave().catch((err) => console.error('Save failed:', err));
+      return { levelUp, oldLevel, newLevel: levelInfo.level };
+    },
+
     petPenguin(penguinId: string): boolean {
       const penguin = this.ownedPenguins.find((p) => p.id === penguinId);
       if (!penguin) return false;
@@ -236,10 +277,10 @@ export const useGameStore = defineStore('game', {
       const care = calculateCareRewards(penguin.speciesId, undefined);
 
       penguin.happiness = Math.min(100, penguin.happiness + care.happinessBonus);
-      penguin.exp = (penguin.exp ?? 0) + care.penguinExp;
-      penguin.experience = penguin.exp;
-      const pLevel = getPenguinLevelFromExp(penguin.exp);
-      penguin.level = pLevel.level;
+      this.addPenguinExp(penguin.id, care.penguinExp);
+      if (penguin.stats) {
+        penguin.stats.totalPets = (penguin.stats.totalPets ?? 0) + 1;
+      }
       penguin.mood = derivePenguinMood(penguin.hunger, penguin.happiness);
 
       this.addPlayerExp(care.playerExp);
@@ -266,13 +307,21 @@ export const useGameStore = defineStore('game', {
       const cozyMultiplier = getCoinDropMultiplier(cozyRating);
       const care = calculateCareRewards(penguin.speciesId, foodId, cozyMultiplier, penguin.level);
 
+      if (penguin.traits?.includes('glutton')) {
+        care.penguinExp = Math.round(care.penguinExp * 1.25);
+      }
+
+      if (penguin.traits?.includes('lucky') && Math.random() < 0.15) {
+        care.coins *= 2;
+      }
+
       penguin.hunger = Math.max(0, penguin.hunger - care.hungerReduction);
       penguin.happiness = Math.min(100, penguin.happiness + care.happinessBonus);
       penguin.lastFedAt = Date.now();
-      penguin.exp = (penguin.exp ?? 0) + care.penguinExp;
-      penguin.experience = penguin.exp;
-      const pLevel = getPenguinLevelFromExp(penguin.exp);
-      penguin.level = pLevel.level;
+      this.addPenguinExp(penguin.id, care.penguinExp);
+      if (penguin.stats) {
+        penguin.stats.totalFeedings = (penguin.stats.totalFeedings ?? 0) + 1;
+      }
       penguin.mood = derivePenguinMood(penguin.hunger, penguin.happiness);
 
       if (care.coins > 0) {
@@ -359,6 +408,15 @@ export const useGameStore = defineStore('game', {
         acquiredAt: now,
         generation: 1,
         createdAt: now,
+        traits: [],
+        breedingCount: 0,
+        lastBredAt: 0,
+        stats: {
+          fishCaught: 0,
+          totalPets: 0,
+          totalFeedings: 0,
+          gamesPlayed: 0,
+        },
       };
 
       this.ownedPenguins.push(newPenguin);
