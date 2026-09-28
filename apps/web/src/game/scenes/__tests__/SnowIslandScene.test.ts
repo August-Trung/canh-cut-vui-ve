@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { getPhaserConfig } from '../../PhaserConfig';
 import { BootScene } from '../BootScene';
 import { SnowIslandScene } from '../SnowIslandScene';
+import { CatchFishScene } from '../CatchFishScene';
 import { gameBridge } from '../../bridge/GameBridge';
 import { OwnedPenguin } from '@penguin/types';
 import { DECORATION_PLOTS } from '@penguin/game-data';
@@ -29,7 +30,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       expect(config.physics?.arcade?.gravity).toEqual({ x: 0, y: 0 });
 
       // Scenes list
-      expect(config.scene).toEqual([BootScene, SnowIslandScene]);
+      expect(config.scene).toEqual([BootScene, SnowIslandScene, CatchFishScene]);
 
       // FPS & performance targets (30-60 FPS)
       expect(config.fps?.target).toBe(60);
