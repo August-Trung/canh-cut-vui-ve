@@ -144,6 +144,8 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         setVisible: vi.fn().mockReturnThis(),
         setFlipX: vi.fn().mockReturnThis(),
         setTexture: vi.fn().mockReturnThis(),
+        setText: vi.fn().mockReturnThis(),
+        getBounds: vi.fn().mockReturnValue({ width: 40, height: 16 }),
         active: true,
         x: 0,
         y: 0,
@@ -162,6 +164,8 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
 
         beginPath: vi.fn().mockReturnThis(),
         closePath: vi.fn().mockReturnThis(),
+        moveTo: vi.fn().mockReturnThis(),
+        lineTo: vi.fn().mockReturnThis(),
         lineStyle: vi.fn().mockReturnThis(),
         strokePath: vi.fn().mockReturnThis(),
         fillRoundedRect: vi.fn().mockReturnThis(),
@@ -466,8 +470,8 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       const initialListeners = gameBridge.listenerCount();
 
       scene.create();
-      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1), ui:modal (+1), decorations:sync (+1), effect:coin_drop (+1)
-      expect(gameBridge.listenerCount()).toBe(initialListeners + 8);
+      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1), ui:modal (+1), decorations:sync (+1), effect:coin_drop (+1), effect:penguin_level_up (+1)
+      expect(gameBridge.listenerCount()).toBe(initialListeners + 9);
 
       // Trigger shutdown event
 
@@ -684,6 +688,80 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
             duration: 800,
           })
         );
+      });
+
+      it('plays celebration animation and speech bubble on effect:penguin_level_up', () => {
+        scene.create();
+        const p = scene.spawnPenguin({
+          id: 'p_lvl_test',
+          speciesId: 'snowy',
+          nickname: 'Snowy',
+          level: 1,
+          exp: 0,
+          happiness: 80,
+          hunger: 20,
+          mood: 'happy',
+          lastPetAt: 0,
+          lastFedAt: 0,
+          lastNeedsUpdateAt: 0,
+        });
+
+        const celebSpy = vi.spyOn(p, 'playCelebrationAnimation');
+        const saySpy = vi.spyOn(p, 'say');
+
+        gameBridge.emit('effect:penguin_level_up', { penguinId: 'p_lvl_test', newLevel: 2 });
+
+        expect(celebSpy).toHaveBeenCalledTimes(1);
+        expect(saySpy).toHaveBeenCalledWith('Level 2! ✨', 3000);
+      });
+
+      it('checkSocialProximity triggers TALK or FOLLOW between two penguins within 60px', () => {
+        scene.create();
+        const p1 = scene.spawnPenguin({
+          id: 'p1_social',
+          speciesId: 'snowy',
+          nickname: 'Snowy',
+          level: 1,
+          exp: 0,
+          happiness: 80,
+          hunger: 20,
+          mood: 'happy',
+          lastPetAt: 0,
+          lastFedAt: 0,
+          lastNeedsUpdateAt: 0,
+        });
+        const p2 = scene.spawnPenguin({
+          id: 'p2_social',
+          speciesId: 'happy',
+          nickname: 'Happy',
+          level: 1,
+          exp: 0,
+          happiness: 80,
+          hunger: 20,
+          mood: 'happy',
+          lastPetAt: 0,
+          lastFedAt: 0,
+          lastNeedsUpdateAt: 0,
+        });
+
+        // Position them within 40px
+        p1.x = 0;
+        p1.y = 0;
+        p2.x = 30;
+        p2.y = 0;
+
+        p1.fsm.reset('IDLE');
+        p2.fsm.reset('IDLE');
+
+        // Mock Math.random to return 0.2 (< 0.40 -> TALK)
+        vi.spyOn(Math, 'random').mockReturnValue(0.2);
+
+        scene.checkSocialProximity();
+
+        expect(p1.fsm.currentState).toBe('TALK');
+        expect(p2.fsm.currentState).toBe('TALK');
+
+        vi.restoreAllMocks();
       });
     });
   });

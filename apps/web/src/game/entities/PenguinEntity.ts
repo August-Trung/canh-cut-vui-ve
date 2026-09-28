@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { OwnedPenguin } from '@penguin/types';
+import { SPECIES_MAP } from '@penguin/game-data';
 import { gameBridge } from '../bridge/GameBridge';
 import { PenguinFSM, PenguinState } from '../ai/PenguinFSM';
 import { SpeechBubble } from './SpeechBubble';
@@ -113,8 +114,17 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
       this.handleClick(pointer);
     });
 
-    // 5. Initialize AI State Machine
-    this.fsm = new PenguinFSM();
+    // 5. Initialize AI State Machine with personality & needs
+    const speciesDef = SPECIES_MAP.get(ownedPenguin.speciesId);
+    const personality = speciesDef?.personality ?? 'shy';
+    this.fsm = new PenguinFSM({
+      personality,
+      traits: ownedPenguin.traits ?? [],
+      getNeeds: () => ({
+        hunger: this.ownedPenguin.hunger,
+        happiness: this.ownedPenguin.happiness,
+      }),
+    });
     this.unsubFsm = this.fsm.onStateChange((newState, prevState) => {
       this.handleStateChange(newState, prevState);
     });
@@ -230,7 +240,11 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     }
 
     // Movement speed: Waddle/Follow/Fish (42 px/s), Slide (140 px/s)
-    const speed = state === 'BELLY_SLIDE' ? 140 : 42;
+    // Miserable penguins (happiness <= 25) move at 60% waddle speed
+    let speed = state === 'BELLY_SLIDE' ? 140 : 42;
+    if (this.ownedPenguin.happiness <= 25 && state !== 'BELLY_SLIDE') {
+      speed *= 0.6;
+    }
     const step = (speed * delta) / 1000;
     const moveDist = Math.min(step, dist);
 
@@ -246,6 +260,14 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     if (state === 'WADDLE' && this.isInsideIcePond(this.x, this.y)) {
       this.fsm.transitionTo('BELLY_SLIDE');
     }
+  }
+
+  setFacingLeft(facingLeft: boolean): void {
+    this.bodySprite?.setFlipX(facingLeft);
+  }
+
+  getFacingLeft(): boolean {
+    return Boolean(this.bodySprite?.flipX);
   }
 
   private handleStateChange(newState: PenguinState, _prevState: PenguinState): void {

@@ -669,6 +669,16 @@ export class SnowIslandScene extends Phaser.Scene {
       this.spawnCoinDropEffect(x, y, amount);
     });
     this.unsubs.push(unsubCoin);
+
+    // 9. Trigger celebration on penguin level-up
+    const unsubLevelUp = gameBridge.on('effect:penguin_level_up', ({ penguinId, newLevel }) => {
+      const entity = this.penguins.get(penguinId);
+      if (entity) {
+        entity.playCelebrationAnimation();
+        entity.say(`Level ${newLevel}! ✨`, 3000);
+      }
+    });
+    this.unsubs.push(unsubLevelUp);
   }
 
   /**
@@ -732,12 +742,56 @@ export class SnowIslandScene extends Phaser.Scene {
     return this.penguins.size;
   }
 
+  private socialScanTimer = 0;
+
   /**
    * Frame update loop called by Phaser runtime.
    */
   update(time: number, delta: number): void {
     for (const penguin of this.penguins.values()) {
       penguin.update(time, delta);
+    }
+
+    this.socialScanTimer += delta;
+    if (this.socialScanTimer >= 6000) {
+      this.socialScanTimer = 0;
+      this.checkSocialProximity();
+    }
+  }
+
+  /**
+   * Scans penguin pairs within 60px proximity:
+   * 40% chance: face each other and enter TALK state.
+   * 25% chance: one penguin initiates FOLLOW behind the other.
+   */
+  checkSocialProximity(): void {
+    const list = Array.from(this.penguins.values());
+    if (list.length < 2) return;
+
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const p1 = list[i];
+        const p2 = list[j];
+        if (p1.fsm.currentState === 'IDLE' && p2.fsm.currentState === 'IDLE') {
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist <= 60) {
+            const roll = Math.random();
+            if (roll < 0.40) {
+              p1.setFacingLeft(p2.x < p1.x);
+              p2.setFacingLeft(p1.x < p2.x);
+              p1.fsm.transitionTo('TALK');
+              p2.fsm.transitionTo('TALK');
+              p1.say();
+              p2.say();
+            } else if (roll < 0.65) {
+              p1.followPenguin(p2);
+            }
+            return;
+          }
+        }
+      }
     }
   }
 

@@ -1,3 +1,6 @@
+import type { PenguinPersonality } from '@penguin/types';
+import { IRandomService, randomService } from '../../services/RandomService';
+
 export type PenguinState =
   | 'IDLE'
   | 'WADDLE'
@@ -30,9 +33,12 @@ export interface PenguinFSMConfig {
   sleepDuration?: number;
   waddleDuration?: number;
   bellySlideDuration?: number;
+  personality?: PenguinPersonality;
+  traits?: string[];
+  getNeeds?: () => { hunger: number; happiness: number };
 }
 
-const DEFAULT_CONFIG: Required<PenguinFSMConfig> = {
+const DEFAULT_CONFIG: Required<Omit<PenguinFSMConfig, 'personality' | 'traits' | 'getNeeds'>> = {
   initialState: 'IDLE',
   autonomous: true,
   minIdleDuration: 3000,
@@ -58,13 +64,21 @@ export class PenguinFSM {
   private _stateTime = 0;
   private _stateDuration = 0;
   private _listeners = new Set<StateChangeListener>();
-  private readonly config: Required<PenguinFSMConfig>;
+  private readonly config: Required<Omit<PenguinFSMConfig, 'personality' | 'traits' | 'getNeeds'>>;
+  private random: IRandomService;
+  public personality?: PenguinPersonality;
+  public traits: string[] = [];
+  public getNeeds?: () => { hunger: number; happiness: number };
 
-  constructor(config?: PenguinFSMConfig) {
+  constructor(config?: PenguinFSMConfig, random?: IRandomService) {
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
     };
+    this.random = random ?? randomService;
+    this.personality = config?.personality;
+    this.traits = config?.traits ? [...config.traits] : [];
+    this.getNeeds = config?.getNeeds;
     this._currentState = this.config.initialState;
     this._previousState = this.config.initialState;
     this._stateDuration = this.resolveDuration(this._currentState);
@@ -84,6 +98,22 @@ export class PenguinFSM {
 
   get stateDuration(): number {
     return this._stateDuration;
+  }
+
+  setRandomService(random: IRandomService): void {
+    this.random = random;
+  }
+
+  setPersonality(personality: PenguinPersonality): void {
+    this.personality = personality;
+  }
+
+  setTraits(traits: string[]): void {
+    this.traits = [...traits];
+  }
+
+  setNeedsGetter(fn: () => { hunger: number; happiness: number }): void {
+    this.getNeeds = fn;
   }
 
   /**
@@ -177,19 +207,70 @@ export class PenguinFSM {
   }
 
   private pickAutonomousState(): void {
-    // Weighted autonomous behavior selection
-    const rand = Math.random();
-    if (rand < 0.5) {
-      this.transitionTo('WADDLE');
-    } else if (rand < 0.65) {
-      this.transitionTo('TALK');
-    } else if (rand < 0.8) {
-      this.transitionTo('PLAY');
-    } else if (rand < 0.9) {
+    const needs = this.getNeeds?.();
+    if (needs && needs.hunger >= 80) {
       this.transitionTo('FISH');
-    } else {
-      this.transitionTo('SLEEP');
+      return;
     }
+
+    const weights: Record<PenguinState, number> = {
+      IDLE: 0,
+      WADDLE: 50,
+      TALK: 15,
+      PLAY: 15,
+      FISH: 10,
+      SLEEP: 10,
+      BELLY_SLIDE: 0,
+      CELEBRATE: 0,
+      EAT: 0,
+      FOLLOW: 0,
+      REACT: 0,
+    };
+
+    if (this.personality === 'lazy' || this.personality === 'sleepy') {
+      weights.SLEEP = Math.round(weights.SLEEP * 2.5);
+    } else if (this.personality === 'hungry') {
+      weights.FISH = Math.round(weights.FISH * 2.0);
+    } else if (this.personality === 'chaotic') {
+      weights.BELLY_SLIDE = 15;
+    } else if (this.personality === 'happy') {
+      weights.PLAY = Math.round(weights.PLAY * 2.0);
+      weights.CELEBRATE = 10;
+    }
+
+    if (needs) {
+      if (needs.happiness <= 25) {
+        weights.PLAY = 0;
+        weights.CELEBRATE = 0;
+      } else if (needs.happiness >= 80) {
+        weights.CELEBRATE = Math.max(10, weights.CELEBRATE * 2);
+      }
+    }
+
+    let totalWeight = 0;
+    for (const st in weights) {
+      totalWeight += weights[st as PenguinState];
+    }
+
+    if (totalWeight <= 0) {
+      this.transitionTo('WADDLE');
+      return;
+    }
+
+    let roll = this.random.nextFloat() * totalWeight;
+    for (const st in weights) {
+      const state = st as PenguinState;
+      const w = weights[state];
+      if (w > 0) {
+        if (roll < w) {
+          this.transitionTo(state);
+          return;
+        }
+        roll -= w;
+      }
+    }
+
+    this.transitionTo('WADDLE');
   }
 
   private resolveDuration(state: PenguinState): number {
@@ -197,10 +278,12 @@ export class PenguinFSM {
       case 'IDLE': {
         const min = this.config.minIdleDuration;
         const max = this.config.maxIdleDuration;
-        return min + Math.random() * (max - min);
+        return min + this.random.nextFloat() * (max - min);
       }
-      case 'WADDLE':
-        return this.config.waddleDuration;
+      case 'WADDLE': {
+        const factor = (this.personality === 'lazy' || this.personality === 'sleepy') ? 0.5 : 1.0;
+        return this.config.waddleDuration * factor;
+      }
       case 'BELLY_SLIDE':
         return this.config.bellySlideDuration;
       case 'SLEEP':

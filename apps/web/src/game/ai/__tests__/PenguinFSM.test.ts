@@ -133,4 +133,92 @@ describe('PenguinFSM', () => {
     manualFsm.update(300);
     expect(manualFsm.currentState).toBe('IDLE');
   });
+
+  describe('Phase 3: Deterministic RNG, Personality Weighting & Needs Overrides', () => {
+    it('uses injected deterministic IRandomService', () => {
+      // Mock RNG that always returns 0 (which maps to WADDLE)
+      const mockRandom = {
+        next: vi.fn().mockReturnValue(0),
+        nextFloat: vi.fn().mockReturnValue(0),
+        nextInt: vi.fn().mockReturnValue(0),
+        nextItem: vi.fn(),
+      };
+
+      const testFsm = new PenguinFSM(
+        { minIdleDuration: 100, maxIdleDuration: 100 },
+        mockRandom
+      );
+
+      testFsm.update(150);
+      expect(mockRandom.nextFloat).toHaveBeenCalled();
+      expect(testFsm.currentState).toBe('WADDLE');
+    });
+
+    it('lazy personality halves waddle duration and increases sleep weight', () => {
+      const lazyFsm = new PenguinFSM({
+        personality: 'lazy',
+        waddleDuration: 4000,
+      });
+
+      lazyFsm.transitionTo('WADDLE');
+      expect(lazyFsm.stateDuration).toBe(2000); // 4000 * 0.5
+    });
+
+    it('starving override (hunger >= 80) forces FISH state from IDLE', () => {
+      const hungryFsm = new PenguinFSM({
+        minIdleDuration: 100,
+        maxIdleDuration: 100,
+        getNeeds: () => ({ hunger: 85, happiness: 50 }),
+      });
+
+      hungryFsm.update(150);
+      expect(hungryFsm.currentState).toBe('FISH');
+    });
+
+    it('miserable override (happiness <= 25) prevents PLAY and CELEBRATE states', () => {
+      // Return value that would otherwise land in PLAY range if weights weren't 0
+      const mockRandom = {
+        next: vi.fn().mockReturnValue(0),
+        nextFloat: vi.fn().mockReturnValue(0.999), // near the end
+        nextInt: vi.fn().mockReturnValue(0),
+        nextItem: vi.fn(),
+      };
+
+      const sadFsm = new PenguinFSM(
+        {
+          minIdleDuration: 100,
+          maxIdleDuration: 100,
+          getNeeds: () => ({ hunger: 10, happiness: 15 }),
+        },
+        mockRandom
+      );
+
+      sadFsm.update(150);
+      expect(sadFsm.currentState).not.toBe('PLAY');
+      expect(sadFsm.currentState).not.toBe('CELEBRATE');
+    });
+
+    it('chaotic personality enables BELLY_SLIDE autonomous transition', () => {
+      // Total weight: WADDLE (50) + TALK (15) + PLAY (15) + FISH (10) + SLEEP (10) + BELLY_SLIDE (15) = 115
+      // BELLY_SLIDE is at the end (100 to 115), so roll = 105/115 ~ 0.913
+      const mockRandom = {
+        next: vi.fn().mockReturnValue(0),
+        nextFloat: vi.fn().mockReturnValue(105 / 115),
+        nextInt: vi.fn().mockReturnValue(0),
+        nextItem: vi.fn(),
+      };
+
+      const chaoticFsm = new PenguinFSM(
+        {
+          personality: 'chaotic',
+          minIdleDuration: 100,
+          maxIdleDuration: 100,
+        },
+        mockRandom
+      );
+
+      chaoticFsm.update(150);
+      expect(chaoticFsm.currentState).toBe('BELLY_SLIDE');
+    });
+  });
 });
