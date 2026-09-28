@@ -349,7 +349,12 @@ export const useGameStore = defineStore('game', {
         return { success: false, reason: 'INVALID_SLOT' };
       }
 
-      const rolledSpeciesId = hatchService.rollSpeciesForEgg(slot.eggTypeId);
+      let rolledSpeciesId: string;
+      if (slot.eggTypeId === 'egg_breeding' && slot.geneticsResult) {
+        rolledSpeciesId = slot.geneticsResult.speciesId;
+      } else {
+        rolledSpeciesId = hatchService.rollSpeciesForEgg(slot.eggTypeId);
+      }
       slot.pendingSpeciesId = rolledSpeciesId;
       this.persistSave().catch((err) => console.error('Save failed:', err));
       return { success: true, pendingSpeciesId: rolledSpeciesId };
@@ -358,7 +363,9 @@ export const useGameStore = defineStore('game', {
     cancelHatch(slotId: number): void {
       const slot = this.incubatorSlots.find((s) => s.slotId === slotId);
       if (slot) {
-        slot.pendingSpeciesId = undefined;
+        if (slot.eggTypeId !== 'egg_breeding') {
+          slot.pendingSpeciesId = undefined;
+        }
         this.persistSave().catch((err) => console.error('Save failed:', err));
       }
     },
@@ -367,7 +374,7 @@ export const useGameStore = defineStore('game', {
       const maxCapacity = getMaxFlockCapacity(this.player.level);
       if (this.ownedPenguins.length >= maxCapacity) {
         const slot = this.incubatorSlots.find((s) => s.slotId === slotId);
-        if (slot) {
+        if (slot && slot.eggTypeId !== 'egg_breeding') {
           slot.pendingSpeciesId = undefined;
           this.persistSave().catch((err) => console.error('Save failed:', err));
         }
@@ -383,7 +390,22 @@ export const useGameStore = defineStore('game', {
       const eggDef = EGG_TYPES_MAP.get(eggTypeId);
       if (!eggDef) return null;
 
-      const speciesId = slot.pendingSpeciesId ?? hatchService.rollSpeciesForEgg(eggTypeId);
+      let speciesId: string;
+      let traits: string[] = [];
+      let generation = 1;
+      let parentAId: string | undefined;
+      let parentBId: string | undefined;
+
+      if (eggTypeId === 'egg_breeding' && slot.geneticsResult) {
+        speciesId = slot.geneticsResult.speciesId;
+        traits = [...slot.geneticsResult.traits];
+        generation = slot.geneticsResult.generation;
+        parentAId = slot.geneticsResult.parentAId;
+        parentBId = slot.geneticsResult.parentBId;
+      } else {
+        speciesId = slot.pendingSpeciesId ?? hatchService.rollSpeciesForEgg(eggTypeId);
+      }
+
       const speciesDef = SPECIES_MAP.get(speciesId);
       const defaultName = speciesDef?.name ?? 'Penguin';
 
@@ -406,9 +428,11 @@ export const useGameStore = defineStore('game', {
         lastFedAt: 0,
         lastNeedsUpdateAt: now,
         acquiredAt: now,
-        generation: 1,
+        generation,
         createdAt: now,
-        traits: [],
+        traits,
+        parentAId,
+        parentBId,
         breedingCount: 0,
         lastBredAt: 0,
         stats: {
@@ -425,7 +449,7 @@ export const useGameStore = defineStore('game', {
       const colStore = useCollectionStore();
       colStore.discoverSpecies(speciesId);
 
-      // Reset slot and clear pendingSpeciesId
+      // Reset slot and clear pendingSpeciesId and geneticsResult
       slot.state = 'EMPTY';
       slot.eggTypeId = undefined;
       slot.startTime = undefined;
@@ -434,6 +458,7 @@ export const useGameStore = defineStore('game', {
       slot.durationSec = undefined;
       slot.hatchedPenguinId = undefined;
       slot.pendingSpeciesId = undefined;
+      slot.geneticsResult = undefined;
       slot.nurtureCount = 0;
       slot.lastNurtureAt = 0;
 
@@ -442,6 +467,7 @@ export const useGameStore = defineStore('game', {
         basic_egg: 25,
         frozen_egg: 50,
         golden_egg: 120,
+        egg_breeding: 75,
       };
       this.addPlayerExp(hatchExpMap[eggTypeId] ?? 25);
 
@@ -497,7 +523,8 @@ export const useGameStore = defineStore('game', {
       if (slot.unlocked === false) return false;
 
       const invStore = useInventoryStore();
-      if (!invStore.consumeItem(eggTypeId, 1)) {
+      const consumed = invStore.consumeItemWithMetadata(eggTypeId);
+      if (!consumed) {
         return false;
       }
 
@@ -513,7 +540,12 @@ export const useGameStore = defineStore('game', {
       slot.targetHatchTime = slot.readyAt;
       slot.nurtureCount = 0;
       slot.lastNurtureAt = 0;
-      slot.pendingSpeciesId = undefined;
+      slot.geneticsResult = consumed.metadata?.geneticsResult as any;
+      if (slot.geneticsResult) {
+        slot.pendingSpeciesId = slot.geneticsResult.speciesId;
+      } else {
+        slot.pendingSpeciesId = undefined;
+      }
 
       this.persistSave().catch((err) => console.error('Save failed:', err));
       return true;

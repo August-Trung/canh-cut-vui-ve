@@ -8,8 +8,11 @@ export const useInventoryStore = defineStore('inventory', {
   }),
   getters: {
     getItemCount: (state) => (itemId: string): number => {
-      const item = state.items.find((i) => i.itemId === itemId);
-      return item?.quantity ?? 0;
+      const matching = state.items.filter((i) => i.itemId === itemId);
+      return matching.reduce((sum, item) => sum + item.quantity, 0);
+    },
+    getItem: (state) => (itemId: string): InventoryItem | undefined => {
+      return state.items.find((i) => i.itemId === itemId);
     },
     itemsByCategory: (state) => (category: string): InventoryItem[] => {
       if (category === 'all') return state.items;
@@ -21,7 +24,11 @@ export const useInventoryStore = defineStore('inventory', {
       this.items = items.map((item) => ({ ...item }));
     },
     addItem(item: InventoryItem): void {
-      const existing = this.items.find((i) => i.itemId === item.itemId);
+      if (item.stackable === false || item.metadata) {
+        this.items.push({ ...item });
+        return;
+      }
+      const existing = this.items.find((i) => i.itemId === item.itemId && !i.metadata);
       if (existing) {
         existing.quantity += item.quantity;
       } else {
@@ -39,6 +46,16 @@ export const useInventoryStore = defineStore('inventory', {
         this.items = this.items.filter((i) => i.itemId !== itemId);
       }
       return true;
+    },
+    consumeItemWithMetadata(itemId: string): InventoryItem | null {
+      const index = this.items.findIndex((i) => i.itemId === itemId);
+      if (index === -1) return null;
+      const item = { ...this.items[index] };
+      this.items[index].quantity -= 1;
+      if (this.items[index].quantity <= 0) {
+        this.items.splice(index, 1);
+      }
+      return item;
     },
     setItemCount(itemId: string, count: number): void {
       const existing = this.items.find((i) => i.itemId === itemId);

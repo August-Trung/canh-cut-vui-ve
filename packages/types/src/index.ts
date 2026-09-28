@@ -112,6 +112,7 @@ export interface IncubatorSlot {
   lastNurtureAt?: number;
   nurtureCount?: number;
   pendingSpeciesId?: string;
+  geneticsResult?: GeneticsResult;
 }
 
 export type ItemCategory = 'eggs' | 'food' | 'decorations' | 'cosmetics' | 'special';
