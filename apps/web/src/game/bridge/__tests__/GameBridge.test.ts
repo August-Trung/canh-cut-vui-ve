@@ -185,4 +185,63 @@ describe('GameBridge', () => {
       bridge.emit('camera:focus', { x: 0, y: 0 });
     }).not.toThrow();
   });
+
+  it('supports Phase 2 anchor plot, effect, and decoupled action events', () => {
+    const bridge = new GameBridge();
+
+    const plotClicked = vi.fn();
+    const decorSync = vi.fn();
+    const coinDrop = vi.fn();
+    const levelUp = vi.fn();
+    const actionPet = vi.fn();
+    const actionFeed = vi.fn();
+    const actionHatch = vi.fn();
+    const actionShop = vi.fn();
+    const actionDecor = vi.fn();
+
+    bridge.on('plot:clicked', plotClicked);
+    bridge.on('decorations:sync', decorSync);
+    bridge.on('effect:coin_drop', coinDrop);
+    bridge.on('effect:level_up', levelUp);
+    bridge.on('action:pet', actionPet);
+    bridge.on('action:feed', actionFeed);
+    bridge.on('action:hatch', actionHatch);
+    bridge.on('action:shop_purchase', actionShop);
+    bridge.on('action:decorate', actionDecor);
+
+    const mockPenguin: OwnedPenguin = {
+      id: 'p-1',
+      speciesId: 'emperor',
+      nickname: 'Pip',
+      level: 1,
+      experience: 0,
+      happiness: 100,
+      energy: 100,
+      hunger: 0,
+      mood: 'happy',
+      acquiredAt: 1000,
+      generation: 1,
+    };
+
+    bridge.emit('plot:clicked', { plotId: 3 });
+    bridge.emit('decorations:sync', { decorations: [{ instanceId: 'd1', decorationId: 'bench_wood', plotId: 1, placedAt: 1000 }] });
+    bridge.emit('effect:coin_drop', { x: 150, y: 250, amount: 20 });
+    bridge.emit('effect:level_up', { newLevel: 5 });
+    bridge.emit('action:pet', { ownedId: 'p-1', penguin: mockPenguin });
+    bridge.emit('action:feed', { ownedId: 'p-1', foodId: 'sardine', penguin: mockPenguin });
+    bridge.emit('action:hatch', { ownedId: 'p-1', penguin: mockPenguin });
+    bridge.emit('action:shop_purchase', { itemId: 'sardine', category: 'food', quantity: 2 });
+    bridge.emit('action:decorate', { plotId: 1, decorationId: 'bench_wood' });
+
+    expect(plotClicked).toHaveBeenCalledWith({ plotId: 3 });
+    expect(decorSync).toHaveBeenCalledWith({ decorations: [{ instanceId: 'd1', decorationId: 'bench_wood', plotId: 1, placedAt: 1000 }] });
+    expect(coinDrop).toHaveBeenCalledWith({ x: 150, y: 250, amount: 20 });
+    expect(levelUp).toHaveBeenCalledWith({ newLevel: 5 });
+    expect(actionPet).toHaveBeenCalledWith({ ownedId: 'p-1', penguin: mockPenguin });
+    expect(actionFeed).toHaveBeenCalledWith({ ownedId: 'p-1', foodId: 'sardine', penguin: mockPenguin });
+    expect(actionHatch).toHaveBeenCalledWith({ ownedId: 'p-1', penguin: mockPenguin });
+    expect(actionShop).toHaveBeenCalledWith({ itemId: 'sardine', category: 'food', quantity: 2 });
+    expect(actionDecor).toHaveBeenCalledWith({ plotId: 1, decorationId: 'bench_wood' });
+  });
 });
+

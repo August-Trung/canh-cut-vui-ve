@@ -141,4 +141,27 @@ describe('SoundService', () => {
     expect(mockAudioContext.createOscillator).toHaveBeenCalled();
     expect(mockAudioContext.createGain).toHaveBeenCalled();
   });
+
+  it('plays metallic coin ding on playCoinDrop()', () => {
+    const soundService = new SoundService();
+    soundService.playCoinDrop();
+
+    expect(mockAudioContext.createOscillator).toHaveBeenCalled();
+    expect(mockAudioContext.createGain).toHaveBeenCalled();
+  });
+
+  it('plays level up celebration fanfare on playLevelUp()', () => {
+    const soundService = new SoundService();
+    soundService.playLevelUp();
+
+    expect(mockAudioContext.createOscillator.mock.calls.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('plays cash register ding on playBuySuccess()', () => {
+    const soundService = new SoundService();
+    soundService.playBuySuccess();
+
+    expect(mockAudioContext.createOscillator.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
 });
+
