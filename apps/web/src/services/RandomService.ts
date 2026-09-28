@@ -3,6 +3,7 @@ import { DropPoolEntry } from '@penguin/types';
 export interface IRandomService {
   rollDrop(dropPool: DropPoolEntry[]): string;
   randomRange(min: number, max: number): number;
+  nextFloat(): number;
 }
 
 export class LocalRandomService implements IRandomService {
@@ -18,7 +19,7 @@ export class LocalRandomService implements IRandomService {
     }
 
     const totalWeight = validEntries.reduce((acc, entry) => acc + entry.weight, 0);
-    const roll = Math.random() * totalWeight;
+    const roll = this.nextFloat() * totalWeight;
     let accumulated = 0;
 
     for (const entry of validEntries) {
@@ -34,7 +35,11 @@ export class LocalRandomService implements IRandomService {
   randomRange(min: number, max: number): number {
     const lower = Math.min(min, max);
     const upper = Math.max(min, max);
-    return Math.floor(Math.random() * (upper - lower + 1)) + lower;
+    return Math.floor(this.nextFloat() * (upper - lower + 1)) + lower;
+  }
+
+  nextFloat(): number {
+    return Math.random();
   }
 }
 
