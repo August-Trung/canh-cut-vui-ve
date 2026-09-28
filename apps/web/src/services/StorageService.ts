@@ -1,11 +1,24 @@
-import { GameSaveData, OwnedPenguin, IncubatorSlot } from '@penguin/types';
+import type {
+  GameSaveData,
+  GameSaveDataV2,
+  OwnedPenguin,
+  IncubatorSlot,
+  InventoryItem,
+  PlayerProfile,
+  IslandState,
+  DailyLoginState,
+  QuestState,
+  ActiveQuest,
+  PlacedDecoration,
+  PenguinMood,
+} from '@penguin/types';
 import { INITIAL_ITEMS } from '@penguin/game-data';
 
 export interface IGameStorage {
-  load(): Promise<GameSaveData | null>;
-  save(data: GameSaveData): Promise<void>;
-  exportJson(data: GameSaveData): string;
-  importJson(json: string): GameSaveData | null;
+  load(): Promise<GameSaveData | GameSaveDataV2 | null>;
+  save(data: GameSaveData | GameSaveDataV2): Promise<void>;
+  exportJson(data: GameSaveData | GameSaveDataV2): string;
+  importJson(json: string): GameSaveData | GameSaveDataV2 | null;
   clear(): Promise<void>;
 }
 
@@ -15,11 +28,15 @@ export function createDefaultSaveData(): GameSaveData {
     speciesId: 'snowy',
     nickname: 'Snowy',
     level: 1,
+    exp: 0,
     experience: 0,
     happiness: 80,
     energy: 100,
     hunger: 20,
     mood: 'happy',
+    lastPetAt: 0,
+    lastFedAt: 0,
+    lastNeedsUpdateAt: Date.now(),
     acquiredAt: Date.now(),
     generation: 1,
   };
@@ -55,6 +72,195 @@ export function createDefaultSaveData(): GameSaveData {
       islandId: 'snow_island_01',
       theme: 'snow',
       decorationsPlaced: [],
+    },
+  };
+}
+
+export function createDefaultSaveDataV2(): GameSaveDataV2 {
+  const now = Date.now();
+  const starterPenguin: OwnedPenguin = {
+    id: `penguin_${now}_starter`,
+    speciesId: 'snowy',
+    nickname: 'Snowy',
+    level: 1,
+    exp: 0,
+    experience: 0,
+    happiness: 80,
+    energy: 100,
+    hunger: 20,
+    mood: 'happy',
+    lastPetAt: 0,
+    lastFedAt: 0,
+    lastNeedsUpdateAt: 0,
+    acquiredAt: now,
+    generation: 1,
+    createdAt: now,
+  };
+
+  return {
+    schemaVersion: 2,
+    player: {
+      level: 1,
+      exp: 0,
+      name: 'Chủ Đảo Tập Sự',
+      avatar: 'avatar_default',
+    },
+    currencies: {
+      coins: 500,
+      gems: 10,
+      fish: 0,
+    },
+    inventory: INITIAL_ITEMS.map((item) => ({ ...item })),
+    ownedPenguins: [starterPenguin],
+    incubatorSlots: [
+      { slotId: 1, state: 'EMPTY', unlocked: true, lastNurtureAt: 0, nurtureCount: 0 },
+      { slotId: 2, state: 'EMPTY', unlocked: false, unlockCost: 500, lastNurtureAt: 0, nurtureCount: 0 },
+    ],
+    island: {
+      decorations: [],
+      unlockedPlacementExpIds: [],
+    },
+    dailyLogin: {
+      lastClaimDate: null,
+      currentStreak: 1,
+    },
+    questState: {
+      assignedDate: '',
+      quests: [],
+    },
+    timestamps: {
+      createdAt: now,
+      lastSavedAt: now,
+      lastLoginAt: now,
+    },
+  };
+}
+
+export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
+  const rawCurrencies = (data.currencies as Record<string, unknown>) ?? {};
+  const rawInventory = (data.inventory as InventoryItem[]) ?? [];
+
+  const inventory = [...rawInventory];
+  const legacyFishCount = Number(rawCurrencies.fish ?? 0);
+
+  const sardineIndex = inventory.findIndex((item) => item.itemId === 'sardine');
+  if (legacyFishCount > 0) {
+    if (sardineIndex >= 0) {
+      inventory[sardineIndex] = {
+        ...inventory[sardineIndex],
+        quantity: inventory[sardineIndex].quantity + legacyFishCount,
+      };
+    } else {
+      inventory.push({
+        itemId: 'sardine',
+        category: 'food',
+        name: 'Small Sardine',
+        description: 'Cá mòi tươi ngon dùng để cho chim cánh cụt ăn.',
+        quantity: legacyFishCount,
+        stackable: true,
+      });
+    }
+  }
+
+  const currencies: GameSaveDataV2['currencies'] = {
+    coins: Number(rawCurrencies.coins ?? 100),
+    gems: Number(rawCurrencies.gems ?? 0),
+    fish: 0,
+  };
+
+  const rawPenguins = (data.ownedPenguins as Record<string, unknown>[]) ?? [];
+  const rawTimestamps = (data.timestamps as Record<string, unknown>) ?? (data.updatedAt ? { lastSavedAt: data.updatedAt, createdAt: data.createdAt } : {});
+  const savedAt = Number(rawTimestamps.lastSavedAt ?? rawTimestamps.createdAt ?? 0);
+
+  const ownedPenguins: OwnedPenguin[] = rawPenguins.map((p) => {
+    const rawNeedsUpdate = Number(p.lastNeedsUpdateAt ?? 0);
+    // Preserve valid positive historical timestamp; if missing/invalid, use savedAt if > 0, else 0
+    const lastNeedsUpdateAt = rawNeedsUpdate > 0 ? rawNeedsUpdate : (savedAt > 0 ? savedAt : 0);
+    const expVal = Number(p.exp ?? p.experience ?? 0);
+    return {
+      id: String(p.id),
+      speciesId: String(p.speciesId),
+      nickname: String(p.nickname ?? 'Cánh Cụt'),
+      level: Number(p.level ?? 1),
+      exp: expVal,
+      experience: expVal,
+      happiness: Number(p.happiness ?? 80),
+      energy: Number(p.energy ?? 100),
+      hunger: Number(p.hunger ?? 20),
+      mood: (p.mood as PenguinMood) ?? 'happy',
+      lastPetAt: Number(p.lastPetAt ?? 0),
+      lastFedAt: Number(p.lastFedAt ?? 0),
+      lastNeedsUpdateAt,
+      generation: Number(p.generation ?? 1),
+      createdAt: Number(p.createdAt ?? savedAt),
+    };
+  });
+
+  const rawSlots = (data.incubatorSlots as Record<string, unknown>[]) ?? [];
+  const incubatorSlots: IncubatorSlot[] = [
+    {
+      slotId: 1,
+      state: (rawSlots[0]?.state as any) ?? 'EMPTY',
+      eggTypeId: rawSlots[0]?.eggTypeId as string | undefined,
+      targetHatchTime: (rawSlots[0]?.targetHatchTime ?? rawSlots[0]?.readyAt) as number | undefined,
+      unlocked: true,
+      lastNurtureAt: Number(rawSlots[0]?.lastNurtureAt ?? 0),
+      nurtureCount: Number(rawSlots[0]?.nurtureCount ?? 0),
+      pendingSpeciesId: rawSlots[0]?.pendingSpeciesId as string | undefined,
+    },
+    {
+      slotId: 2,
+      state: (rawSlots[1]?.state as any) ?? 'EMPTY',
+      eggTypeId: rawSlots[1]?.eggTypeId as string | undefined,
+      targetHatchTime: (rawSlots[1]?.targetHatchTime ?? rawSlots[1]?.readyAt) as number | undefined,
+      unlocked: Boolean(rawSlots[1]?.unlocked ?? false),
+      unlockCost: 500,
+      lastNurtureAt: Number(rawSlots[1]?.lastNurtureAt ?? 0),
+      nurtureCount: Number(rawSlots[1]?.nurtureCount ?? 0),
+      pendingSpeciesId: rawSlots[1]?.pendingSpeciesId as string | undefined,
+    },
+  ];
+
+  const rawIsland = (data.island as Record<string, unknown>) ?? (data.islandState as Record<string, unknown>) ?? {};
+  const island: IslandState = {
+    decorations: (rawIsland.decorations as PlacedDecoration[]) ?? [],
+    unlockedPlacementExpIds: (rawIsland.unlockedPlacementExpIds as string[]) ?? [],
+  };
+
+  const rawDailyLogin = (data.dailyLogin as Record<string, unknown>) ?? {};
+  const dailyLogin: DailyLoginState = {
+    lastClaimDate: (rawDailyLogin.lastClaimDate as string | null) ?? null,
+    currentStreak: Number(rawDailyLogin.currentStreak ?? 1),
+  };
+
+  const rawQuestState = (data.questState as Record<string, unknown>) ?? {};
+  const questState: QuestState = {
+    assignedDate: String(rawQuestState.assignedDate ?? ''),
+    quests: (rawQuestState.quests as ActiveQuest[]) ?? [],
+  };
+
+  const rawPlayer = (data.player as Record<string, unknown>) ?? {};
+  const player: PlayerProfile = {
+    level: Number(rawPlayer.level ?? 1),
+    exp: Number(rawPlayer.exp ?? rawPlayer.experience ?? 0),
+    name: String(rawPlayer.name ?? rawPlayer.displayName ?? 'Chủ Đảo Tập Sự'),
+    avatar: String(rawPlayer.avatar ?? rawPlayer.avatarId ?? 'avatar_default'),
+  };
+
+  return {
+    schemaVersion: 2,
+    player,
+    currencies,
+    inventory,
+    ownedPenguins,
+    incubatorSlots,
+    island,
+    dailyLogin,
+    questState,
+    timestamps: {
+      createdAt: Number(rawTimestamps.createdAt ?? savedAt),
+      lastSavedAt: Number(rawTimestamps.lastSavedAt ?? savedAt),
+      lastLoginAt: Number(rawTimestamps.lastLoginAt ?? savedAt),
     },
   };
 }
@@ -95,34 +301,49 @@ export class LocalStorageAdapter implements IGameStorage {
     this.key = key;
   }
 
-  async load(): Promise<GameSaveData | null> {
+  async load(): Promise<GameSaveData | GameSaveDataV2 | null> {
     try {
       const raw = localStorage.getItem(this.key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || parsed.schemaVersion !== 1) {
+      if (!parsed || typeof parsed !== 'object') {
         return null;
       }
-      return mergeWithDefaults(parsed as Partial<GameSaveData>);
+      if (parsed.schemaVersion === 2) {
+        return parsed as GameSaveDataV2;
+      }
+      if (parsed.schemaVersion === 1) {
+        return mergeWithDefaults(parsed as Partial<GameSaveData>);
+      }
+      return null;
     } catch {
       return null;
     }
   }
 
-  async save(data: GameSaveData): Promise<void> {
-    data.updatedAt = Date.now();
+  async save(data: GameSaveData | GameSaveDataV2): Promise<void> {
+    if ('updatedAt' in data) {
+      data.updatedAt = Date.now();
+    } else if ('timestamps' in data && data.timestamps) {
+      data.timestamps.lastSavedAt = Date.now();
+    }
     localStorage.setItem(this.key, JSON.stringify(data));
   }
 
-  exportJson(data: GameSaveData): string {
+  exportJson(data: GameSaveData | GameSaveDataV2): string {
     return JSON.stringify(data, null, 2);
   }
 
-  importJson(json: string): GameSaveData | null {
+  importJson(json: string): GameSaveData | GameSaveDataV2 | null {
     try {
       const parsed = JSON.parse(json);
-      if (parsed && typeof parsed === 'object' && parsed.schemaVersion === 1) {
-        return mergeWithDefaults(parsed as Partial<GameSaveData>);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.schemaVersion === 2) {
+          return parsed as GameSaveDataV2;
+        }
+        if (parsed.schemaVersion === 1) {
+          return mergeWithDefaults(parsed as Partial<GameSaveData>);
+        }
       }
       return null;
     } catch {

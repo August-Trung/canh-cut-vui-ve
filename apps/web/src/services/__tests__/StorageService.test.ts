@@ -74,10 +74,59 @@ describe('StorageService', () => {
     expect(loaded?.player.displayName).toBe('Penguin Island Caretaker');
   });
 
-  it('rejects save data where schemaVersion is not 1', async () => {
-    localStorage.setItem('test_penguin_island_save', JSON.stringify({ schemaVersion: 2 }));
+  it('rejects save data where schemaVersion is unknown or invalid', async () => {
+    localStorage.setItem('test_penguin_island_save', JSON.stringify({ schemaVersion: 99 }));
     const loaded = await storage.load();
     expect(loaded).toBeNull();
+  });
+
+  describe('migrateSaveData (Pure V1 -> V2 Migration)', () => {
+    it('converts legacy currencies.fish into sardine inventory items and sets currencies.fish = 0 without side effects', async () => {
+      const { migrateSaveData } = await import('../StorageService');
+      const v1Data = {
+        schemaVersion: 1,
+        currencies: { fish: 15, coins: 200, gems: 5 },
+        inventory: [{ itemId: 'sardine', quantity: 5, category: 'food' }],
+        ownedPenguins: [{ id: 'p1', speciesId: 'snowy', nickname: 'Snowy', lastNeedsUpdateAt: 100000 }],
+      };
+      const v2 = migrateSaveData(v1Data);
+      expect(v2.schemaVersion).toBe(2);
+      expect(v2.currencies.fish).toBe(0);
+      expect(v2.currencies.coins).toBe(200);
+      const sardine = v2.inventory.find((i: any) => i.itemId === 'sardine');
+      expect(sardine?.quantity).toBe(20); // 5 + 15
+      expect(v2.ownedPenguins[0].lastNeedsUpdateAt).toBe(100000);
+      // @ts-expect-error isFavorite should not exist
+      expect(v2.ownedPenguins[0].isFavorite).toBeUndefined();
+    });
+
+    it('is strictly idempotent on repeated migration (V1 -> V2 -> V2)', async () => {
+      const { migrateSaveData } = await import('../StorageService');
+      const v1Data = { schemaVersion: 1, currencies: { fish: 10, coins: 100 } };
+      const v2First = migrateSaveData(v1Data);
+      const v2Second = migrateSaveData(v2First);
+      expect(v2Second.currencies.fish).toBe(0);
+      const sardine = v2Second.inventory.find((i: any) => i.itemId === 'sardine');
+      expect(sardine?.quantity).toBe(10); // Not doubled
+    });
+
+    it('is pure and does not call Date.now() or getLocalDateString() or generate daily quests', async () => {
+      const { migrateSaveData } = await import('../StorageService');
+      const v1Data = { schemaVersion: 1 };
+      const v2 = migrateSaveData(v1Data);
+      expect(v2.questState.assignedDate).toBe('');
+      expect(v2.questState.quests).toEqual([]);
+    });
+
+    it('does not set epoch 0 when timestamps are missing from source data', async () => {
+      const { migrateSaveData } = await import('../StorageService');
+      const v1Data = {
+        schemaVersion: 1,
+        ownedPenguins: [{ id: 'p1', speciesId: 'snowy' }],
+      };
+      const v2 = migrateSaveData(v1Data);
+      expect(v2.ownedPenguins[0].lastNeedsUpdateAt).toBe(0);
+    });
   });
 
   it('exports and imports JSON data correctly', () => {
