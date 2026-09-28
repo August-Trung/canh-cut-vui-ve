@@ -2,7 +2,7 @@
 
 - **Date:** 2026-09-28
 - **Status:** Finalized & Approved for Implementation Planning
-- **Target Milestone:** Deeply engaging, self-sustaining casual social-island loop: player & penguin leveling, comprehensive care mechanics (offline & online piecewise hunger/happiness decay with deterministic mood priority), reward economy (care rewards, shop sinks), daily login rewards with deterministic streak evaluation, daily quests with deterministic date hashing, multi-slot incubation with speed-up limits and flock capacity gating, and interactive island decoration placement on 6 anchor plots with placement EXP anti-exploit tracking.
+- **Target Milestone:** Deeply engaging, self-sustaining casual social-island loop: player & penguin leveling, comprehensive care mechanics (offline & online piecewise hunger/happiness decay with deterministic mood priority), reward economy (care rewards, atomic shop sinks), daily login rewards with deterministic streak evaluation, daily quests with deterministic date + stable quest ID hashing, multi-slot incubation with speed-up limits, authoritative hatch randomization, flock capacity gating, and interactive island decoration placement on 6 anchor plots with placement EXP anti-exploit tracking.
 
 ---
 
@@ -10,73 +10,76 @@
 
 In Phase 1, *Penguin Island* established its playable visual and architectural foundation: an autonomous 2.5D Snow Island rendered in Phaser 3, a clean Vue 3 application HUD and modal layer, typed `GameBridge` decoupling, vector texture caching, local save persistence, and an initial incubation/hatching sequence for 5 original species.
 
-Phase 2 transforms this foundation into a **self-sustaining, intrinsically rewarding casual game loop**. The player is no longer just observing a single penguin and hatching once: they actively nurture a growing flock, earn Coins and Player EXP through caring for their penguins, spend their earnings in a charming Island Shop to buy specialized food, new eggs, and decorations, decorate their island to increase its "Cozy Rating" (*Độ Ấm Cúng*), and fulfill daily missions.
+Phase 2 transforms this foundation into a **self-sustaining, intrinsically rewarding casual game loop**. The player is no longer just observing a single penguin and hatching once: they actively nurture a growing flock, earn Coins and Player EXP through caring for their penguins, spend their earnings in an atomic Island Shop to buy specialized food, new eggs, and decorations, decorate their island to increase its "Cozy Rating" (*Độ Ấm Cúng*), and fulfill daily missions.
 
 ```
        ┌────────────────────────────────────────────────────────┐
        │                 THE PHASE 2 CORE LOOP                  │
        └────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-                   ┌──────────────────────────────┐
-                   │    CARE FOR PENGUINS         │
-                   │  - Petting (Hearts + EXP)    │
-                   │  - Feeding (Food -> Vitals)  │
-                   └──────────────┬───────────────┘
-                                  │ (Generates Coins & EXP)
-                                  ▼
-                   ┌──────────────────────────────┐
-                   │   PROGRESSION & REWARDS      │
-                   │  - Player Level Up (Unlocks) │
-                   │  - Penguin Level Up (Traits) │
-                   │  - Quests & Daily Rewards    │
-                   └──────────────┬───────────────┘
-                                  │ (Spends Coins & Gems)
-                                  ▼
-                   ┌──────────────────────────────┐
-                   │        ISLAND SHOP           │
-                   │  - Buy Varied Food / Treats  │
-                   │  - Buy Frozen & Golden Eggs  │
-                   │  - Buy Island Decorations    │
-                   └──────────────┬───────────────┘
-                                  │
-         ┌────────────────────────┴───────────────────────┐
-         ▼                                                ▼
-┌──────────────────────────────┐        ┌──────────────────────────────┐
-│  INCUBATION & FLOCK GROWTH   │        │     ISLAND DECORATION        │
-│  - Multi-slot Incubator      │        │  - 6 Fixed Anchor Plots      │
-│  - Nurture Speed-Up          │        │  - Boost Island Cozy Multi   │
-│  - Flock Capacity Checks     │        │  - One-time Placement EXP    │
-└──────────────────────────────┘        └──────────────────────────────┘
+                                    │
+                                    ▼
+       ┌────────────────────────────────────────────────────────┐
+       │ 1. CARE & NURTURE                                      │
+       │    - Petting: +Happiness, +EXP, 0 Coins                │
+       │    - Feeding: -Hunger, +Happiness, +EXP, Coin Drops    │
+       │    - Favorite Foods: 1.5x Hunger, 2.0x Happiness,      │
+       │      bonus Penguin EXP, bonus Coin Drops               │
+       └────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+       ┌────────────────────────────────────────────────────────┐
+       │ 2. REWARDS & PROGRESSION                               │
+       │    - Player Level 1–10: Unlocks food, eggs, decorations│
+       │    - Level-Up Rewards: Coins & Gems on level transition│
+       │    - Penguin Level 1–10: Boosts coin drop value        │
+       │    - Flock Capacity: Expands from 2 up to 5 penguins   │
+       └────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+       ┌────────────────────────────────────────────────────────┐
+       │ 3. ECONOMY & SHOP (ATOMIC MUTATIONS)                   │
+       │    - Spend Coins/Gems in Shop for Food, Eggs, Decor    │
+       │    - Multi-slot Incubator: Basic, Frozen, Golden Eggs  │
+       │    - Speed-up "Nurture" mechanic with 30s cooldown     │
+       │    - Authoritative Hatch Randomization via Service     │
+       └────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+       ┌────────────────────────────────────────────────────────┐
+       │ 4. ISLAND CUSTOMIZATION & COZY BONUS                   │
+       │    - Place decorations on 6 predefined anchor plots    │
+       │    - +15 Player EXP granted once per decoration type   │
+       │    - Dynamically derived Cozy Rating boosts coin drops │
+       │    - 7-Day Login Calendar & 3 Deterministic Daily Quests│
+       └────────────────────────────────────────────────────────┘
+                                    │
+                                    └─────── Loops back to 1.
 ```
-
-### Key Principles for Phase 2:
-1. **Original IP & Nostalgic Spirit:** 100% original artwork, mechanics, and Vietnamese localization (`Đảo Tuyết`, `Cửa Hàng`, `Nhiệm Vụ`, `Điểm Danh`). Nostalgic warmth inspired by 2010s casual social web games without copying copyrighted assets, names, or code.
-2. **Smallest Coherent Scope:** Avoid scope creep. Strictly focus on local, single-player progression and care mechanics.
-3. **Preserve Phase 1 Architecture & Data:** Zero regressions in existing Phase 1 functionality. Phaser remains strictly responsible for rendering and entity physics/animation; Pinia and Services remain the authoritative state boundary; Vue handles all UI dialogs and shops.
-4. **No Backend Dependency Yet:** All Phase 2 features run client-side with versioned `localStorage` persistence and automatic, idempotent schema migrations.
 
 ---
 
-## 2. Goals and Non-Goals
+## 2. Architecture & Boundary Rules
 
-### 2.1 Goals
-- **Player Progression (Lv. 1–10):** Player gains EXP from caring, hatching, and quest completion. Level-up rewards are granted automatically and authoritatively inside the Pinia store when crossing thresholds, unlocking shop items, island flock capacity, and slot 2 incubator.
-- **Penguin Progression (Lv. 1–10) & Needs Loop:** Hunger and happiness decay both online and offline via deterministic piecewise simulation; penguins transition moods deterministically (`hungry`, `sad`, `sleepy`, `happy`, `content`) with corresponding speech bubble quips and animation changes.
-- **Feeding & Petting Rewards (Authoritative & Anti-Exploit):** Feeding favorite foods yields bonus Penguin EXP and Coins; petting yields affection hearts and Player EXP with a per-penguin cooldown; atomic store updates prevent duplicate-click exploits. Petting grants strictly **0 Coins**.
-- **Flock Expansion & Capacity Enforcement:** Island flock capacity strictly enforced (Lv 1: max 2, Lv 2–4: max 3, Lv 5–7: max 4, Lv 8–10: max 5). Hatching checks capacity before consuming the egg; if full, the egg remains `READY_TO_HATCH` and no penguin or rewards are created.
-- **Shop System (*Cửa Hàng*):** A nostalgic wooden/snow-dusted boutique selling Food, Eggs, and Decorations for Coins and Gems.
-- **Island Decoration Placement on 6 Anchor Plots:** Players can place, remove, or replace purchased decorations on 6 predefined island plots, rendering 2.5D visual props with depth sorting and providing a dynamically derived Cozy Bonus multiplier. Placement EXP (+15 EXP) is awarded at most once per decoration type for the lifetime of the save.
-- **Daily Rewards (*Điểm Danh*) & Quests (*Nhiệm Vụ*):** Deterministic calendar-day 7-day progressive login streak and deterministic date-seeded 3 daily quests from a pool of 5 templates using local calendar dates (`getLocalDateString()`). Hatch quest requires successful hatching.
-- **Pure Schema Migration (`schemaVersion: 1 -> 2`):** Pure, idempotent migration function decoupled from boot-time gameplay simulation, converting legacy fish currency to sardines once and setting `currencies.fish = 0`.
-
-### 2.2 Non-Goals (Strictly Deferred to Later Phases)
-- **Multiplayer & Peer-to-Peer Island Visits:** Island neighbor visits remain simulated NPC neighbors (deferred to Phase 3/4).
-- **Backend API & Cloud Database:** No NestJS / PostgreSQL / Redis setup in Phase 2.
-- **Breeding Genetics & DNA Mixing:** Cross-breeding penguins is out of scope for Phase 2.
-- **Competitive Leaderboards / PvP Minigames:** Out of scope for Phase 2.
-- **External Audio Asset Loading:** Continue utilizing procedural Web Audio API synthesis for all sound effects and chimes.
-- **Freeform Island Placement:** Decorations are strictly placed on the 6 predefined anchor plots (no freeform grid/coordinate dragging).
+1. **Strict Phaser / Vue Decoupling:**
+   - **Phaser 3:** Renders the 2.5D Snow Island, entities, anchor plot decorations, and particle effects. Listens to events over `GameBridge`. Emits user intent events (`plot:clicked`, `penguin:clicked`, `egg:clicked`).
+   - **Vue 3:** Renders the HUD, Shelf Rack, Modals (Shop, Quests, Decoration, Inspect, Hatch, Level-Up).
+   - **GameBridge Event Bus:** Pure event bus. Phaser never imports Pinia stores; Vue and Pinia never call Phaser methods directly.
+2. **Store Orchestration & Pure Calculation Services:**
+   - Stores (`gameStore`, `inventoryStore`, `shopStore`, `decorationStore`, `questStore`) orchestrate state and domain actions.
+   - Heavy calculation algorithms (piecewise decay, mood derivation, EXP thresholds, cozy rating, daily quest selection, login streak evaluation) live in **pure, dedicated services** (`ProgressionService`, `NeedsService`, `DecorationService`, `QuestService`, `HatchService`). Services are pure TypeScript, zero Pinia imports, and easily unit-tested.
+   - **Zero Circular Store Dependencies:**
+     - Leaf services depend only on `@penguin/types` and `@penguin/game-data`.
+     - `gameStore` and `inventoryStore` are foundational stores that never import other stores.
+     - `shopStore` imports `useGameStore` and `useInventoryStore`.
+     - `decorationStore` imports `useInventoryStore` and `useGameStore`.
+     - `questStore` imports `useGameStore` and `useInventoryStore`.
+3. **Pure Save Migration vs. Boot-Time Simulation:**
+   - `migrateSaveData(data)` is a **pure, side-effect-free** normalization function (does not take `Date.now()`, does not mutate timestamps, preserves `currencies.fish = 0` for V2 idempotence).
+   - `loadGame()` / `initGame()` runs `migrateSaveData()` first, executes `simulatePenguinNeeds(penguin, Date.now())` second, and persists the updated state.
+4. **Authoritative State & Anti-Exploit:**
+   - Cooldowns, inventory checks, price deductions, flock capacity limits, and level-up rewards are evaluated strictly within store actions and services.
+   - Shop purchases are strictly atomic: all requirements are verified before any mutation; failures produce 0 state changes.
+   - Decoration placement EXP (+15 EXP) is awarded at most once per decoration type for the lifetime of the save.
 
 ---
 
@@ -85,7 +88,7 @@ Phase 2 transforms this foundation into a **self-sustaining, intrinsically rewar
 ### 3.1 Cumulative EXP Thresholds, Flock Capacity & Unlocks (Lv. 1–10)
 Player Level represents the player's experience as an Island Caretaker. Cumulative EXP thresholds are defined in data:
 
-| Level | Cumulative EXP | Max Flock Capacity | Key Unlocks & Rewards (Granted Automatically in Store) |
+| Level | Cumulative EXP | Max Flock Capacity | Key Unlocks & Rewards (Granted on Level Transition) |
 |:---:|:---:|:---:|:---|
 | **1** | 0 | **2 penguins** | Starter Island, Slot 1 Incubator, Small Sardine in Shop |
 | **2** | 100 | **3 penguins** | Flock Capacity +1, Krill unlocked in Shop, +100 Coins |
@@ -107,7 +110,8 @@ export function getMaxFlockCapacity(playerLevel: number): number {
   return 2;
 }
 ```
-**Hatching Gate:** When a player attempts to complete hatching in `HatchModal.vue` / `gameStore.hatchEgg(slotId, ...)`:
+
+**Hatching Gate:** When a player attempts to complete hatching in `HatchModal.vue` / `gameStore.hatchEgg(slotId, nickname)`:
 - If `gameStore.ownedPenguins.length >= getMaxFlockCapacity(gameStore.player.level)`:
   - The hatching action aborts with `{ success: false, reason: 'FLOCK_FULL' }`.
   - The incubator slot remains `READY_TO_HATCH`.
@@ -115,9 +119,10 @@ export function getMaxFlockCapacity(playerLevel: number): number {
   - A friendly notification informs the player: *"Đảo đã đạt giới hạn chim cánh cụt (tối đa {max} chú)! Hãy tăng Cấp độ Người Chơi để mở rộng đảo."*
 
 ### 3.3 Authoritative Level-Up Rewards
-When `gameStore.addPlayerExp(amount)` causes cumulative EXP to cross one or more level thresholds:
-- The level-up rewards (Coins, Gems, unlocked items) are granted **immediately and authoritatively** within the store action.
-- `LevelUpModal.vue` is **presentation-only**. It listens for the level-up state to display the celebratory fanfare and summary of rewards already granted. It never executes grant or claim logic, ensuring zero duplication if closed or reopened.
+- Rewards (Coins, Gems, Unlocked Items) are granted **exclusively when `gameStore.addPlayerExp(amount)` causes an actual level transition** (`oldLevel < newLevel`).
+- Initial save loading (`initGame()`, `loadSaveData()`), save migration (`migrateSaveData()`), recalculating level from EXP, or boot-time simulation **must NEVER grant level-up rewards**.
+- **Multi-Level Jumps:** If a large EXP grant causes the player to cross multiple thresholds (e.g. from Level 1 directly to Level 3), rewards for **all intermediate and destination levels** (Level 2 and Level 3) are granted sequentially and cumulatively.
+- `LevelUpModal.vue` is **presentation-only**. It listens for the level-up state to display celebratory fanfare and a summary of rewards already granted. It never executes grant or claim logic, ensuring zero duplication if closed or reopened.
 
 ### 3.4 Player EXP Sources
 - **Petting Penguin:** +2 Player EXP (Cooldown: 15s per penguin; **0 Coins**)
@@ -137,7 +142,7 @@ When `gameStore.addPlayerExp(amount)` causes cumulative EXP to cross one or more
 Each `OwnedPenguin` maintains two core vitals (0 to 100) and a last-update timestamp:
 1. **Hunger (*Đói Bụng*):** 0 = Full/Stuffed, 100 = Starving.
    - Normal Species: increases by **1 point every 120 seconds** (2 minutes).
-   - Hungry Species (`speciesId === 'hungry'`): increases by **1 point every 90 seconds** (25% faster accumulation).
+   - Hungry Species (`speciesId === 'hungry'`): 1.25x accumulation rate = increases by **1 point every 96 seconds** ($120 / 1.25 = 96\text{s}$).
 2. **Happiness (*Vui Vẻ*):** 0 = Miserable, 100 = Ecstatic.
    - Decreases by **1 point every 180 seconds** (3 minutes).
    - If `hunger >= 80`, decreases by **1 point every 90 seconds** (doubled decay rate when starving).
@@ -155,7 +160,7 @@ export function simulatePenguinNeeds(
   const elapsedSeconds = Math.max(0, Math.floor((currentTime - penguin.lastNeedsUpdateAt) / 1000));
   if (elapsedSeconds <= 0) return;
 
-  const hungerInterval = penguin.speciesId === 'hungry' ? 90 : 120;
+  const hungerInterval = penguin.speciesId === 'hungry' ? 96 : 120;
   const initialHunger = penguin.hunger;
   let happinessDecrease = 0;
 
@@ -172,7 +177,7 @@ export function simulatePenguinNeeds(
     if (elapsedSeconds <= secondsTo80) {
       // Entire period elapsed before hunger reached 80
       const hungerIncrease = Math.floor(elapsedSeconds / hungerInterval);
-      penguin.hunger = initialHunger + hungerIncrease;
+      penguin.hunger = Math.min(100, initialHunger + hungerIncrease);
       happinessDecrease = Math.floor(elapsedSeconds / 180);
     } else {
       // Piecewise: time before reaching 80 + time after reaching 80
@@ -186,7 +191,9 @@ export function simulatePenguinNeeds(
     }
   }
 
+  // Clamping
   penguin.happiness = Math.max(0, Math.min(100, penguin.happiness - happinessDecrease));
+  penguin.hunger = Math.min(100, Math.max(0, penguin.hunger));
 
   // Recalculate mood deterministically
   penguin.mood = derivePenguinMood(penguin.hunger, penguin.happiness);
@@ -196,8 +203,18 @@ export function simulatePenguinNeeds(
 }
 ```
 
+#### Deterministic Timing Examples:
+- **Normal Species** starting at `hunger: 70`:
+  - Reaches 80 after $(80 - 70) \times 120 = 1,200$ seconds.
+  - Before 1,200s: happiness decays at 1 point / 180s. At 1,200s, $\lfloor 1200 / 180 \rfloor = 6$ points decay.
+  - After 1,200s: happiness decays at 1 point / 90s for remaining elapsed time.
+- **Hungry Species** starting at `hunger: 70`:
+  - Reaches 80 after $(80 - 70) \times 96 = 960$ seconds.
+  - Before 960s: happiness decays at 1 point / 180s. At 960s, $\lfloor 960 / 180 \rfloor = 5$ points decay.
+  - After 960s: happiness decays at 1 point / 90s for remaining elapsed time.
+
 ### 4.3 Deterministic Mood Priority Rules
-To prevent ambiguity and oscillation, penguin mood is derived in strict priority order:
+Penguin mood is derived in strict priority order:
 
 1. **`hungry`:** `hunger >= 80` (Crying for food takes absolute priority over other moods).
 2. **`sad`:** `happiness <= 25` (Unhappy/neglected state).
@@ -261,12 +278,12 @@ export function getPenguinLevelFromExp(cumulativeExp: number): {
 
 ---
 
-## 5. Food Catalog & Favorite Food Matching
+## 5. Extensible Food Catalog & Care Loop
 
-### 5.1 Preservation of Phase 1 Favorite Foods
-Phase 1 species definitions in `packages/game-data/src/species.ts` are strictly preserved:
+### 5.1 Species Favorite Food Mappings
+Favorite foods are derived from `species.favoriteFoodId`. Phase 1 canonical mappings are strictly preserved:
 
-| Species ID | Species Name | Favorite Food ID | Favorite Food Name | Disliked Food |
+| Species ID | Species Name | Favorite Food ID | Vietnamese Display | Disliked Item (Dialogue) |
 |:---|:---|:---|:---|:---|
 | `snowy` | Snowy | `sardine` | Small Sardine | Spicy Pepper |
 | `sleepy` | Sleepy | `warm_milk` | Warm Milk | Alarm Clocks |
@@ -391,7 +408,7 @@ export function isFavoriteFood(speciesId: string, foodId: string): boolean {
 
 ---
 
-## 6. Economy, Currencies & Care Anti-Exploit Rules
+## 6. Economy, Currencies, Care & Shop Atomicity Rules
 
 ### 6.1 Unified Economy Model
 - **Coins (*Tiền Vàng*):** Soft currency (`currencies.coins`). Primary currency for purchasing food, eggs, and decorations.
@@ -428,8 +445,29 @@ All care actions and rewards are strictly executed and validated inside Pinia st
   - Duplicate calls within 15s return `{ success: false, reason: 'COOLDOWN' }` with 0 rewards.
 - **Feeding (*Cho Ăn*):**
   - Requires inventory stock (`invStore.getItemCount(foodId) >= 1`).
+  - Cooldown: **None**. Phase 2 has no feeding cooldown; players can feed whenever they have food and hunger > 0.
+  - `lastFedAt` is updated for telemetry/future features, but does not throttle feeding in Phase 2.
   - Standard Food: `2–5 Coins` drop, `-food.hungerReduction`, `+food.happinessBonus`, `+5 Penguin EXP`, `+5 Player EXP`.
   - Favorite Food: `10–20 Coins` drop (scaled by Cozy Multiplier and Penguin Level), `-(food.hungerReduction * 1.5)`, `+(food.happinessBonus * 2.0)`, `+12 Player EXP`, `+15 Penguin EXP` (or `+18 Penguin EXP` for Hungry species eating Fat Salmon).
+
+### 6.4 Island Shop & Purchase Atomicity Rules
+The Island Shop (`shopStore.ts`) sells items across three categories: Food, Eggs, and Decorations.
+
+**Atomicity Guarantee:**
+1. **Pre-Purchase Validation:**
+   - Verify item exists in `FOOD_CATALOG`, `EGG_CATALOG`, or `DECORATION_CATALOG`.
+   - Verify `gameStore.player.level >= item.playerLevelRequired`.
+   - Calculate total cost in Coins and Gems.
+   - Verify `gameStore.currencies.coins >= totalCoins` and `gameStore.currencies.gems >= totalGems`.
+2. **Failure Handling:**
+   - If any validation fails, the operation immediately aborts and returns `{ success: false, reason: '...' }`.
+   - **Zero currency is deducted, zero items are added.**
+3. **Atomic Execution:**
+   - If all validations pass:
+     - Deduct exact Coins and Gems from `gameStore.currencies`.
+     - Add exact item quantity to `inventoryStore`.
+     - Notify `questStore.onShopPurchase()`.
+     - Return `{ success: true }`.
 
 ---
 
@@ -469,14 +507,14 @@ export const DECORATION_PLOTS: DecorationPlot[] = [
     - If already present in `unlockedPlacementExpIds`: award **0 EXP**.
   - Removing and re-placing or swapping decorations never awards EXP again.
 
-### 7.3 Dynamically Derived Cozy Rating (*Độ Ấm Cúng*)
-Cozy Rating is **never** persisted as a raw number. It is computed dynamically from currently placed decorations:
+### 7.3 Dynamic Cozy Rating & Coin Multiplier
+The island's Cozy Rating is dynamically derived from placed decorations:
 
 ```typescript
 export function calculateCozyRating(decorations: PlacedDecoration[]): number {
-  return decorations.reduce((sum, d) => {
-    const item = DECORATION_CATALOG[d.decorationId];
-    return sum + (item?.cozyPoints ?? 0);
+  return decorations.reduce((sum, placed) => {
+    const def = DECORATION_CATALOG[placed.decorationId];
+    return sum + (def?.cozyPoints ?? 0);
   }, 0);
 }
 
@@ -607,7 +645,10 @@ export interface DailyLoginState {
 - **Ngày 7:** 1,000 Coins + 10 Gems + 1 Golden Egg
 
 ### 8.4 Deterministic Daily Quests (*Nhiệm Vụ Hàng Ngày*)
-The game maintains a pool of 5 quest templates. Exactly 3 active quests are assigned per calendar date using a deterministic hash of the `YYYY-MM-DD` date string, ensuring page reloads never alter the selected quests:
+The game maintains a pool of 5 quest templates. Exactly 3 active quests are assigned per calendar date using a deterministic hash of the local date string combined with stable quest IDs.
+
+**Array Reorder Immunity:**
+Sorting templates by `hashString(`${dateStr}:${template.id}`)` guarantees that reordering `QUEST_POOL` in code will never change the selected quests for any date.
 
 ```typescript
 export interface QuestTemplate {
@@ -645,9 +686,9 @@ export const QUEST_POOL: QuestTemplate[] = [
   },
   {
     id: 'quest_hatch',
-    title: 'Ấp Nở Mầm Sống',
-    description: 'Ấp nở thành công 1 chú chim cánh cụt mới.',
-    icon: '🥚',
+    title: 'Mầm Sống Mới',
+    description: 'Ấp nở thành công 1 quả trứng trên đảo.',
+    icon: '🐣',
     targetType: 'hatch',
     targetCount: 1,
     rewardCoins: 100,
@@ -655,45 +696,48 @@ export const QUEST_POOL: QuestTemplate[] = [
     rewardGems: 1,
   },
   {
-    id: 'quest_buy_shop',
-    title: 'Khách Quen Cửa Hàng',
-    description: 'Mua bất kỳ 1 vật phẩm nào từ Cửa Hàng Đảo.',
+    id: 'quest_shop',
+    title: 'Khách Hàng Thân Thiết',
+    description: 'Mua 2 món hàng bất kỳ trong Cửa Hàng.',
     icon: '🛍️',
     targetType: 'buy_shop',
-    targetCount: 1,
-    rewardCoins: 70,
+    targetCount: 2,
+    rewardCoins: 80,
     rewardExp: 35,
   },
   {
-    id: 'quest_place_decoration',
-    title: 'Làm Đẹp Đảo Tuyết',
-    description: 'Đặt 1 vật trang trí lên bục đất trên đảo.',
-    icon: '🪑',
+    id: 'quest_decorate',
+    title: 'Kiến Trúc Sư Đảo Băng',
+    description: 'Đặt hoặc thay đổi 1 đồ trang trí trên đảo.',
+    icon: '🎄',
     targetType: 'place_decoration',
     targetCount: 1,
-    rewardCoins: 80,
+    rewardCoins: 70,
     rewardExp: 40,
   },
 ];
 
-export function getDeterministicDailyQuests(dateStr: string): ActiveQuest[] {
+function hashString(str: string): number {
   let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash << 5) - hash + dateStr.charCodeAt(i);
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
-  const positiveHash = Math.abs(hash);
+  return Math.abs(hash);
+}
 
-  const indices = [0, 1, 2, 3, 4];
-  const selected: QuestTemplate[] = [];
-  let currentSeed = positiveHash;
+export function getDeterministicDailyQuests(dateStr: string): ActiveQuest[] {
+  // Score each quest template using its stable ID combined with the local date string
+  const scored = [...QUEST_POOL].map((tpl) => ({
+    template: tpl,
+    score: hashString(`${dateStr}:${tpl.id}`),
+  }));
 
-  for (let i = 0; i < 3; i++) {
-    const pickIndex = currentSeed % indices.length;
-    const templateIndex = indices.splice(pickIndex, 1)[0];
-    selected.push(QUEST_POOL[templateIndex]);
-    currentSeed = Math.floor(currentSeed / 7) + 11;
-  }
+  // Sort descending by deterministic score; tie-breaker on alphabetical ID
+  scored.sort((a, b) => b.score - a.score || a.template.id.localeCompare(b.template.id));
+
+  // Pick top 3
+  const selected = scored.slice(0, 3).map((item) => item.template);
 
   return selected.map((tpl) => ({
     questId: tpl.id,
@@ -709,11 +753,9 @@ export function getDeterministicDailyQuests(dateStr: string): ActiveQuest[] {
 
 ---
 
-## 9. Multi-Slot Incubation, Egg Catalog & Balanced Timers
+## 9. Multi-Slot Incubation, Authoritative Hatching & Speed-Ups
 
 ### 9.1 Data-Driven Egg Catalog (`packages/game-data/src/eggs.ts`)
-Eggs are modeled as inventory items with category `'eggs'`. The Shop sells all three types:
-
 ```typescript
 export interface EggShopDefinition {
   id: string;
@@ -759,21 +801,26 @@ export const EGG_CATALOG: Record<string, EggShopDefinition> = {
 ```
 
 ### 9.2 Incubator Speed-Up ("Nurture" Mechanic)
-Players can nurture eggs while the game is active:
 - **Cooldown:** Exactly 30 seconds per active slot (`now - slot.lastNurtureAt >= 30000`).
 - **Maximum Uses:** At most **10 speed-ups per egg lifetime** (`slot.nurtureCount < 10`).
 - **Time Deduction:** Deducts 30 seconds from `targetHatchTime`.
 - **Minimum Duration Floor:** Cannot reduce remaining incubation time below 1 second:
   `slot.targetHatchTime = Math.max(now + 1000, slot.targetHatchTime - 30000)`.
-- **Scope:** Available only while the game is open (not applicable offline).
+- **Scope:** Available only while the game is open.
 
-### 9.3 Slot Unlocks & In-World Visual Sync
-- **Slot 1:** Unlocked by default. In-world nest in `SnowIslandScene` stays dynamically synchronized with Slot 1 state (Empty vs. Egg sprite vs. Wobble).
-- **Slot 2:** Locked initially; unlocks at Player Level 3 for 500 Coins. Managed inside `HatcheryModal.vue`.
+### 9.3 Authoritative Hatch Randomization
+`hatchEgg(slotId: number, nickname: string)` takes **strictly `slotId` and `nickname`**. It **does NOT accept `speciesId` from the UI or caller**.
+
+- Species resolution is delegated to `HatchService.rollSpeciesForEgg(eggTypeId)` using the egg's drop pool and `RandomService`.
+- If the UI needs to display the hatched species during the reveal animation stage (wobble -> crack -> burst -> reveal):
+  - `gameStore.prepareHatch(slotId)` pre-determines and saves `slot.pendingSpeciesId = hatchService.rollSpeciesForEgg(slot.eggTypeId)`.
+  - When the player inputs a nickname and confirms, `gameStore.hatchEgg(slotId, nickname)` creates the `OwnedPenguin` using `slot.pendingSpeciesId`.
+  - Closing the modal without confirming preserves `slot.pendingSpeciesId` so reopening does not re-roll.
+  - This architecture cleanly supports future Phase 4 server authorization where species is resolved exclusively on the backend.
 
 ---
 
-## 10. Data Models & Schemas
+## 10. Data Models, Store Architecture & Services
 
 ### 10.1 Extended `@penguin/types`
 
@@ -797,11 +844,10 @@ export interface OwnedPenguin {
   hunger: number;             // 0 - 100 (0 = full, 100 = starving)
   mood: PenguinMood;
   lastPetAt: number;          // Unix timestamp (ms)
-  lastFedAt: number;          // Unix timestamp (ms)
+  lastFedAt: number;          // Unix timestamp (ms) - informational/future-facing
   lastNeedsUpdateAt: number;  // Unix timestamp (ms) for offline simulation
   generation: number;
   createdAt: number;
-  isFavorite?: boolean;
 }
 
 // --- Extended IncubatorSlot ---
@@ -814,6 +860,7 @@ export interface IncubatorSlot {
   unlockCost?: number;
   lastNurtureAt?: number;
   nurtureCount?: number;
+  pendingSpeciesId?: string;  // Pre-determined by HatchService for animation consistency
 }
 
 // --- Island Decorations ---
@@ -849,54 +896,33 @@ export interface QuestState {
 }
 ```
 
-### 10.2 Canonical `GameSaveDataV2` Schema
-```typescript
-export interface GameSaveDataV2 {
-  schemaVersion: 2;
-  player: PlayerProfile;
-  currencies: {
-    coins: number;
-    gems: number;
-    fish: 0; // Canonical V2 always sets fish to 0
-  };
-  inventory: InventoryItem[];
-  ownedPenguins: OwnedPenguin[];
-  collectionBook: CollectionEntry[];
-  incubatorSlots: IncubatorSlot[];
-  island: IslandState;
-  dailyLogin: DailyLoginState;
-  questState: QuestState;
-  timestamps: {
-    createdAt: number;
-    lastSavedAt: number;
-    lastLoginAt: number;
-  };
-}
-```
+### 10.2 Service Responsibilities
+1. **`ProgressionService.ts`**: Pure functions for EXP thresholds, player/penguin level calculations, flock capacity, level-up rewards transitions.
+2. **`NeedsService.ts`**: Pure functions for piecewise offline/online needs decay, hunger clamping to 100, happiness clamping to 0, and deterministic mood derivation.
+3. **`DecorationService.ts`**: Pure functions for Cozy Rating calculation, coin drop multipliers, and plot geometry.
+4. **`QuestService.ts`**: Pure functions for local calendar date helper, array-reorder-immune deterministic daily quest selection, and login streak evaluation.
+5. **`HatchService.ts`**: Authoritative egg drop pool species rolling via `RandomService`.
 
 ---
 
-## 11. Pure Save/Load Migration Strategy & Decoupled Simulation
+## 11. Save Migration & Offline Simulation Lifecycle
 
-### 11.1 Pure `migrateSaveData()` Function
-In `apps/web/src/services/StorageService.ts`, `migrateSaveData()` is a **pure normalization function**. It does not perform simulation and does not depend on `Date.now()` for gameplay decay:
+### 11.1 Pure Migration (`migrateSaveData`)
+`migrateSaveData(data: Record<string, unknown>): GameSaveDataV2` is a **pure, side-effect-free** function:
+- Does not call `Date.now()`.
+- Does not run needs simulation.
+- Retires legacy `currencies.fish` by adding count to `sardine` inventory and setting `currencies.fish = 0`.
+- Idempotent: `migrateSaveData(migrateSaveData(v1))` preserves `currencies.fish = 0` without duplicate conversion.
 
 ```typescript
 export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
-  const version = Number(data.schemaVersion ?? 1);
-
-  // Idempotency: canonical V2 data returned as-is
-  if (version >= 2) {
-    return data as unknown as GameSaveDataV2;
-  }
-
-  // --- Pure Migration: V1 -> V2 ---
+  const schemaVersion = Number(data.schemaVersion ?? 1);
   const rawCurrencies = (data.currencies as Record<string, unknown>) ?? {};
   const rawInventory = (data.inventory as InventoryItem[]) ?? [];
+
+  const inventory = [...rawInventory];
   const legacyFishCount = Number(rawCurrencies.fish ?? 0);
 
-  // 1. Convert legacy fish currency into 'sardine' inventory items (once only)
-  const inventory: InventoryItem[] = [...rawInventory];
   const sardineIndex = inventory.findIndex((item) => item.itemId === 'sardine');
   if (legacyFishCount > 0) {
     if (sardineIndex >= 0) {
@@ -916,14 +942,12 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     }
   }
 
-  // 2. Canonical V2 currencies with fish = 0
   const currencies: GameSaveDataV2['currencies'] = {
     coins: Number(rawCurrencies.coins ?? 100),
     gems: Number(rawCurrencies.gems ?? 0),
     fish: 0,
   };
 
-  // 3. Upgrade owned penguins with level, exp, and needs timestamps
   const rawPenguins = (data.ownedPenguins as Record<string, unknown>[]) ?? [];
   const rawTimestamps = (data.timestamps as Record<string, unknown>) ?? {};
   const baseTimestamp = Number(rawTimestamps.lastSavedAt ?? rawTimestamps.createdAt ?? 0);
@@ -942,10 +966,8 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     lastNeedsUpdateAt: Number(p.lastNeedsUpdateAt ?? baseTimestamp),
     generation: Number(p.generation ?? 1),
     createdAt: Number(p.createdAt ?? baseTimestamp),
-    isFavorite: Boolean(p.isFavorite ?? false),
   }));
 
-  // 4. Upgrade incubator slots with nurture tracking and slot 2 lock
   const rawSlots = (data.incubatorSlots as Record<string, unknown>[]) ?? [];
   const incubatorSlots: IncubatorSlot[] = [
     {
@@ -969,17 +991,16 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     },
   ];
 
-  // 5. Clean IslandState: remove tier / unlockedProps; preserve placed decorations & placement EXP ids
   const rawIsland = (data.island as Record<string, unknown>) ?? {};
   const island: IslandState = {
     decorations: (rawIsland.decorations as PlacedDecoration[]) ?? [],
     unlockedPlacementExpIds: (rawIsland.unlockedPlacementExpIds as string[]) ?? [],
   };
 
-  // 6. Default DailyLoginState and QuestState
+  const rawDailyLogin = (data.dailyLogin as Record<string, unknown>) ?? {};
   const dailyLogin: DailyLoginState = {
-    lastClaimDate: null,
-    currentStreak: 1,
+    lastClaimDate: (rawDailyLogin.lastClaimDate as string | null) ?? null,
+    currentStreak: Number(rawDailyLogin.currentStreak ?? 1),
   };
 
   const todayStr = getLocalDateString();
@@ -988,18 +1009,20 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     quests: getDeterministicDailyQuests(todayStr),
   };
 
+  const rawPlayer = (data.player as Record<string, unknown>) ?? {};
+  const player: PlayerProfile = {
+    level: Number(rawPlayer.level ?? 1),
+    exp: Number(rawPlayer.exp ?? 0),
+    name: String(rawPlayer.name ?? 'Chủ Đảo Tập Sự'),
+    avatar: String(rawPlayer.avatar ?? 'avatar_default'),
+  };
+
   return {
     schemaVersion: 2,
-    player: (data.player as PlayerProfile) ?? {
-      level: 1,
-      exp: 0,
-      name: 'Người Nuôi Chim Cánh Cụt',
-      avatar: 'snowy',
-    },
+    player,
     currencies,
     inventory,
     ownedPenguins,
-    collectionBook: (data.collectionBook as CollectionEntry[]) ?? [],
     incubatorSlots,
     island,
     dailyLogin,
@@ -1014,39 +1037,32 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
 ```
 
 ### 11.2 Boot-Time Simulation Lifecycle in `loadGame()`
-When `gameStore.initGame()` or `StorageService.loadSaveData()` runs on game boot:
-1. `const rawData = storage.getItem(STORAGE_KEY);`
+When `gameStore.initGame()` runs on game boot:
+1. Load raw JSON from storage.
 2. `const dataV2 = migrateSaveData(rawData);` (Pure migration)
 3. For each penguin in `dataV2.ownedPenguins`:
    `simulatePenguinNeeds(penguin, Date.now());` (Simulation using migrated `lastNeedsUpdateAt`)
-4. Populate Pinia stores with simulated state.
+4. Populate Pinia stores with simulated state without triggering level-up rewards.
 5. Persist the updated state to storage.
 
 ---
 
 ## 12. GameBridge Event Bus Contracts
 
-Phase 2 updates `GameBridgeEventMap` in `apps/web/src/game/bridge/GameBridge.ts`:
-
 ```typescript
-export type GameBridgeEventMap = {
-  // --- Phase 1 Events (Preserved) ---
+export interface GameBridgeEventMap {
   'penguin:clicked': { ownedId: string };
   'egg:clicked': { slotId: number };
+  'plot:clicked': { plotId: number };
+  'decorations:sync': { decorations: PlacedDecoration[] };
   'canvas:ready': void;
+  'world:sync': { penguins: OwnedPenguin[] };
   'penguin:spawn': { penguin: OwnedPenguin };
   'penguin:action': { ownedId: string; action: 'pet' | 'feed' };
   'camera:focus': { x: number; y: number };
-  'world:sync': { penguins: OwnedPenguin[]; nestSlot?: IncubatorSlot | null };
-  'nest:sync': { slot: IncubatorSlot | null };
-  'ui:modal': { open: boolean };
-
-  // --- Phase 2 Events ---
-  'decorations:sync': { decorations: PlacedDecoration[] };
-  'plot:clicked': { plotId: number };
   'effect:coin_drop': { x: number; y: number; amount: number };
-  'effect:level_up': { ownedId?: string; x: number; y: number };
-};
+  'effect:level_up': { newLevel: number };
+}
 ```
 
 ---
@@ -1065,7 +1081,7 @@ The bottom shelf rack adds two prominent, nostalgic wooden/ice buttons:
 ### 13.3 Modals Architecture
 1. **`ShopModal.vue`:**
    - Tabs: `Thức Ăn` (Foods with Level locks), `Trứng` (Basic, Frozen, Golden), `Trang Trí` (Decorations with Cozy ratings).
-   - Purchase confirmation dialog with instant inventory update.
+   - Atomic purchase flow with instant inventory update.
 2. **`QuestModal.vue`:**
    - 7-Day Login Calendar with clear claimed/claimable/locked state.
    - 3 Daily Quests with progress bars and "Nhận Thưởng" buttons.
@@ -1084,22 +1100,29 @@ The Phase 2 implementation must include comprehensive automated tests covering a
 1. **`test('V1 -> V2 migration preserves existing currencies, inventory, and penguins without loss')`**
 2. **`test('V1 -> V2 migration converts legacy currencies.fish into sardine inventory items and sets currencies.fish = 0')`**
 3. **`test('V1 -> V2 migration is idempotent when run repeatedly (V1 -> V2 -> V2 preserves currencies.fish = 0 without re-converting)')`**
-4. **`test('offline hunger decay increases hunger by 1 point per 120s (90s for hungry species) based on lastNeedsUpdateAt')`**
-5. **`test('offline happiness decay uses piecewise simulation when crossing hunger=80 threshold (180s rate before 80, 90s rate after 80, clamped to 0)')`**
-6. **`test('mood priority derives hungry when hunger >= 80, sad when happiness <= 25, happy when happiness >= 80')`**
-7. **`test('petting enforces 15-second cooldown per penguin, grants 0 coins, and rejects duplicate calls with zero rewards')`**
-8. **`test('feeding verifies inventory existence and consumes exact food item atomically')`**
-9. **`test('favorite food bonus grants 1.5x hunger, 2.0x happiness, bonus EXP, extra coins, and 18 Penguin EXP for Hungry species')`**
-10. **`test('penguin cumulative EXP thresholds correctly calculate level up from 1 to 10')`**
-11. **`test('player cumulative EXP thresholds correctly calculate level up from 1 to 10 and grant rewards automatically')`**
-12. **`test('Cozy Rating recalculates dynamically from placed decorations and caps coin bonus at +25%')`**
-13. **`test('decoration plots enforce maximum 1 decoration per plot and support replace/remove')`**
-14. **`test('decoration placement EXP (+15 EXP) is granted once per decoration type and cannot be farmed by remove/replace')`**
-15. **`test('daily login rejects same-day second claim and grants reward once per calendar day using getLocalDateString()')`**
-16. **`test('daily login resets streak to Day 1 when one or more calendar days are missed, loops after Day 7')`**
-17. **`test('daily hatch quest increments only upon successful egg hatch creating an OwnedPenguin')`**
-18. **`test('flock capacity gates hatching when at maximum capacity without consuming egg or granting rewards')`**
-19. **`test('incubator speed-up respects 30s cooldown, max 10 speed-ups per egg, and 1s minimum floor')`**
+4. **`test('offline hunger decay increases hunger by 1 point per 120s for normal species, clamped to 100')`**
+5. **`test('offline hunger decay increases hunger by 1 point per 96s for hungry species (1.25x accumulation), clamped to 100')`**
+6. **`test('normal species starting at hunger 70 reaches 80 after 1200s, decaying 6 happiness before 80 and 1/90s thereafter')`**
+7. **`test('hungry species starting at hunger 70 reaches 80 after 960s, decaying 5 happiness before 80 and 1/90s thereafter')`**
+8. **`test('mood priority derives hungry when hunger >= 80, sad when happiness <= 25, happy when happiness >= 80')`**
+9. **`test('petting enforces 15-second cooldown per penguin, grants strictly 0 coins, and rejects duplicate calls with zero rewards')`**
+10. **`test('feeding consumes exact food item atomically without cooldown and updates lastFedAt')`**
+11. **`test('favorite food bonus grants 1.5x hunger, 2.0x happiness, bonus EXP, extra coins, and 18 Penguin EXP for Hungry species')`**
+12. **`test('penguin cumulative EXP thresholds correctly calculate level up from 1 to 10')`**
+13. **`test('player cumulative EXP thresholds correctly calculate level up from 1 to 10 and grant rewards automatically on transition')`**
+14. **`test('loading an existing Level 2 save does not grant duplicate level-up rewards')`**
+15. **`test('crossing multiple levels in one EXP grant awards rewards for all attained levels sequentially')`**
+16. **`test('hatchEgg determines species authoritatively via egg drop pool and does not accept speciesId from caller')`**
+17. **`test('shop purchase validates requirements atomically; failure produces zero currency and inventory changes')`**
+18. **`test('Cozy Rating recalculates dynamically from placed decorations and caps coin bonus at +25%')`**
+19. **`test('decoration plots enforce maximum 1 decoration per plot and support replace/remove')`**
+20. **`test('decoration placement EXP (+15 EXP) is granted once per decoration type and cannot be farmed by remove/replace')`**
+21. **`test('daily login rejects same-day second claim and grants reward once per calendar day using getLocalDateString()')`**
+22. **`test('daily login resets streak to Day 1 when one or more calendar days are missed, loops after Day 7')`**
+23. **`test('daily quest selection is deterministic by date + stable quest IDs, immune to QUEST_POOL array reordering')`**
+24. **`test('daily hatch quest increments only upon successful egg hatch creating an OwnedPenguin')`**
+25. **`test('flock capacity gates hatching when at maximum capacity without consuming egg or granting rewards')`**
+26. **`test('incubator speed-up respects 30s cooldown, max 10 speed-ups per egg, and 1s minimum floor')`**
 
 ---
 
@@ -1116,10 +1139,10 @@ The Phase 2 implementation must include comprehensive automated tests covering a
 
 Phase 2 will be accepted as complete when:
 1. **Flock Progression & Capacity:** Feeding and petting Snowy or new penguins properly updates hunger, happiness, and EXP. Reaching 100 EXP advances the penguin to Level 2. Flock capacity gates hatching when at maximum.
-2. **Piecewise Offline Simulation:** Changing system time or mocking `lastNeedsUpdateAt` demonstrates accurate piecewise offline hunger and happiness decay on reload (crossing `hunger = 80` applies 180s rate before 80 and 90s rate after 80).
-3. **Island Shop & Economy:** Player can earn Coins from caring, buy Krill, Eggs, or a Wooden Bench in the Shop, and observe correct balance deductions. Petting awards 0 Coins.
+2. **Piecewise Offline Simulation:** Changing system time or mocking `lastNeedsUpdateAt` demonstrates accurate piecewise offline hunger and happiness decay on reload (starting 70 hunger reaches 80 after 1200s for normal, 960s for hungry).
+3. **Island Shop & Economy:** Player can earn Coins from caring, buy Krill, Eggs, or a Wooden Bench in the Shop, and observe correct balance deductions. Petting awards strictly 0 Coins. Failed purchases produce zero changes.
 4. **Anchor Plot Decoration & EXP Anti-Exploit:** Player can place the Wooden Bench on Plot 1, receive 15 EXP once, verify its 2.5D visual appearance on the island canvas, and observe the dynamically derived Cozy Rating bonus. Removing and re-placing does not farm EXP.
-5. **Daily Quests & Streak:** Player can claim Day 1 login reward and complete the deterministic daily quests. Hatch quest completes only on successful hatch.
-6. **Incubation Speed-Up:** Player can nurture an incubating egg up to 10 times with 30s cooldown, reducing timer down to a minimum of 1s.
+5. **Daily Quests & Streak:** Player can claim Day 1 login reward and complete deterministic daily quests. Hatch quest completes only on successful hatch. Reordering quest templates preserves assignments.
+6. **Incubation & Authoritative Hatching:** Player can nurture an incubating egg up to 10 times with 30s cooldown down to 1s floor. Hatching determines species authoritatively without accepting speciesId from caller.
 7. **Pure Flawless Migration:** Pure `migrateSaveData()` converts fish currency to sardines, sets fish to 0, and upgrades the save to V2 idempotently without console errors, followed by boot-time simulation.
-8. **Automated Verification:** 100% passing Vitest suite (including all 19 required test cases) and clean `npm run build`.
+8. **Automated Verification:** All Phase 1 and Phase 2 Vitest tests must pass 100%, including the required Phase 2 integration scenarios, with a clean `npm run build`.
