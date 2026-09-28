@@ -13,6 +13,7 @@ export const SPECIES_LIST: PenguinSpecies[] = [
     description: 'A gentle, introverted penguin who loves the crunch of fresh snow.',
     clue: 'Loves waddling near the quiet snowdrifts.',
     visualKey: 'penguin_snowy',
+    favoriteFoodId: 'sardine',
   },
   {
     id: 'sleepy',
@@ -26,6 +27,7 @@ export const SPECIES_LIST: PenguinSpecies[] = [
     description: 'Can fall asleep anywhere, even sliding midway down an ice slope.',
     clue: 'Often found dozing near the warm camp lanterns.',
     visualKey: 'penguin_sleepy',
+    favoriteFoodId: 'warm_milk',
   },
   {
     id: 'shy',
@@ -39,6 +41,7 @@ export const SPECIES_LIST: PenguinSpecies[] = [
     description: 'Hides behind its cozy knitted scarf when players get too close.',
     clue: 'Peek behind the pine trees on snowy mornings.',
     visualKey: 'penguin_shy',
+    favoriteFoodId: 'sweet_berries',
   },
   {
     id: 'happy',
@@ -52,6 +55,7 @@ export const SPECIES_LIST: PenguinSpecies[] = [
     description: 'Spreads endless cheer and does tiny celebration spins across the ice.',
     clue: 'Spawns when joy fills the icy air.',
     visualKey: 'penguin_happy',
+    favoriteFoodId: 'ice_cream',
   },
   {
     id: 'hungry',
@@ -65,6 +69,7 @@ export const SPECIES_LIST: PenguinSpecies[] = [
     description: 'Never stops thinking about fish and waddles right up to the fishing hole.',
     clue: 'Attracted by the scent of fresh fish.',
     visualKey: 'penguin_hungry',
+    favoriteFoodId: 'fat_salmon',
   },
 ];
 

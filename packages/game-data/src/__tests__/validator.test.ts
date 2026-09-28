@@ -180,4 +180,44 @@ describe('Game Data & Drop Table Validation', () => {
       expect(result.errors[0]).toContain("references nonexistent species 'snowy'");
     });
   });
+
+  describe('Phase 2 Catalogs', () => {
+    it('should export valid FOOD_CATALOG with all 7 foods', async () => {
+      const { FOOD_CATALOG } = await import('../index');
+      expect(Object.keys(FOOD_CATALOG)).toHaveLength(7);
+      expect(FOOD_CATALOG.sardine).toBeDefined();
+      expect(FOOD_CATALOG.krill).toBeDefined();
+      expect(FOOD_CATALOG.warm_milk).toBeDefined();
+      expect(FOOD_CATALOG.sweet_berries).toBeDefined();
+      expect(FOOD_CATALOG.squid).toBeDefined();
+      expect(FOOD_CATALOG.fat_salmon).toBeDefined();
+      expect(FOOD_CATALOG.ice_cream).toBeDefined();
+    });
+
+    it('should export valid EGG_CATALOG with 3 eggs', async () => {
+      const { EGG_CATALOG } = await import('../index');
+      expect(Object.keys(EGG_CATALOG)).toHaveLength(3);
+      expect(EGG_CATALOG.basic_egg.priceCoins).toBe(150);
+      expect(EGG_CATALOG.frozen_egg.playerLevelRequired).toBe(4);
+      expect(EGG_CATALOG.golden_egg.priceGems).toBe(10);
+    });
+
+    it('should export 6 DECORATION_PLOTS and 6 DECORATION_CATALOG entries', async () => {
+      const { DECORATION_PLOTS, DECORATION_CATALOG } = await import('../index');
+      expect(DECORATION_PLOTS).toHaveLength(6);
+      expect(Object.keys(DECORATION_CATALOG)).toHaveLength(6);
+      expect(DECORATION_CATALOG.master_caretaker_trophy.playerLevelRequired).toBe(10);
+      expect(DECORATION_CATALOG.master_caretaker_trophy.cozyPoints).toBe(50);
+    });
+
+    it('should export QUEST_POOL with 5 quest templates', async () => {
+      const { QUEST_POOL } = await import('../index');
+      expect(QUEST_POOL).toHaveLength(5);
+      const hatchQuest = QUEST_POOL.find((q) => q.id === 'quest_hatch');
+      expect(hatchQuest).toBeDefined();
+      expect(hatchQuest?.targetType).toBe('hatch');
+      expect(hatchQuest?.rewardGems).toBe(1);
+    });
+  });
 });
+

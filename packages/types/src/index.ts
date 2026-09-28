@@ -18,6 +18,7 @@ export type PenguinMood =
   | 'sleepy'
   | 'hungry'
   | 'sad'
+  | 'content'
   | 'excited'
   | 'playful';
 
@@ -33,6 +34,7 @@ export interface PenguinSpecies {
   description: string;
   clue: string;
   visualKey: string;
+  favoriteFoodId: string;
 }
 
 export interface OwnedPenguin {
@@ -40,13 +42,18 @@ export interface OwnedPenguin {
   speciesId: string;
   nickname: string;
   level: number;
-  experience: number;
+  exp: number;
+  experience?: number;
   happiness: number;
-  energy: number;
+  energy?: number;
   hunger: number;
   mood: PenguinMood;
-  acquiredAt: number;
+  lastPetAt: number;
+  lastFedAt: number;
+  lastNeedsUpdateAt: number;
+  acquiredAt?: number;
   generation: number;
+  createdAt?: number;
   parentAId?: string;
   parentBId?: string;
 }
@@ -76,6 +83,8 @@ export type IncubatorState =
   | 'HATCHING'
   | 'HATCHED';
 
+export type IncubatorSlotState = IncubatorState;
+
 export interface IncubatorSlot {
   slotId: number;
   state: IncubatorState;
@@ -83,7 +92,13 @@ export interface IncubatorSlot {
   startTime?: number;
   durationSec?: number;
   readyAt?: number;
+  targetHatchTime?: number;
   hatchedPenguinId?: string;
+  unlocked?: boolean;
+  unlockCost?: number;
+  lastNurtureAt?: number;
+  nurtureCount?: number;
+  pendingSpeciesId?: string;
 }
 
 export type ItemCategory = 'eggs' | 'food' | 'decorations' | 'cosmetics' | 'special';
@@ -103,6 +118,100 @@ export interface Currencies {
   gems: number;
   fish: number;
 }
+
+// --- Phase 2 Entities & Progression ---
+
+export interface PlayerProfile {
+  level: number;
+  exp: number;
+  name: string;
+  avatar: string;
+}
+
+export interface PlacedDecoration {
+  instanceId: string;
+  decorationId: string;
+  plotId: number;
+  placedAt: number;
+}
+
+export interface DecorationPlot {
+  id: number;
+  x: number;
+  y: number;
+  name: string;
+  depthOffset: number;
+}
+
+export interface DecorationDefinition {
+  id: string;
+  name: string;
+  description: string;
+  cozyPoints: number;
+  playerLevelRequired: number;
+  priceCoins: number;
+  priceGems?: number;
+  visualKey: string;
+}
+
+export interface FoodItemDefinition {
+  id: string;
+  name: string;
+  description: string;
+  hungerReduction: number;
+  happinessBonus: number;
+  playerLevelRequired: number;
+  coinPrice: number;
+  icon: string;
+}
+
+export interface EggShopDefinition {
+  id: string;
+  name: string;
+  description: string;
+  incubationSeconds: number;
+  playerLevelRequired: number;
+  priceCoins: number;
+  priceGems?: number;
+  icon: string;
+}
+
+export interface IslandState {
+  decorations: PlacedDecoration[];
+  unlockedPlacementExpIds: string[];
+}
+
+export interface DailyLoginState {
+  lastClaimDate: string | null;
+  currentStreak: number;
+}
+
+export interface ActiveQuest {
+  questId: string;
+  currentCount: number;
+  targetCount: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
+}
+
+export interface QuestTemplate {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  targetType: 'pet' | 'feed' | 'hatch' | 'buy_shop' | 'place_decoration';
+  targetCount: number;
+  rewardCoins: number;
+  rewardExp: number;
+  rewardGems?: number;
+}
+
+export interface QuestState {
+  assignedDate: string;
+  quests: ActiveQuest[];
+}
+
+// --- Versioned Save Schemas ---
 
 export interface GameSaveData {
   schemaVersion: number;
@@ -132,5 +241,26 @@ export interface GameSaveData {
       x: number;
       y: number;
     }[];
+  };
+}
+
+export interface GameSaveDataV2 {
+  schemaVersion: 2;
+  player: PlayerProfile;
+  currencies: {
+    coins: number;
+    gems: number;
+    fish: number;
+  };
+  inventory: InventoryItem[];
+  ownedPenguins: OwnedPenguin[];
+  incubatorSlots: IncubatorSlot[];
+  island: IslandState;
+  dailyLogin: DailyLoginState;
+  questState: QuestState;
+  timestamps: {
+    createdAt: number;
+    lastSavedAt: number;
+    lastLoginAt: number;
   };
 }

@@ -1,4 +1,4 @@
-import { EggType } from '@penguin/types';
+import { EggType, EggShopDefinition } from '@penguin/types';
 
 export const EGG_TYPES_LIST: EggType[] = [
   {
@@ -42,3 +42,34 @@ export const EGG_TYPES_LIST: EggType[] = [
 export const EGG_TYPES_MAP = new Map<string, EggType>(
   EGG_TYPES_LIST.map((e) => [e.id, e])
 );
+
+export const EGG_CATALOG: Record<string, EggShopDefinition> = {
+  basic_egg: {
+    id: 'basic_egg',
+    name: 'Trứng Cơ Bản (Basic Egg)',
+    description: 'Quả trứng đốm ấm áp nở ra các loài chim cánh cụt phổ biến.',
+    incubationSeconds: 180,
+    playerLevelRequired: 1,
+    priceCoins: 150,
+    icon: '🥚',
+  },
+  frozen_egg: {
+    id: 'frozen_egg',
+    name: 'Trứng Băng Giá (Frozen Egg)',
+    description: 'Quả trứng đóng băng lấp lánh kết tinh từ bão tuyết phương Bắc.',
+    incubationSeconds: 900,
+    playerLevelRequired: 4,
+    priceCoins: 450,
+    icon: '🧊',
+  },
+  golden_egg: {
+    id: 'golden_egg',
+    name: 'Trứng Hoàng Kim (Golden Egg)',
+    description: 'Quả trứng vàng quý giá tỏa hào quang rực rỡ.',
+    incubationSeconds: 3600,
+    playerLevelRequired: 7,
+    priceCoins: 1200,
+    priceGems: 10,
+    icon: '✨',
+  },
+};

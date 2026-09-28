@@ -33,6 +33,7 @@ describe('Shared Types', () => {
       description: 'A quiet penguin who loves soft snow.',
       clue: 'Loves eating snacks near the igloo.',
       visualKey: 'penguin_snowy',
+      favoriteFoodId: 'sardine',
     };
     expect(species.id).toBe('snowy');
     expect(species.rarity).toBe('common');
@@ -43,11 +44,15 @@ describe('Shared Types', () => {
       speciesId: 'snowy',
       nickname: 'Snowball',
       level: 1,
+      exp: 0,
       experience: 0,
       happiness: 80,
       energy: 100,
       hunger: 30,
       mood: 'happy',
+      lastPetAt: 0,
+      lastFedAt: 0,
+      lastNeedsUpdateAt: 1700000000000,
       acquiredAt: 1700000000000,
       generation: 1,
       parentAId: 'p-1',
@@ -190,3 +195,93 @@ describe('Shared Types', () => {
     expect(moods).toHaveLength(6);
   });
 });
+
+describe('Phase 2 Types', () => {
+  it('constructs valid PlayerProfile, PlacedDecoration, and IslandState with unlockedPlacementExpIds', () => {
+    const profile: Types.PlayerProfile = {
+      level: 1,
+      exp: 0,
+      name: 'Người Nuôi Chim Cánh Cụt',
+      avatar: 'snowy',
+    };
+    expect(profile.level).toBe(1);
+
+    const island: Types.IslandState = {
+      decorations: [],
+      unlockedPlacementExpIds: ['bench_wood'],
+    };
+    expect(island.unlockedPlacementExpIds).toContain('bench_wood');
+  });
+
+  it('constructs OwnedPenguin with lastFedAt and without isFavorite', () => {
+    const penguin: Types.OwnedPenguin = {
+      id: 'p1',
+      speciesId: 'snowy',
+      nickname: 'Bông Tuyết',
+      level: 1,
+      exp: 0,
+      happiness: 80,
+      hunger: 20,
+      mood: 'happy',
+      lastPetAt: 0,
+      lastFedAt: 0,
+      lastNeedsUpdateAt: 1000,
+      generation: 1,
+      createdAt: 1000,
+    };
+    expect(penguin.lastFedAt).toBe(0);
+    // @ts-expect-error isFavorite should not exist on OwnedPenguin
+    expect(penguin.isFavorite).toBeUndefined();
+  });
+
+  it('constructs IncubatorSlot with pendingSpeciesId', () => {
+    const slot: Types.IncubatorSlot = {
+      slotId: 1,
+      state: 'READY_TO_HATCH',
+      eggTypeId: 'basic_egg',
+      unlocked: true,
+      pendingSpeciesId: 'snowy',
+    };
+    expect(slot.pendingSpeciesId).toBe('snowy');
+  });
+
+  it('constructs valid GameSaveDataV2 object', () => {
+    const saveV2: Types.GameSaveDataV2 = {
+      schemaVersion: 2,
+      player: {
+        level: 1,
+        exp: 0,
+        name: 'Chủ Đảo',
+        avatar: 'avatar_default',
+      },
+      currencies: {
+        coins: 100,
+        gems: 0,
+        fish: 0,
+      },
+      inventory: [],
+      ownedPenguins: [],
+      incubatorSlots: [],
+      island: {
+        decorations: [],
+        unlockedPlacementExpIds: [],
+      },
+      dailyLogin: {
+        lastClaimDate: null,
+        currentStreak: 1,
+      },
+      questState: {
+        assignedDate: '2026-09-28',
+        quests: [],
+      },
+      timestamps: {
+        createdAt: 1000,
+        lastSavedAt: 1000,
+        lastLoginAt: 1000,
+      },
+    };
+    expect(saveV2.schemaVersion).toBe(2);
+    expect(saveV2.currencies.fish).toBe(0);
+  });
+});
+

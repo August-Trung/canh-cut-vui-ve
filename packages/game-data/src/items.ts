@@ -1,4 +1,77 @@
-import { InventoryItem } from '@penguin/types';
+import { InventoryItem, FoodItemDefinition } from '@penguin/types';
+
+export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
+  sardine: {
+    id: 'sardine',
+    name: 'Cá Mòi Nhỏ (Small Sardine)',
+    description: 'Cá mòi tươi rói bơi trong làn nước lạnh. Món ăn khoái khẩu của Snowy.',
+    hungerReduction: 25,
+    happinessBonus: 10,
+    playerLevelRequired: 1,
+    coinPrice: 15,
+    icon: '🐟',
+  },
+  krill: {
+    id: 'krill',
+    name: 'Tép Biển Giòn (Krill)',
+    description: 'Tép biển tươi giòn, giàu dinh dưỡng cho chim cánh cụt con.',
+    hungerReduction: 30,
+    happinessBonus: 12,
+    playerLevelRequired: 2,
+    coinPrice: 25,
+    icon: '🦐',
+  },
+  warm_milk: {
+    id: 'warm_milk',
+    name: 'Sữa Nóng Ấm Áp (Warm Milk)',
+    description: 'Ly sữa béo ngậy giúp chìm vào giấc ngủ êm đềm. Món yêu thích của Sleepy.',
+    hungerReduction: 30,
+    happinessBonus: 18,
+    playerLevelRequired: 3,
+    coinPrice: 35,
+    icon: '🥛',
+  },
+  sweet_berries: {
+    id: 'sweet_berries',
+    name: 'Quả Mọng Tuyết (Sweet Berries)',
+    description: 'Những quả mọng đỏ hái từ bụi tuyết. Món yêu thích của Shy.',
+    hungerReduction: 35,
+    happinessBonus: 22,
+    playerLevelRequired: 3,
+    coinPrice: 40,
+    icon: '🍓',
+  },
+  squid: {
+    id: 'squid',
+    name: 'Mực Ống Tươi (Squid)',
+    description: 'Mực ống giòn ngọt được câu từ hố băng sâu.',
+    hungerReduction: 45,
+    happinessBonus: 20,
+    playerLevelRequired: 4,
+    coinPrice: 55,
+    icon: '🦑',
+  },
+  fat_salmon: {
+    id: 'fat_salmon',
+    name: 'Cá Hồi Béo Mầm (Fat Salmon)',
+    description: 'Miếng cá hồi căng bóng béo ngậy. Món khoái khẩu số một của Hungry.',
+    hungerReduction: 55,
+    happinessBonus: 30,
+    playerLevelRequired: 5,
+    coinPrice: 80,
+    icon: '🍣',
+  },
+  ice_cream: {
+    id: 'ice_cream',
+    name: 'Kem Tuyết Ngọt Lịm (Ice Cream)',
+    description: 'Que kem tuyết mát lạnh đem lại niềm vui bất tận. Món yêu thích của Happy.',
+    hungerReduction: 20,
+    happinessBonus: 45,
+    playerLevelRequired: 6,
+    coinPrice: 90,
+    icon: '🍦',
+  },
+};
 
 export const INITIAL_ITEMS: InventoryItem[] = [
   {
