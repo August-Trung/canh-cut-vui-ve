@@ -99,6 +99,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
     let mockTweens: {
       add: ReturnType<typeof vi.fn>;
       killTweensOf: ReturnType<typeof vi.fn>;
+      isTweening: ReturnType<typeof vi.fn>;
     };
     let mockEvents: Phaser.Events.EventEmitter;
 
@@ -139,6 +140,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         setRotation: vi.fn().mockReturnThis(),
         setVisible: vi.fn().mockReturnThis(),
         setFlipX: vi.fn().mockReturnThis(),
+        setTexture: vi.fn().mockReturnThis(),
         active: true,
         x: 0,
         y: 0,
@@ -191,6 +193,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       mockTweens = {
         add: vi.fn().mockReturnValue({ stop: vi.fn() }),
         killTweensOf: vi.fn(),
+        isTweening: vi.fn().mockReturnValue(false),
       };
 
       mockEvents = new Phaser.Events.EventEmitter();
@@ -430,8 +433,8 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       const initialListeners = gameBridge.listenerCount();
 
       scene.create();
-      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1)
-      expect(gameBridge.listenerCount()).toBe(initialListeners + 4);
+      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1)
+      expect(gameBridge.listenerCount()).toBe(initialListeners + 5);
 
       // Trigger shutdown event
       mockEvents.emit('shutdown');
@@ -439,6 +442,106 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       // Listeners should be cleaned up
       expect(gameBridge.listenerCount()).toBe(initialListeners);
       expect(scene.getPenguinCount()).toBe(0);
+    });
+
+    describe('Dynamic Incubator Nest Visual Synchronization', () => {
+      it('initializes with an empty nest without hardcoding an egg sprite', () => {
+        scene.create();
+
+        expect(scene.getNestContainer()).toBeDefined();
+        // Slot 1 is EMPTY by default, so no egg sprite is rendered in the nest
+        expect(scene.getNestEggSprite()).toBeNull();
+      });
+
+      it('displays correct egg sprite when an egg is placed in slot 1 (basic_egg, frozen_egg, golden_egg)', () => {
+        scene.create();
+
+        // 1. Place basic_egg
+        gameBridge.emit('nest:sync', {
+          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'basic_egg' },
+        });
+
+        expect(mockAdd.image).toHaveBeenCalledWith(0, -8, 'egg_basic');
+        expect(scene.getNestEggSprite()).not.toBeNull();
+
+        // 2. Place frozen_egg
+        gameBridge.emit('nest:sync', {
+          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'frozen_egg' },
+        });
+        const eggSprite = scene.getNestEggSprite() as unknown as { setTexture: ReturnType<typeof vi.fn> };
+        expect(eggSprite.setTexture).toHaveBeenCalledWith('egg_frozen');
+
+        // 3. Place golden_egg
+        gameBridge.emit('nest:sync', {
+          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'golden_egg' },
+        });
+        expect(eggSprite.setTexture).toHaveBeenCalledWith('egg_golden');
+      });
+
+      it('starts gentle wobble animation when egg enters READY_TO_HATCH state', () => {
+        scene.create();
+
+        gameBridge.emit('nest:sync', {
+          slot: { slotId: 1, state: 'READY_TO_HATCH', eggTypeId: 'basic_egg' },
+        });
+
+        expect(mockTweens.add).toHaveBeenCalledWith(
+          expect.objectContaining({
+            duration: 350,
+            yoyo: true,
+            repeat: -1,
+          })
+        );
+      });
+
+      it('removes egg and restores empty nest when egg is hatched and slot returns to EMPTY', () => {
+        scene.create();
+
+        // Egg placed
+        gameBridge.emit('nest:sync', {
+          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'basic_egg' },
+        });
+        expect(scene.getNestEggSprite()).not.toBeNull();
+
+        // Egg hatched -> slot returns to EMPTY
+        gameBridge.emit('nest:sync', {
+          slot: { slotId: 1, state: 'EMPTY' },
+        });
+
+        expect(mockTweens.killTweensOf).toHaveBeenCalled();
+        expect(scene.getNestEggSprite()).toBeNull();
+      });
+
+      it('restores nest visual when reloading saved state via world:sync with nestSlot', () => {
+        scene.create();
+
+        gameBridge.emit('world:sync', {
+          penguins: [],
+          nestSlot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'frozen_egg' },
+        });
+
+        expect(mockAdd.image).toHaveBeenCalledWith(0, -8, 'egg_frozen');
+        expect(scene.getNestEggSprite()).not.toBeNull();
+      });
+
+      it('clicking the nestContainer emits egg:clicked { slotId: 1 } and plays bounce animation', () => {
+        const eggHandler = vi.fn();
+        gameBridge.on('egg:clicked', eggHandler);
+
+        scene.create();
+        scene.handleNestClick();
+
+        expect(mockTweens.killTweensOf).toHaveBeenCalled();
+        expect(mockTweens.add).toHaveBeenCalledWith(
+          expect.objectContaining({
+            scaleX: 1.15,
+            scaleY: 0.88,
+            duration: 90,
+            yoyo: true,
+          })
+        );
+        expect(eggHandler).toHaveBeenCalledWith({ slotId: 1 });
+      });
     });
   });
 });

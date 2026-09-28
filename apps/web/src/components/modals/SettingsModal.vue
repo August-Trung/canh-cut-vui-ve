@@ -209,7 +209,13 @@ function openImportDialog() {
 }
 
 function syncPenguins() {
-  gameBridge.emit('world:sync', { penguins: gameStore.ownedPenguins });
+  gameBridge.emit('world:sync', {
+    penguins: gameStore.ownedPenguins,
+    nestSlot: gameStore.incubatorSlots[0] ?? null,
+  });
+  gameBridge.emit('nest:sync', {
+    slot: gameStore.incubatorSlots[0] ?? null,
+  });
   emit('sync');
 }
 

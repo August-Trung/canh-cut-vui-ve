@@ -230,4 +230,78 @@ describe('App Component', () => {
       penguins: game.ownedPenguins,
     });
   });
+
+  it('synchronizes nest state via nest:sync with EMPTY slot when canvas:ready fires', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const nestSyncHandler = vi.fn();
+    gameBridge.on('nest:sync', nestSyncHandler);
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    // Canvas signals readiness
+    gameBridge.emit('canvas:ready');
+    await wrapper.vm.$nextTick();
+
+    expect(nestSyncHandler).toHaveBeenCalledWith({
+      slot: expect.objectContaining({ slotId: 1, state: 'EMPTY' }),
+    });
+  });
+
+  it('emits nest:sync when an egg is placed into slot 1', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    // Establish canvas readiness
+    gameBridge.emit('canvas:ready');
+    await wrapper.vm.$nextTick();
+
+    const nestSyncHandler = vi.fn();
+    gameBridge.on('nest:sync', nestSyncHandler);
+
+    // Place basic_egg into slot 1
+    game.placeEggInIncubator(1, 'basic_egg');
+    await wrapper.vm.$nextTick();
+
+    expect(nestSyncHandler).toHaveBeenCalledWith({
+      slot: expect.objectContaining({
+        slotId: 1,
+        state: 'INCUBATING',
+        eggTypeId: 'basic_egg',
+      }),
+    });
+  });
+
+  it('restores incubating egg in nest on startup when save data contains an incubating egg', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    // Set slot 1 to incubating with a frozen_egg
+    const slot = game.getSlotById(1)!;
+    slot.state = 'INCUBATING';
+    slot.eggTypeId = 'frozen_egg';
+    await game.persistSave();
+
+    const nestSyncHandler = vi.fn();
+    gameBridge.on('nest:sync', nestSyncHandler);
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    gameBridge.emit('canvas:ready');
+    await wrapper.vm.$nextTick();
+
+    expect(nestSyncHandler).toHaveBeenCalledWith({
+      slot: expect.objectContaining({
+        slotId: 1,
+        state: 'INCUBATING',
+        eggTypeId: 'frozen_egg',
+      }),
+    });
+  });
 });

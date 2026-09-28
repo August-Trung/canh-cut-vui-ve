@@ -52,13 +52,13 @@
     <SettingsModal
       v-if="activeModal === 'settings'"
       @close="closeModal"
-      @sync="syncPenguins"
+      @sync="syncWorld"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useGameStore } from './stores/gameStore';
 import { gameBridge } from './game/bridge/GameBridge';
 import { soundService } from './services/SoundService';
@@ -99,13 +99,34 @@ function syncPenguins() {
   gameBridge.emit('world:sync', { penguins: gameStore.ownedPenguins });
 }
 
+function syncNest() {
+  if (!canvasReady.value || !gameStore.isLoaded) return;
+  const slot = gameStore.getSlotById(1) ?? gameStore.incubatorSlots[0] ?? null;
+  gameBridge.emit('nest:sync', {
+    slot: slot ? { ...slot } : null,
+  });
+}
+
+function syncWorld() {
+  syncPenguins();
+  syncNest();
+}
+
+watch(
+  () => [gameStore.incubatorSlots[0]?.state, gameStore.incubatorSlots[0]?.eggTypeId],
+  () => {
+    syncNest();
+  },
+  { deep: true }
+);
+
 let unsubs: (() => void)[] = [];
 
 onMounted(async () => {
-  // Subscribe to canvas:ready to synchronize penguins once the island scene is ready
+  // Subscribe to canvas:ready to synchronize penguins and nest once the island scene is ready
   const unsubCanvasReady = gameBridge.on('canvas:ready', () => {
     canvasReady.value = true;
-    syncPenguins();
+    syncWorld();
   });
 
   // Subscribe to GameBridge events
@@ -139,7 +160,7 @@ onMounted(async () => {
   if (!gameStore.isLoaded) {
     await gameStore.initGame();
   }
-  syncPenguins();
+  syncWorld();
 });
 
 onUnmounted(() => {

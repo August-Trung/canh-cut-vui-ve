@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { OwnedPenguin } from '@penguin/types';
+import { OwnedPenguin, IncubatorSlot } from '@penguin/types';
 import { gameBridge } from '../bridge/GameBridge';
 import { PenguinEntity, IslandBounds } from '../entities/PenguinEntity';
+import { EGG_TEXTURE_KEYS } from '../textures/TextureGenerator';
 
 /**
  * SnowIslandScene
@@ -32,6 +33,7 @@ export class SnowIslandScene extends Phaser.Scene {
   // Environment references
   private snowParticles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
   private nestContainer: Phaser.GameObjects.Container | null = null;
+  private nestEggSprite: Phaser.GameObjects.Image | null = null;
 
   private islandBounds: IslandBounds = {
     minX: -320,
@@ -196,7 +198,8 @@ export class SnowIslandScene extends Phaser.Scene {
   }
 
   /**
-   * Constructs interactive Incubator Nest with egg sprite.
+   * Constructs interactive Incubator Nest.
+   * By default, the nest is empty and dynamically reflects the live status of incubator slot 1.
    */
   private buildIncubatorNest(): void {
     const nestX = 175;
@@ -223,11 +226,6 @@ export class SnowIslandScene extends Phaser.Scene {
 
     container.add(nestGraphics);
 
-    // Egg sprite resting in nest
-    const eggSprite = this.add.image(0, -8, 'egg_basic');
-    eggSprite.setScale(0.72);
-    container.add(eggSprite);
-
     // Interactive click area
     container.setSize(72, 72);
     container.setInteractive(
@@ -248,6 +246,79 @@ export class SnowIslandScene extends Phaser.Scene {
     });
 
     this.nestContainer = container;
+  }
+
+  /**
+   * Synchronizes the in-world incubator nest visual with incubator slot 1.
+   * - EMPTY / HATCHED / null: empty nest (egg sprite removed).
+   * - EGG_PLACED / INCUBATING: renders the corresponding egg sprite.
+   * - READY_TO_HATCH / HATCHING: renders the egg sprite with gentle anticipation wobble.
+   */
+  updateNestState(slot: IncubatorSlot | null | undefined): void {
+    if (!this.nestContainer) return;
+
+    const hasEgg = Boolean(
+      slot &&
+      slot.state !== 'EMPTY' &&
+      slot.state !== 'HATCHED' &&
+      slot.eggTypeId
+    );
+
+    if (!hasEgg) {
+      if (this.nestEggSprite) {
+        this.tweens?.killTweensOf?.(this.nestEggSprite);
+        this.nestEggSprite.destroy();
+        this.nestEggSprite = null;
+      }
+      return;
+    }
+
+    const eggTypeId = slot!.eggTypeId!;
+    const mappedKey = (EGG_TEXTURE_KEYS as Record<string, string>)[eggTypeId];
+    const textureKey =
+      mappedKey ??
+      (this.textures?.exists?.(`egg_${eggTypeId}`) ? `egg_${eggTypeId}` : 'egg_basic');
+
+    if (!this.nestEggSprite) {
+      this.nestEggSprite = this.add.image(0, -8, textureKey);
+      this.nestEggSprite.setScale(0.72);
+      this.nestContainer.add(this.nestEggSprite);
+    } else {
+      this.nestEggSprite.setTexture(textureKey);
+      this.nestEggSprite.setVisible(true);
+    }
+
+    if (slot!.state === 'READY_TO_HATCH' || slot!.state === 'HATCHING') {
+      if (this.tweens && !this.tweens.isTweening(this.nestEggSprite)) {
+        this.tweens.add({
+          targets: this.nestEggSprite,
+          angle: { from: -5, to: 5 },
+          scaleY: { from: 0.70, to: 0.74 },
+          duration: 350,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+      }
+    } else {
+      this.tweens?.killTweensOf?.(this.nestEggSprite);
+      this.nestEggSprite.setAngle(0);
+      this.nestEggSprite.setScale(0.72);
+    }
+  }
+
+  /**
+   * Returns the nest container GameObject.
+   */
+  getNestContainer(): Phaser.GameObjects.Container | null {
+    return this.nestContainer;
+  }
+
+  /**
+   * Returns the current egg image GameObject inside the nest, or null if the nest is empty.
+   */
+  getNestEggSprite(): Phaser.GameObjects.Image | null {
+    return this.nestEggSprite;
   }
 
   /**
@@ -438,10 +509,19 @@ export class SnowIslandScene extends Phaser.Scene {
     this.unsubs.push(unsubFocus);
 
     // 4. Synchronize world entities on startup, save reset, or save import
-    const unsubSync = gameBridge.on('world:sync', ({ penguins }) => {
+    const unsubSync = gameBridge.on('world:sync', ({ penguins, nestSlot }) => {
       this.syncPenguins(penguins);
+      if (nestSlot !== undefined) {
+        this.updateNestState(nestSlot);
+      }
     });
     this.unsubs.push(unsubSync);
+
+    // 5. Synchronize incubator nest state dynamically
+    const unsubNestSync = gameBridge.on('nest:sync', ({ slot }) => {
+      this.updateNestState(slot);
+    });
+    this.unsubs.push(unsubNestSync);
   }
 
   /**
@@ -529,6 +609,11 @@ export class SnowIslandScene extends Phaser.Scene {
       penguin.destroy();
     }
     this.penguins.clear();
+
+    if (this.nestEggSprite) {
+      this.tweens?.killTweensOf?.(this.nestEggSprite);
+      this.nestEggSprite = null;
+    }
 
     if (this.snowParticles) {
       this.snowParticles.stop();
