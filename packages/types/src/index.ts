@@ -37,13 +37,20 @@ export interface PenguinSpecies {
   favoriteFoodId: string;
 }
 
+export interface PenguinStats {
+  fishCaught: number;
+  totalPets: number;
+  totalFeedings: number;
+  gamesPlayed: number;
+}
+
 export interface OwnedPenguin {
   id: string;
   speciesId: string;
   nickname: string;
   level: number;
-  exp: number;
-  experience?: number;
+  exp: number; // Canonical cumulative EXP
+  experience?: number; // Migration alias
   happiness: number;
   energy?: number;
   hunger: number;
@@ -56,6 +63,12 @@ export interface OwnedPenguin {
   createdAt?: number;
   parentAId?: string;
   parentBId?: string;
+
+  // Phase 3 additions:
+  traits?: string[];
+  breedingCount?: number;
+  lastBredAt?: number;
+  stats?: PenguinStats;
 }
 
 export interface DropPoolEntry {
@@ -263,4 +276,90 @@ export interface GameSaveDataV2 {
     lastSavedAt: number;
     lastLoginAt: number;
   };
+}
+
+// --- Phase 3 Entities, Genetics, Breeding & Mini-Games ---
+
+export type TraitEffectType = 'care' | 'minigame' | 'island' | 'breeding';
+
+export interface PenguinTraitDefinition {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  effectType: TraitEffectType;
+  rarity: 'common' | 'rare' | 'epic';
+}
+
+export interface GeneticsResult {
+  speciesId: string;
+  traits: string[];
+  generation: number;
+  parentAId: string;
+  parentBId: string;
+  mutatedSpecies: boolean;
+  personality: PenguinPersonality;
+}
+
+export type BreedingSlotState = 'EMPTY' | 'BREEDING' | 'READY_TO_COLLECT';
+
+export interface BreedingSlot {
+  slotId: number;
+  state: BreedingSlotState;
+  parentAId?: string;
+  parentBId?: string;
+  startedAt?: number;
+  durationSec?: number;
+  targetCollectTime?: number;
+  geneticsResult?: GeneticsResult;
+}
+
+export interface BreedingConfig {
+  minParentLevel: number;
+  costCoins: number;
+  costGems: number;
+  cooldownMs: number;
+  durationSeconds: number;
+  devDurationSeconds?: number;
+}
+
+export interface MiniGameConfig {
+  id: string;
+  title: string;
+  description: string;
+  durationSeconds: number;
+  dailyFreePlays: number;
+  maxExtraPlaysPerDay: number;
+  extraPlayCostCoins: number;
+  maxScoreCap: number;
+}
+
+export interface MiniGameResult {
+  sessionId: string;
+  gameId: string;
+  companionPenguinId?: string;
+  score: number;
+  accuracy: number;
+  catchesCount: number;
+  durationSec: number;
+  completedAt: number;
+}
+
+export interface MiniGameReward {
+  tier: 'bronze' | 'silver' | 'gold' | 'diamond';
+  coins: number;
+  playerExp: number;
+  penguinExp: number;
+  items: { itemId: string; quantity: number }[];
+}
+
+export interface MiniGameState {
+  lastPlayedDate: string;
+  dailyPlaysCount: Record<string, number>;
+}
+
+export interface GameSaveDataV3 extends Omit<GameSaveDataV2, 'schemaVersion'> {
+  schemaVersion: 3;
+  breedingSlot: BreedingSlot;
+  miniGameState: MiniGameState;
 }

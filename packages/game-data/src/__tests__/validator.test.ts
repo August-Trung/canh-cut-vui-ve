@@ -43,15 +43,15 @@ describe('Game Data & Drop Table Validation', () => {
   });
 
   describe('Egg Types Data', () => {
-    it('should have 3 distinct Phase 1 egg types', () => {
-      expect(EGG_TYPES_LIST.length).toBe(3);
+    it('should have 4 distinct egg types (including breeding egg)', () => {
+      expect(EGG_TYPES_LIST.length).toBe(4);
       const ids = EGG_TYPES_LIST.map((e) => e.id);
-      expect(new Set(ids).size).toBe(3);
-      expect(ids).toEqual(expect.arrayContaining(['basic_egg', 'frozen_egg', 'golden_egg']));
+      expect(new Set(ids).size).toBe(4);
+      expect(ids).toEqual(expect.arrayContaining(['basic_egg', 'frozen_egg', 'golden_egg', 'egg_breeding']));
     });
 
     it('EGG_TYPES_MAP should map id to egg type object', () => {
-      expect(EGG_TYPES_MAP.size).toBe(3);
+      expect(EGG_TYPES_MAP.size).toBe(4);
       for (const egg of EGG_TYPES_LIST) {
         expect(EGG_TYPES_MAP.get(egg.id)).toEqual(egg);
       }
@@ -217,6 +217,42 @@ describe('Game Data & Drop Table Validation', () => {
       expect(hatchQuest).toBeDefined();
       expect(hatchQuest?.targetType).toBe('hatch');
       expect(hatchQuest?.rewardGems).toBe(1);
+    });
+  });
+
+  describe('Phase 3 Catalogs', () => {
+    it('should export TRAITS_CATALOG with 6 valid traits', async () => {
+      const { TRAITS_CATALOG, TRAIT_IDS } = await import('../index');
+      expect(TRAIT_IDS).toHaveLength(6);
+      expect(TRAITS_CATALOG.glutton.effectType).toBe('care');
+      expect(TRAITS_CATALOG.speedy.effectType).toBe('minigame');
+      expect(TRAITS_CATALOG.cozy_aura.effectType).toBe('island');
+      expect(TRAITS_CATALOG.lucky.effectType).toBe('care');
+      expect(TRAITS_CATALOG.angler.effectType).toBe('minigame');
+      expect(TRAITS_CATALOG.romantic.effectType).toBe('breeding');
+    });
+
+    it('should export BREEDING_CONFIG and GENETICS_MUTATION_POOLS', async () => {
+      const { BREEDING_CONFIG, GENETICS_MUTATION_POOLS } = await import('../index');
+      expect(BREEDING_CONFIG.minParentLevel).toBe(3);
+      expect(BREEDING_CONFIG.costCoins).toBe(200);
+      expect(BREEDING_CONFIG.costGems).toBe(1);
+      expect(BREEDING_CONFIG.cooldownMs).toBe(1800000);
+      expect(GENETICS_MUTATION_POOLS.sameSpeciesMutationPool.snowy).toBeDefined();
+      expect(GENETICS_MUTATION_POOLS.crossSpeciesMutationPool.default).toBeDefined();
+    });
+
+    it('should export MINIGAME_CATCH_FISH_CONFIG and FISH_TARGET_TABLE', async () => {
+      const { MINIGAME_CATCH_FISH_CONFIG, FISH_TARGET_TABLE } = await import('../index');
+      expect(MINIGAME_CATCH_FISH_CONFIG.durationSeconds).toBe(30);
+      expect(MINIGAME_CATCH_FISH_CONFIG.dailyFreePlays).toBe(3);
+      expect(MINIGAME_CATCH_FISH_CONFIG.maxExtraPlaysPerDay).toBe(3);
+      expect(MINIGAME_CATCH_FISH_CONFIG.extraPlayCostCoins).toBe(50);
+      expect(FISH_TARGET_TABLE.length).toBeGreaterThanOrEqual(5);
+      const sardine = FISH_TARGET_TABLE.find((f) => f.id === 'sardine');
+      expect(sardine?.points).toBe(10);
+      const boot = FISH_TARGET_TABLE.find((f) => f.id === 'old_boot');
+      expect(boot?.isObstacle).toBe(true);
     });
   });
 });

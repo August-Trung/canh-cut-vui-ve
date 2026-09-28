@@ -37,6 +37,20 @@ export const EGG_TYPES_LIST: EggType[] = [
       { speciesId: 'shy', weight: 20 },
     ],
   },
+  {
+    id: 'egg_breeding',
+    name: 'Breeding Egg',
+    rarity: 'rare',
+    hatchDurationSec: 20,
+    visualTheme: 'egg_golden',
+    dropPool: [
+      { speciesId: 'snowy', weight: 20 },
+      { speciesId: 'sleepy', weight: 20 },
+      { speciesId: 'shy', weight: 20 },
+      { speciesId: 'happy', weight: 20 },
+      { speciesId: 'hungry', weight: 20 },
+    ],
+  },
 ];
 
 export const EGG_TYPES_MAP = new Map<string, EggType>(

@@ -285,3 +285,115 @@ describe('Phase 2 Types', () => {
   });
 });
 
+describe('Phase 3 Types', () => {
+  it('constructs OwnedPenguin with canonical exp, traits, breedingCount, and stats', () => {
+    const penguin: Types.OwnedPenguin = {
+      id: 'p-phase3-1',
+      speciesId: 'snowy',
+      nickname: 'Snowy Jr',
+      level: 3,
+      exp: 260,
+      happiness: 90,
+      hunger: 10,
+      mood: 'happy',
+      lastPetAt: 0,
+      lastFedAt: 0,
+      lastNeedsUpdateAt: 1000,
+      generation: 2,
+      parentAId: 'parent-1',
+      parentBId: 'parent-2',
+      traits: ['glutton', 'lucky'],
+      breedingCount: 0,
+      lastBredAt: 0,
+      stats: {
+        fishCaught: 5,
+        totalPets: 12,
+        totalFeedings: 8,
+        gamesPlayed: 3,
+      },
+      createdAt: 1000,
+    };
+    expect(penguin.exp).toBe(260);
+    expect(penguin.traits).toEqual(['glutton', 'lucky']);
+    expect(penguin.generation).toBe(2);
+    expect(penguin.stats?.fishCaught).toBe(5);
+  });
+
+  it('constructs GeneticsResult and BreedingSlot', () => {
+    const genetics: Types.GeneticsResult = {
+      speciesId: 'snowy',
+      traits: ['speedy'],
+      generation: 2,
+      parentAId: 'p-1',
+      parentBId: 'p-2',
+      mutatedSpecies: false,
+      personality: 'shy',
+    };
+    expect(genetics.speciesId).toBe('snowy');
+
+    const slot: Types.BreedingSlot = {
+      slotId: 1,
+      state: 'READY_TO_COLLECT',
+      parentAId: 'p-1',
+      parentBId: 'p-2',
+      startedAt: 1000,
+      durationSec: 300,
+      targetCollectTime: 301000,
+      geneticsResult: genetics,
+    };
+    expect(slot.state).toBe('READY_TO_COLLECT');
+    expect(slot.geneticsResult?.traits).toContain('speedy');
+  });
+
+  it('constructs MiniGameResult, MiniGameReward, and GameSaveDataV3', () => {
+    const result: Types.MiniGameResult = {
+      sessionId: 'sess-123',
+      gameId: 'catch_fish',
+      companionPenguinId: 'p-1',
+      score: 150,
+      accuracy: 92,
+      catchesCount: 12,
+      durationSec: 30,
+      completedAt: 1000,
+    };
+    expect(result.score).toBe(150);
+
+    const reward: Types.MiniGameReward = {
+      tier: 'diamond',
+      coins: 100,
+      playerExp: 40,
+      penguinExp: 35,
+      items: [{ itemId: 'fat_salmon', quantity: 1 }],
+    };
+    expect(reward.tier).toBe('diamond');
+
+    const saveV3: Types.GameSaveDataV3 = {
+      schemaVersion: 3,
+      player: {
+        level: 1,
+        exp: 0,
+        name: 'Chủ Đảo',
+        avatar: 'avatar_default',
+      },
+      currencies: { coins: 100, gems: 0, fish: 0 },
+      inventory: [],
+      ownedPenguins: [],
+      incubatorSlots: [],
+      island: { decorations: [], unlockedPlacementExpIds: [] },
+      dailyLogin: { lastClaimDate: null, currentStreak: 1 },
+      questState: { assignedDate: '2026-09-28', quests: [] },
+      timestamps: { createdAt: 1000, lastSavedAt: 1000, lastLoginAt: 1000 },
+      breedingSlot: {
+        slotId: 1,
+        state: 'EMPTY',
+      },
+      miniGameState: {
+        lastPlayedDate: '2026-09-28',
+        dailyPlaysCount: { catch_fish: 1 },
+      },
+    };
+    expect(saveV3.schemaVersion).toBe(3);
+    expect(saveV3.breedingSlot.state).toBe('EMPTY');
+  });
+});
+
