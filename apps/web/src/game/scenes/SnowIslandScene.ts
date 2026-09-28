@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
-import { OwnedPenguin, IncubatorSlot } from '@penguin/types';
+import { OwnedPenguin, IncubatorSlot, PlacedDecoration } from '@penguin/types';
+import { DECORATION_PLOTS, DECORATION_CATALOG } from '@penguin/game-data';
 import { gameBridge } from '../bridge/GameBridge';
 import { PenguinEntity, IslandBounds } from '../entities/PenguinEntity';
 import { EGG_TEXTURE_KEYS } from '../textures/TextureGenerator';
+import { soundService } from '../../services/SoundService';
+
 
 /**
  * SnowIslandScene
@@ -34,6 +37,8 @@ export class SnowIslandScene extends Phaser.Scene {
   private snowParticles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
   private nestContainer: Phaser.GameObjects.Container | null = null;
   private nestEggSprite: Phaser.GameObjects.Image | null = null;
+  private plotContainers = new Map<number, Phaser.GameObjects.Container>();
+  private decorationSprites = new Map<number, Phaser.GameObjects.Image>();
 
   private islandBounds: IslandBounds = {
     minX: -320,
@@ -63,6 +68,7 @@ export class SnowIslandScene extends Phaser.Scene {
     // 1. Build 2.5D Snow Island Environment & Backdrop
     this.buildBackdrop();
     this.buildWinterProps();
+    this.buildAnchorPlots();
     this.buildIncubatorNest();
     this.buildAmbientSnowParticles();
 
@@ -345,6 +351,121 @@ export class SnowIslandScene extends Phaser.Scene {
   }
 
   /**
+   * Constructs the 6 predefined 2.5D anchor plots for island decorations.
+   */
+  private buildAnchorPlots(): void {
+    for (const plot of DECORATION_PLOTS) {
+      const container = this.add.container(plot.x, plot.y);
+      container.setDepth(plot.depthOffset);
+
+      // Plot marker pad: soft ice ellipse with subtle outline
+      const pad = this.add.graphics();
+      pad.fillStyle(0xd0e8f8, 0.4);
+      pad.fillEllipse(0, 0, 48, 24);
+      pad.lineStyle(1.5, 0x93c5fd, 0.6);
+      pad.strokeEllipse?.(0, 0, 48, 24);
+      container.add(pad);
+
+
+      container.setSize(48, 36);
+      container.setInteractive({ useHandCursor: true });
+      container.on('pointerdown', () => {
+        this.handlePlotClick(plot.id);
+      });
+
+      this.plotContainers.set(plot.id, container);
+    }
+  }
+
+  /**
+   * Handles plot clicking with tactile squeeze bounce animation and GameBridge event emission.
+   */
+  handlePlotClick(plotId: number): void {
+    const container = this.plotContainers.get(plotId);
+    if (container && this.tweens) {
+      this.tweens.killTweensOf(container);
+      container.setScale(1.0);
+      this.tweens.add({
+        targets: container,
+        scaleX: 1.15,
+        scaleY: 0.88,
+        duration: 90,
+        yoyo: true,
+        ease: 'Quad.easeInOut',
+      });
+    }
+
+    gameBridge.emit('plot:clicked', { plotId });
+  }
+
+  /**
+   * Returns the container GameObject for an anchor plot.
+   */
+  getPlotContainer(plotId: number): Phaser.GameObjects.Container | undefined {
+    return this.plotContainers.get(plotId);
+  }
+
+  /**
+   * Returns the active decoration image sprite on an anchor plot, if present.
+   */
+  getDecorationSprite(plotId: number): Phaser.GameObjects.Image | undefined {
+    return this.decorationSprites.get(plotId);
+  }
+
+  /**
+   * Synchronizes placed decorations on anchor plots, updating sprites with proper depth sorting.
+   */
+  syncDecorations(decorations: PlacedDecoration[]): void {
+    for (const sprite of this.decorationSprites.values()) {
+      sprite.destroy();
+    }
+    this.decorationSprites.clear();
+
+    for (const placed of decorations) {
+      const container = this.plotContainers.get(placed.plotId);
+      if (container) {
+        const def = DECORATION_CATALOG[placed.decorationId];
+        const visualKey = def?.visualKey || placed.decorationId;
+        const sprite = this.add.image(0, -14, visualKey);
+        sprite.setOrigin(0.5, 0.85);
+        container.add(sprite);
+        this.decorationSprites.set(placed.plotId, sprite);
+      }
+    }
+  }
+
+  /**
+   * Spawns a floating bounce coin effect with +Amount text that auto-destroys.
+   */
+  spawnCoinDropEffect(x: number, y: number, amount: number): void {
+    soundService.playCoinDrop();
+
+    const coinText = this.add.text(x, y - 20, `+${amount} 🪙`, {
+      fontSize: '18px',
+      color: '#facc15',
+      fontStyle: 'bold',
+      stroke: '#78350f',
+      strokeThickness: 3,
+    });
+    coinText.setOrigin(0.5, 0.5);
+    coinText.setDepth(2500);
+
+    if (this.tweens) {
+      this.tweens.add({
+        targets: coinText,
+        y: y - 65,
+        alpha: 0,
+        duration: 800,
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+          coinText.destroy();
+        },
+      });
+    }
+  }
+
+
+  /**
    * Builds ambient falling snowflakes particle emitter with max 50-80 particles.
    */
   private buildAmbientSnowParticles(): void {
@@ -536,6 +657,18 @@ export class SnowIslandScene extends Phaser.Scene {
       }
     });
     this.unsubs.push(unsubModal);
+
+    // 7. Synchronize placed decorations on anchor plots
+    const unsubDecor = gameBridge.on('decorations:sync', ({ decorations }) => {
+      this.syncDecorations(decorations);
+    });
+    this.unsubs.push(unsubDecor);
+
+    // 8. Spawn bounce coin drop effect
+    const unsubCoin = gameBridge.on('effect:coin_drop', ({ x, y, amount }) => {
+      this.spawnCoinDropEffect(x, y, amount);
+    });
+    this.unsubs.push(unsubCoin);
   }
 
   /**
@@ -623,6 +756,16 @@ export class SnowIslandScene extends Phaser.Scene {
       penguin.destroy();
     }
     this.penguins.clear();
+
+    for (const sprite of this.decorationSprites.values()) {
+      sprite.destroy();
+    }
+    this.decorationSprites.clear();
+
+    for (const container of this.plotContainers.values()) {
+      container.destroy();
+    }
+    this.plotContainers.clear();
 
     if (this.nestEggSprite) {
       this.tweens?.killTweensOf?.(this.nestEggSprite);

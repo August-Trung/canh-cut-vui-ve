@@ -5,6 +5,8 @@ import { BootScene } from '../BootScene';
 import { SnowIslandScene } from '../SnowIslandScene';
 import { gameBridge } from '../../bridge/GameBridge';
 import { OwnedPenguin } from '@penguin/types';
+import { DECORATION_PLOTS } from '@penguin/game-data';
+
 
 describe('Task 8: Snow Island Scene & Camera Controls', () => {
   describe('PhaserConfig', () => {
@@ -155,7 +157,9 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         fillStyle: vi.fn().mockReturnThis(),
         fillCircle: vi.fn().mockReturnThis(),
         fillEllipse: vi.fn().mockReturnThis(),
+        strokeEllipse: vi.fn().mockReturnThis(),
         fillPath: vi.fn().mockReturnThis(),
+
         beginPath: vi.fn().mockReturnThis(),
         closePath: vi.fn().mockReturnThis(),
         lineStyle: vi.fn().mockReturnThis(),
@@ -177,7 +181,14 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         image: vi.fn().mockReturnValue(mockDisplayObject),
         sprite: vi.fn().mockReturnValue(mockDisplayObject),
         graphics: vi.fn().mockReturnValue(mockGraphics),
-        container: vi.fn().mockReturnValue(mockDisplayObject),
+        container: vi.fn().mockImplementation(() => ({
+          ...mockDisplayObject,
+          setSize: vi.fn().mockReturnThis(),
+          setInteractive: vi.fn().mockReturnThis(),
+          add: vi.fn().mockReturnThis(),
+          setScale: vi.fn().mockReturnThis(),
+          setDepth: vi.fn().mockReturnThis(),
+        })),
         existing: vi.fn((obj) => obj),
         particles: vi.fn().mockReturnValue(mockEmitter),
         text: vi.fn().mockReturnValue(mockDisplayObject),
@@ -435,10 +446,11 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       const initialListeners = gameBridge.listenerCount();
 
       scene.create();
-      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1), ui:modal (+1)
-      expect(gameBridge.listenerCount()).toBe(initialListeners + 6);
+      // Listeners registered: canvas:ready (0), penguin:spawn (+1), penguin:action (+1), camera:focus (+1), world:sync (+1), nest:sync (+1), ui:modal (+1), decorations:sync (+1), effect:coin_drop (+1)
+      expect(gameBridge.listenerCount()).toBe(initialListeners + 8);
 
       // Trigger shutdown event
+
       mockEvents.emit('shutdown');
 
       // Listeners should be cleaned up
@@ -597,6 +609,63 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         gameBridge.emit('ui:modal', { open: false });
         expect(scene.input.enabled).toBe(true);
       });
+
+      it('renders 6 anchor plot containers at predefined coordinates with depth sorting', () => {
+        scene.create();
+
+        for (const plot of DECORATION_PLOTS) {
+          const container = scene.getPlotContainer(plot.id);
+          expect(container).toBeDefined();
+          expect(mockAdd.container).toHaveBeenCalledWith(plot.x, plot.y);
+          expect(container?.setDepth).toHaveBeenCalledWith(plot.depthOffset);
+        }
+      });
+
+      it('emits plot:clicked { plotId } when an anchor plot is clicked', () => {
+        scene.create();
+        const plotSpy = vi.fn();
+        gameBridge.on('plot:clicked', plotSpy);
+
+        scene.handlePlotClick(2);
+        expect(plotSpy).toHaveBeenCalledWith({ plotId: 2 });
+      });
+
+      it('synchronizes decorations on anchor plots and creates sprites with proper origin', () => {
+        scene.create();
+
+        const placedDecors = [
+          { instanceId: 'd1', decorationId: 'bench_wood', plotId: 1, placedAt: 1000 },
+          { instanceId: 'd2', decorationId: 'pine_crystal', plotId: 5, placedAt: 1000 },
+        ];
+
+        gameBridge.emit('decorations:sync', { decorations: placedDecors });
+
+        expect(scene.getDecorationSprite(1)).toBeDefined();
+        expect(scene.getDecorationSprite(5)).toBeDefined();
+        expect(mockAdd.image).toHaveBeenCalledWith(0, -14, 'dec_bench_wood');
+        expect(mockAdd.image).toHaveBeenCalledWith(0, -14, 'dec_pine_crystal');
+      });
+
+      it('spawns floating bounce coin text on effect:coin_drop', () => {
+        scene.create();
+
+        gameBridge.emit('effect:coin_drop', { x: 50, y: 80, amount: 25 });
+
+        expect(mockAdd.text).toHaveBeenCalledWith(
+          50,
+          60,
+          '+25 🪙',
+          expect.objectContaining({ color: '#facc15' })
+        );
+        expect(mockTweens.add).toHaveBeenCalledWith(
+          expect.objectContaining({
+            y: 15,
+            alpha: 0,
+            duration: 800,
+          })
+        );
+      });
     });
   });
 });
+

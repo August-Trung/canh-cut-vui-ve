@@ -70,6 +70,30 @@ export const ENVIRONMENT_TEXTURE_KEYS = {
   particle_sparkle: 'particle_sparkle',
 } as const;
 
+export const DECORATION_TEXTURE_KEYS = {
+  bench_wood: 'dec_bench_wood',
+  pine_crystal: 'dec_pine_crystal',
+  lamp_street: 'dec_lamp_street',
+  castle_snow: 'dec_castle_snow',
+  lantern_igloo: 'dec_lantern_igloo',
+  master_caretaker_trophy: 'dec_trophy_master',
+  dec_bench_wood: 'dec_bench_wood',
+  dec_pine_crystal: 'dec_pine_crystal',
+  dec_lamp_street: 'dec_lamp_street',
+  dec_castle_snow: 'dec_castle_snow',
+  dec_lantern_igloo: 'dec_lantern_igloo',
+  dec_trophy_master: 'dec_trophy_master',
+} as const;
+
+export type DecorationVisualKey =
+  | 'dec_bench_wood'
+  | 'dec_pine_crystal'
+  | 'dec_lamp_street'
+  | 'dec_castle_snow'
+  | 'dec_lantern_igloo'
+  | 'dec_trophy_master';
+
+
 // ---------------------------------------------------------------------------
 // Vitest-Safe Headless Canvas Implementation
 // ---------------------------------------------------------------------------
@@ -1301,12 +1325,413 @@ function drawParticleSparkle(): HTMLCanvasElement {
   return canvas;
 }
 
+/**
+ * Generates 2.5D procedural vector textures for Island Decorations.
+ */
+export function generateDecorationTexture(key: string): HTMLCanvasElement {
+  const normKey = DECORATION_TEXTURE_KEYS[key as keyof typeof DECORATION_TEXTURE_KEYS] || key;
+
+  switch (normKey) {
+    case 'dec_bench_wood': {
+      const canvas = createSafeCanvas(110, 70);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return canvas;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 30, 50, 0.2)';
+      ctx.beginPath();
+      ctx.ellipse(55, 62, 45, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#4a2c11';
+      ctx.fillRect(20, 38, 8, 24);
+      ctx.fillRect(32, 40, 6, 22);
+      ctx.fillRect(72, 40, 6, 22);
+      ctx.fillRect(82, 38, 8, 24);
+
+      ctx.fillStyle = '#5c3a1e';
+      ctx.fillRect(18, 12, 6, 32);
+      ctx.fillRect(86, 12, 6, 32);
+
+      const slatGrad = ctx.createLinearGradient(0, 14, 0, 36);
+      slatGrad.addColorStop(0, '#a06535');
+      slatGrad.addColorStop(1, '#6d3e18');
+      ctx.fillStyle = slatGrad;
+      ctx.fillRect(22, 14, 66, 7);
+      ctx.fillRect(22, 24, 66, 7);
+
+      const seatGrad = ctx.createLinearGradient(0, 36, 0, 44);
+      seatGrad.addColorStop(0, '#b87944');
+      seatGrad.addColorStop(1, '#78431b');
+      ctx.fillStyle = seatGrad;
+      ctx.fillRect(14, 36, 82, 8);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(16, 11, 78, 6, 3);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(12, 34, 86, 6, 3);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.6)';
+      ctx.fillRect(16, 15, 78, 2);
+      ctx.fillRect(12, 38, 86, 2);
+
+      ctx.restore();
+      return canvas;
+    }
+
+    case 'dec_pine_crystal': {
+      const canvas = createSafeCanvas(90, 130);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return canvas;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 30, 50, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(45, 122, 32, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const trunkGrad = ctx.createLinearGradient(40, 100, 50, 122);
+      trunkGrad.addColorStop(0, '#2e1c0c');
+      trunkGrad.addColorStop(1, '#1a1007');
+      ctx.fillStyle = trunkGrad;
+      ctx.fillRect(40, 100, 10, 22);
+
+      const tiers = [
+        { yBottom: 104, yTop: 68, w: 38 },
+        { yBottom: 76, yTop: 42, w: 30 },
+        { yBottom: 48, yTop: 16, w: 22 },
+      ];
+
+      for (const t of tiers) {
+        const pineGrad = ctx.createLinearGradient(45 - t.w, t.yBottom, 45 + t.w, t.yTop);
+        pineGrad.addColorStop(0, '#0f766e');
+        pineGrad.addColorStop(0.5, '#14b8a6');
+        pineGrad.addColorStop(1, '#5eead4');
+        ctx.fillStyle = pineGrad;
+
+        ctx.beginPath();
+        ctx.moveTo(45, t.yTop);
+        ctx.lineTo(45 + t.w, t.yBottom);
+        ctx.lineTo(45 + t.w * 0.5, t.yBottom - 4);
+        ctx.lineTo(45, t.yBottom - 2);
+        ctx.lineTo(45 - t.w * 0.5, t.yBottom - 4);
+        ctx.lineTo(45 - t.w, t.yBottom);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(45 - t.w, t.yBottom);
+        ctx.lineTo(45, t.yTop);
+        ctx.lineTo(45 + t.w, t.yBottom);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(45, t.yTop + 6, 2, 0, Math.PI * 2);
+        ctx.arc(45 - t.w * 0.4, t.yBottom - 3, 1.5, 0, Math.PI * 2);
+        ctx.arc(45 + t.w * 0.4, t.yBottom - 3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(45, 14, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+      return canvas;
+    }
+
+    case 'dec_lamp_street': {
+      const canvas = createSafeCanvas(60, 130);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return canvas;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 30, 50, 0.2)';
+      ctx.beginPath();
+      ctx.ellipse(30, 124, 18, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.moveTo(22, 124);
+      ctx.lineTo(38, 124);
+      ctx.lineTo(33, 112);
+      ctx.lineTo(27, 112);
+      ctx.closePath();
+      ctx.fill();
+
+      const postGrad = ctx.createLinearGradient(28, 0, 32, 0);
+      postGrad.addColorStop(0, '#334155');
+      postGrad.addColorStop(0.5, '#64748b');
+      postGrad.addColorStop(1, '#1e293b');
+      ctx.fillStyle = postGrad;
+      ctx.fillRect(28, 42, 4, 70);
+
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(23, 50, 14, 3);
+
+      const glowGrad = ctx.createRadialGradient(30, 30, 4, 30, 30, 26);
+      glowGrad.addColorStop(0, 'rgba(254, 240, 138, 0.7)');
+      glowGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.25)');
+      glowGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(30, 30, 26, 0, Math.PI * 2);
+      ctx.fill();
+
+      const glassGrad = ctx.createLinearGradient(20, 20, 40, 42);
+      glassGrad.addColorStop(0, '#fffbeb');
+      glassGrad.addColorStop(0.5, '#fef08a');
+      glassGrad.addColorStop(1, '#f59e0b');
+      ctx.fillStyle = glassGrad;
+      ctx.beginPath();
+      ctx.moveTo(23, 22);
+      ctx.lineTo(37, 22);
+      ctx.lineTo(34, 40);
+      ctx.lineTo(26, 40);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.moveTo(30, 12);
+      ctx.lineTo(41, 22);
+      ctx.lineTo(19, 22);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(30, 9);
+      ctx.lineTo(42, 20);
+      ctx.lineTo(18, 20);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+      return canvas;
+    }
+
+    case 'dec_castle_snow': {
+      const canvas = createSafeCanvas(120, 120);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return canvas;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 30, 50, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(60, 112, 50, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const castleGrad = ctx.createLinearGradient(30, 40, 90, 110);
+      castleGrad.addColorStop(0, '#e0f2fe');
+      castleGrad.addColorStop(0.5, '#bae6fd');
+      castleGrad.addColorStop(1, '#7dd3fc');
+      ctx.fillStyle = castleGrad;
+      ctx.fillRect(38, 48, 44, 62);
+
+      ctx.fillRect(18, 56, 22, 54);
+      ctx.fillRect(80, 56, 22, 54);
+
+      ctx.fillStyle = '#f0f9ff';
+      ctx.fillRect(17, 50, 6, 6);
+      ctx.fillRect(26, 50, 6, 6);
+      ctx.fillRect(35, 50, 6, 6);
+      ctx.fillRect(79, 50, 6, 6);
+      ctx.fillRect(88, 50, 6, 6);
+      ctx.fillRect(97, 50, 6, 6);
+      ctx.fillRect(38, 42, 7, 6);
+      ctx.fillRect(49, 42, 7, 6);
+      ctx.fillRect(60, 42, 7, 6);
+      ctx.fillRect(71, 42, 7, 6);
+
+      ctx.fillStyle = '#0369a1';
+      ctx.beginPath();
+      ctx.arc(60, 96, 12, Math.PI, 0);
+      ctx.lineTo(72, 110);
+      ctx.lineTo(48, 110);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(25, 68, 8, 12);
+      ctx.fillRect(87, 68, 8, 12);
+      ctx.fillRect(56, 56, 8, 14);
+
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(60, 42);
+      ctx.lineTo(60, 20);
+      ctx.stroke();
+
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.moveTo(60, 20);
+      ctx.lineTo(74, 26);
+      ctx.lineTo(60, 32);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+      return canvas;
+    }
+
+    case 'dec_lantern_igloo': {
+      const canvas = createSafeCanvas(90, 90);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return canvas;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 30, 50, 0.2)';
+      ctx.beginPath();
+      ctx.ellipse(45, 82, 38, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const iglooGrad = ctx.createRadialGradient(45, 48, 6, 45, 52, 36);
+      iglooGrad.addColorStop(0, '#e0f2fe');
+      iglooGrad.addColorStop(0.6, '#bae6fd');
+      iglooGrad.addColorStop(1, '#38bdf8');
+      ctx.fillStyle = iglooGrad;
+
+      ctx.beginPath();
+      ctx.arc(45, 78, 34, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(45, 78, 22, Math.PI, 0);
+      ctx.stroke();
+
+      const entGrad = ctx.createLinearGradient(32, 60, 58, 82);
+      entGrad.addColorStop(0, '#f0f9ff');
+      entGrad.addColorStop(1, '#0284c7');
+      ctx.fillStyle = entGrad;
+      ctx.beginPath();
+      ctx.arc(45, 78, 14, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      const coreGrad = ctx.createRadialGradient(45, 74, 1, 45, 74, 10);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.4, '#a5f3fc');
+      coreGrad.addColorStop(1, '#06b6d4');
+      ctx.fillStyle = coreGrad;
+      ctx.beginPath();
+      ctx.arc(45, 78, 9, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#f0f9ff';
+      ctx.fillRect(40, 40, 10, 6);
+
+      ctx.restore();
+      return canvas;
+    }
+
+    case 'dec_trophy_master': {
+      const canvas = createSafeCanvas(90, 130);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return canvas;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 30, 50, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(45, 122, 34, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const marbleGrad = ctx.createLinearGradient(20, 98, 70, 122);
+      marbleGrad.addColorStop(0, '#1e293b');
+      marbleGrad.addColorStop(0.5, '#334155');
+      marbleGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = marbleGrad;
+      ctx.fillRect(24, 104, 42, 18);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(20, 120, 50, 3);
+      ctx.fillRect(26, 102, 38, 3);
+
+      const stemGrad = ctx.createLinearGradient(40, 80, 50, 102);
+      stemGrad.addColorStop(0, '#fef08a');
+      stemGrad.addColorStop(0.5, '#f59e0b');
+      stemGrad.addColorStop(1, '#b45309');
+      ctx.fillStyle = stemGrad;
+      ctx.fillRect(40, 82, 10, 20);
+
+      const cupGrad = ctx.createRadialGradient(45, 52, 4, 45, 52, 28);
+      cupGrad.addColorStop(0, '#fffbeb');
+      cupGrad.addColorStop(0.3, '#fde047');
+      cupGrad.addColorStop(0.7, '#eab308');
+      cupGrad.addColorStop(1, '#ca8a04');
+      ctx.fillStyle = cupGrad;
+
+      ctx.beginPath();
+      ctx.moveTo(25, 42);
+      ctx.lineTo(65, 42);
+      ctx.quadraticCurveTo(64, 76, 45, 82);
+      ctx.quadraticCurveTo(26, 76, 25, 42);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(23, 54, 10, Math.PI * 0.5, Math.PI * 1.5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(67, 54, 10, Math.PI * 1.5, Math.PI * 0.5);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.ellipse(45, 30, 8, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(45, 17, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.moveTo(45, 16);
+      ctx.lineTo(53, 18);
+      ctx.lineTo(45, 20);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(32, 44, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+      return canvas;
+    }
+
+    default: {
+      const canvas = createSafeCanvas(64, 64);
+      return canvas;
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Texture Caching & Orchestration
 // ---------------------------------------------------------------------------
 
 /**
- * Ensures all required game textures (5 penguins, 3 eggs, 9 environment/particles)
+ * Ensures all required game textures (5 penguins, 3 eggs, 9 environment/particles, 6 decorations)
  * are generated and registered in the scene's texture manager.
  *
  * Caching rule:
@@ -1354,4 +1779,22 @@ export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
     const canvas = generateEnvironmentTexture(key);
     scene.textures.addCanvas(key, canvas);
   }
+
+  // 4. Island Decorations (6 items)
+  const decKeys: DecorationVisualKey[] = [
+    'dec_bench_wood',
+    'dec_pine_crystal',
+    'dec_lamp_street',
+    'dec_castle_snow',
+    'dec_lantern_igloo',
+    'dec_trophy_master',
+  ];
+  for (const key of decKeys) {
+    if (scene.textures.exists(key)) {
+      continue;
+    }
+    const canvas = generateDecorationTexture(key);
+    scene.textures.addCanvas(key, canvas);
+  }
 }
+

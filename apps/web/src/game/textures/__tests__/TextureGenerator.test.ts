@@ -3,10 +3,12 @@ import {
   PENGUIN_TEXTURE_KEYS,
   EGG_TEXTURE_KEYS,
   ENVIRONMENT_TEXTURE_KEYS,
+  DECORATION_TEXTURE_KEYS,
   ensureGameTextures,
   generatePenguinTexture,
   generateEggTexture,
   generateEnvironmentTexture,
+  generateDecorationTexture,
   createSafeCanvas,
   SceneLike,
 } from '../TextureGenerator';
@@ -54,13 +56,22 @@ describe('TextureGenerator', () => {
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('particle_snow', 'particle_snow');
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('particle_sparkle', 'particle_sparkle');
     });
+
+    it('defines all required decoration texture keys for the 6 island decorations', () => {
+      expect(DECORATION_TEXTURE_KEYS).toHaveProperty('bench_wood', 'dec_bench_wood');
+      expect(DECORATION_TEXTURE_KEYS).toHaveProperty('pine_crystal', 'dec_pine_crystal');
+      expect(DECORATION_TEXTURE_KEYS).toHaveProperty('lamp_street', 'dec_lamp_street');
+      expect(DECORATION_TEXTURE_KEYS).toHaveProperty('castle_snow', 'dec_castle_snow');
+      expect(DECORATION_TEXTURE_KEYS).toHaveProperty('lantern_igloo', 'dec_lantern_igloo');
+      expect(DECORATION_TEXTURE_KEYS).toHaveProperty('master_caretaker_trophy', 'dec_trophy_master');
+    });
   });
 
   describe('ensureGameTextures and Caching Logic', () => {
-    it('generates and caches all 17 textures when cache is empty', () => {
+    it('generates and caches all 23 textures when cache is empty', () => {
       ensureGameTextures(mockScene);
 
-      // 5 penguins + 3 eggs + 9 environment/particles = 17 textures
+      // 5 penguins + 3 eggs + 9 environment/particles + 6 decorations = 23 textures
       const expectedKeys = [
         'penguin_snowy',
         'penguin_sleepy',
@@ -79,9 +90,15 @@ describe('TextureGenerator', () => {
         'particle_heart',
         'particle_snow',
         'particle_sparkle',
+        'dec_bench_wood',
+        'dec_pine_crystal',
+        'dec_lamp_street',
+        'dec_castle_snow',
+        'dec_lantern_igloo',
+        'dec_trophy_master',
       ];
 
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(17);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(23);
       for (const key of expectedKeys) {
         expect(createdTextures.has(key)).toBe(true);
       }
@@ -105,17 +122,17 @@ describe('TextureGenerator', () => {
       expect(mockScene.textures.addCanvas).not.toHaveBeenCalledWith('egg_basic', expect.anything());
       expect(mockScene.textures.addCanvas).not.toHaveBeenCalledWith('ice_pond', expect.anything());
 
-      // 17 total minus 3 already cached = 14 new additions
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(14);
+      // 23 total minus 3 already cached = 20 new additions
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(20);
     });
 
     it('never regenerates any texture on subsequent ensureGameTextures calls', () => {
       ensureGameTextures(mockScene);
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(17);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(23);
 
-      // Second call should generate 0 new textures because all 17 now exist
+      // Second call should generate 0 new textures because all 23 now exist
       ensureGameTextures(mockScene);
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(17);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(23);
     });
   });
 
@@ -237,5 +254,34 @@ describe('TextureGenerator', () => {
       expect(c.width).toBe(64);
       expect(c.height).toBe(64);
     });
+
+    it('generates high-res canvas for each decoration type and safely handles aliases', () => {
+      const decKeys = [
+        'dec_bench_wood',
+        'dec_pine_crystal',
+        'dec_lamp_street',
+        'dec_castle_snow',
+        'dec_lantern_igloo',
+        'dec_trophy_master',
+      ];
+
+      for (const key of decKeys) {
+        const c = generateDecorationTexture(key);
+        expect(c).toBeDefined();
+        expect(c.width).toBeGreaterThanOrEqual(60);
+        expect(c.height).toBeGreaterThanOrEqual(60);
+      }
+
+      // Alias without prefix
+      const cBench = generateDecorationTexture('bench_wood');
+      expect(cBench.width).toBe(110);
+      expect(cBench.height).toBe(70);
+
+      // Unknown key fallback
+      const cUnknown = generateDecorationTexture('unknown_decor');
+      expect(cUnknown.width).toBe(64);
+      expect(cUnknown.height).toBe(64);
+    });
   });
 });
+
