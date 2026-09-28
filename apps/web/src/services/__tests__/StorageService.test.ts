@@ -103,7 +103,7 @@ describe('StorageService', () => {
       expect(v3.ownedPenguins[0].traits).toEqual([]);
       expect(v3.ownedPenguins[0].breedingCount).toBe(0);
       expect(v3.ownedPenguins[0].lastBredAt).toBe(0);
-      expect(v3.ownedPenguins[0].stats.fishCaught).toBe(0);
+      expect(v3.ownedPenguins[0].stats?.fishCaught).toBe(0);
       expect(v3.breedingSlot.state).toBe('EMPTY');
       expect(v3.miniGameState.lastPlayedDate).toBe('');
     });

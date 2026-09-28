@@ -11,7 +11,8 @@ export type PenguinPersonality =
   | 'shy'
   | 'brave'
   | 'sleepy'
-  | 'happy';
+  | 'happy'
+  | 'adventurous';
 
 export type PenguinMood =
   | 'happy'
@@ -59,13 +60,14 @@ export interface OwnedPenguin {
   lastFedAt: number;
   lastNeedsUpdateAt: number;
   acquiredAt?: number;
-  generation: number;
+  generation?: number;
   createdAt?: number;
   parentAId?: string;
   parentBId?: string;
 
   // Phase 3 additions:
   traits?: string[];
+  personality?: PenguinPersonality;
   breedingCount?: number;
   lastBredAt?: number;
   stats?: PenguinStats;
@@ -310,8 +312,10 @@ export interface BreedingSlot {
   parentAId?: string;
   parentBId?: string;
   startedAt?: number;
+  startTime?: number; // Compatibility alias
   durationSec?: number;
   targetCollectTime?: number;
+  readyAt?: number; // Compatibility alias
   geneticsResult?: GeneticsResult;
 }
 
@@ -343,7 +347,10 @@ export interface MiniGameResult {
   accuracy: number;
   catchesCount: number;
   durationSec: number;
-  completedAt: number;
+  completedAt?: number;
+  maxCombo?: number;
+  hazardsHit?: number;
+  specialFishCaught?: number;
 }
 
 export interface MiniGameReward {

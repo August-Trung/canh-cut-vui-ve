@@ -153,7 +153,7 @@ describe('CatchFishScene', () => {
   it('countdown reaches 0 -> ends game and emits minigame:ended with verified result', () => {
     scene.create({ sessionId: 'session_end_test', companionPenguinId: 'p_companion_01' });
 
-    let endedResult: MiniGameResult | null = null;
+    let endedResult: any = null;
     gameBridge.on('minigame:ended', ({ result }) => {
       endedResult = result;
     });

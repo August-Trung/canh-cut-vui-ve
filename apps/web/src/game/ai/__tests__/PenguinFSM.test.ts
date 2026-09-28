@@ -142,6 +142,8 @@ describe('PenguinFSM', () => {
         nextFloat: vi.fn().mockReturnValue(0),
         nextInt: vi.fn().mockReturnValue(0),
         nextItem: vi.fn(),
+        rollDrop: vi.fn() as any,
+        randomRange: vi.fn() as any,
       };
 
       const testFsm = new PenguinFSM(
@@ -182,6 +184,8 @@ describe('PenguinFSM', () => {
         nextFloat: vi.fn().mockReturnValue(0.999), // near the end
         nextInt: vi.fn().mockReturnValue(0),
         nextItem: vi.fn(),
+        rollDrop: vi.fn() as any,
+        randomRange: vi.fn() as any,
       };
 
       const sadFsm = new PenguinFSM(
@@ -206,6 +210,8 @@ describe('PenguinFSM', () => {
         nextFloat: vi.fn().mockReturnValue(105 / 115),
         nextInt: vi.fn().mockReturnValue(0),
         nextItem: vi.fn(),
+        rollDrop: vi.fn() as any,
+        randomRange: vi.fn() as any,
       };
 
       const chaoticFsm = new PenguinFSM(

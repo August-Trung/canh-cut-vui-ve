@@ -10,6 +10,9 @@ class MockRandomService implements IRandomService {
   randomRange(): number {
     return 1;
   }
+  nextFloat(): number {
+    return 0.5;
+  }
 }
 
 describe('HatchService', () => {
