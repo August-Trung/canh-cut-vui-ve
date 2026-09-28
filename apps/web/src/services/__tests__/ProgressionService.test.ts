@@ -3,6 +3,7 @@ import {
   getPlayerLevelFromExp,
   getPenguinLevelFromExp,
   getMaxFlockCapacity,
+  getNextFlockCapacityLevel,
   calculateLevelUpRewards,
   PLAYER_EXP_THRESHOLDS,
   PENGUIN_EXP_THRESHOLDS,
@@ -71,6 +72,18 @@ describe('ProgressionService', () => {
       expect(getMaxFlockCapacity(8)).toBe(5);
       expect(getMaxFlockCapacity(9)).toBe(5);
       expect(getMaxFlockCapacity(10)).toBe(5);
+    });
+
+    it('correctly calculates the next level that unlocks additional flock capacity', () => {
+      expect(getNextFlockCapacityLevel(1)).toBe(2); // Lv 1 (cap 2) -> next is Lv 2 (cap 3)
+      expect(getNextFlockCapacityLevel(2)).toBe(5); // Lv 2 (cap 3) -> next is Lv 5 (cap 4)
+      expect(getNextFlockCapacityLevel(3)).toBe(5); // Lv 3 (cap 3) -> next is Lv 5 (cap 4)
+      expect(getNextFlockCapacityLevel(4)).toBe(5); // Lv 4 (cap 3) -> next is Lv 5 (cap 4)
+      expect(getNextFlockCapacityLevel(5)).toBe(8); // Lv 5 (cap 4) -> next is Lv 8 (cap 5)
+      expect(getNextFlockCapacityLevel(6)).toBe(8); // Lv 6 (cap 4) -> next is Lv 8 (cap 5)
+      expect(getNextFlockCapacityLevel(7)).toBe(8); // Lv 7 (cap 4) -> next is Lv 8 (cap 5)
+      expect(getNextFlockCapacityLevel(8)).toBeNull(); // Lv 8 (cap 5) -> max capacity, null
+      expect(getNextFlockCapacityLevel(10)).toBeNull();
     });
   });
 

@@ -76,6 +76,16 @@ export function getMaxFlockCapacity(playerLevel: number): number {
   return 2;
 }
 
+export function getNextFlockCapacityLevel(currentLevel: number): number | null {
+  const currentCap = getMaxFlockCapacity(currentLevel);
+  for (let lvl = currentLevel + 1; lvl <= 10; lvl++) {
+    if (getMaxFlockCapacity(lvl) > currentCap) {
+      return lvl;
+    }
+  }
+  return null;
+}
+
 export interface LevelReward {
   level: number;
   coins: number;

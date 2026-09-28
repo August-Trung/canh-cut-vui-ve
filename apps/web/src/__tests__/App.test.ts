@@ -109,7 +109,7 @@ describe('App Component', () => {
     const vm = wrapper.vm as unknown as { activeModal: string | null; activeHatchSlotId: number };
     expect(vm.activeModal).toBe('hatchery');
 
-    // Slot 2 ready to hatch -> opens hatch modal
+    // Slot 2 ready to hatch below capacity (1/2 at Lv 1) -> opens hatch modal
     const slot2 = game.incubatorSlots.find((s) => s.slotId === 2)!;
     slot2.state = 'READY_TO_HATCH';
     slot2.eggTypeId = 'basic_egg';
@@ -119,6 +119,21 @@ describe('App Component', () => {
     expect(vm.activeModal).toBe('hatch');
     expect(vm.activeHatchSlotId).toBe(2);
     expect(wrapper.findComponent({ name: 'HatchModal' }).exists()).toBe(true);
+
+    // Case 4: When flock is full (3/3 at Lv 2), egg:clicked on a READY_TO_HATCH slot
+    // must NOT open HatchModal, but open HatcheryModal instead!
+    game.player.level = 2; // Capacity 3
+    game.ownedPenguins = [
+      { ...game.ownedPenguins[0], id: 'p1', nickname: 'P1' },
+      { ...game.ownedPenguins[0], id: 'p2', nickname: 'P2' },
+      { ...game.ownedPenguins[0], id: 'p3', nickname: 'P3' },
+    ];
+    expect(game.ownedPenguins.length).toBe(3);
+
+    gameBridge.emit('egg:clicked', { slotId: 2 });
+    await wrapper.vm.$nextTick();
+    expect(vm.activeModal).toBe('hatchery'); // NOT 'hatch'!
+    expect(wrapper.findComponent({ name: 'HatchModal' }).exists()).toBe(false);
   });
 
   it('triggers soundService chimes on interactions and GameBridge events', async () => {

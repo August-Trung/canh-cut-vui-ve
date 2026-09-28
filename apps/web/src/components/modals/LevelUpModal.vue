@@ -19,10 +19,16 @@
       @mouseup.stop
       @click.stop
     >
-      <div class="levelup-burst">✨ 🎊 ✨</div>
+      <div class="levelup-burst">
+        <GameIcon name="star" size="sm" />
+        <GameIcon name="gift" size="md" />
+        <GameIcon name="star" size="sm" />
+      </div>
 
       <div class="levelup-badge-wrap">
-        <div class="level-crown">👑</div>
+        <div class="level-crown">
+          <GameIcon name="crown" size="lg" />
+        </div>
         <div class="level-circle" data-testid="levelup-level-display">
           Lv. {{ newLevel }}
         </div>
@@ -33,11 +39,15 @@
 
       <div class="unlock-highlights">
         <div class="unlock-item">
-          <span class="unlock-icon">🐧</span>
+          <span class="unlock-icon">
+            <GameIcon name="pet" size="sm" />
+          </span>
           <span class="unlock-text">Sức chứa bầy đàn: <strong>{{ getMaxFlockCapacity(newLevel) }} chú cánh cụt</strong></span>
         </div>
         <div class="unlock-item">
-          <span class="unlock-icon">🛍️</span>
+          <span class="unlock-icon">
+            <GameIcon name="shop" size="sm" />
+          </span>
           <span class="unlock-text">Nhiều vật phẩm mới đã mở khóa trong Cửa Hàng!</span>
         </div>
       </div>
@@ -49,7 +59,8 @@
           data-testid="btn-levelup-confirm"
           @click="emit('close')"
         >
-          🎉 Tuyệt Vời! Tiếp Tục Chơi
+          <GameIcon name="star" size="xs" />
+          <span>Tuyệt Vời! Tiếp Tục Chơi</span>
         </button>
       </div>
     </div>
@@ -60,6 +71,7 @@
 import { onMounted } from 'vue';
 import { getMaxFlockCapacity } from '../../services/ProgressionService';
 import { soundService } from '../../services/SoundService';
+import GameIcon from '../common/GameIcon.vue';
 
 const props = defineProps<{
   newLevel: number;

@@ -9,6 +9,7 @@ import { gameBridge } from '../../../game/bridge/GameBridge';
 describe('HatchModal.vue', () => {
   beforeEach(async () => {
     setActivePinia(createPinia());
+    localStorage.clear();
     const game = useGameStore();
     await game.initGame();
 
@@ -194,6 +195,126 @@ describe('HatchModal.vue', () => {
     await wrapper.find('[data-testid="modal-close-btn"]').trigger('click');
     expect(cancelSpy).toHaveBeenCalledWith(1);
     expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
+  it('detects full flock capacity on reveal, displays dynamic capacity error and provides safe back button', async () => {
+    const game = useGameStore();
+    game.player.level = 2; // Capacity is 3
+    game.ownedPenguins = [
+      { ...game.ownedPenguins[0], id: 'p1', nickname: 'P1' },
+      { ...game.ownedPenguins[0], id: 'p2', nickname: 'P2' },
+      { ...game.ownedPenguins[0], id: 'p3', nickname: 'P3' },
+    ];
+    expect(game.ownedPenguins.length).toBe(3);
+
+    const wrapper = mount(HatchModal, {
+      props: {
+        slotId: 1,
+      },
+    });
+
+    // Advance to reveal stage
+    const egg = wrapper.find('[data-testid="interactive-egg"]');
+    await egg.trigger('click');
+    await egg.trigger('click');
+    await egg.trigger('click');
+
+    // 1. Capacity error is immediately shown
+    const errorAlert = wrapper.find('[data-testid="hatch-capacity-error"]');
+    expect(errorAlert.exists()).toBe(true);
+    expect(errorAlert.text()).toContain('Đảo đã đạt giới hạn đàn (3/3 con)!');
+    expect(errorAlert.text()).toContain('Cấp 5');
+
+    // 2. Confirm hatch button is hidden
+    expect(wrapper.find('[data-testid="hatch-confirm-btn"]').exists()).toBe(false);
+
+    // 3. Back button is rendered
+    const backBtn = wrapper.find('[data-testid="hatch-error-back-btn"]');
+    expect(backBtn.exists()).toBe(true);
+
+    // 4. Egg slot remains READY_TO_HATCH
+    expect(game.incubatorSlots[0].state).toBe('READY_TO_HATCH');
+    expect(game.incubatorSlots[0].eggTypeId).toBe('basic_egg');
+
+    // 5. Clicking back button closes modal safely
+    await backBtn.trigger('click');
+    expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
+  it('defensively handles hatchEgg returning null on full flock capacity in completeHatching', async () => {
+    const { soundService } = await import('../../../services/SoundService');
+    const popSpy = vi.spyOn(soundService, 'playPop');
+    const bridgeSpy = vi.spyOn(gameBridge, 'emit');
+
+    const game = useGameStore();
+    const cancelSpy = vi.spyOn(game, 'cancelHatch');
+    vi.spyOn(game, 'prepareHatch').mockReturnValue({ success: true, pendingSpeciesId: 'snowy' });
+    vi.spyOn(game, 'hatchEgg').mockReturnValue(null);
+
+    const wrapper = mount(HatchModal, {
+      props: {
+        slotId: 1,
+      },
+    });
+
+    // Advance to reveal stage
+    const egg = wrapper.find('[data-testid="interactive-egg"]');
+    await egg.trigger('click');
+    await egg.trigger('click');
+    await egg.trigger('click');
+
+    popSpy.mockClear();
+    bridgeSpy.mockClear();
+
+    // Confirm hatch is visible
+    const confirmBtn = wrapper.find('[data-testid="hatch-confirm-btn"]');
+    expect(confirmBtn.exists()).toBe(true);
+    await confirmBtn.trigger('click');
+
+    // Defensively handled:
+    // 1. No penguin:spawn event
+    expect(bridgeSpy).not.toHaveBeenCalledWith('penguin:spawn', expect.anything());
+    // 2. No success sound
+    expect(popSpy).not.toHaveBeenCalled();
+    // 3. Modal does not close silently
+    expect(wrapper.emitted('close')).toBeFalsy();
+    // 4. Shows explicit capacity error message
+    const errorAlert = wrapper.find('[data-testid="hatch-capacity-error"]');
+    expect(errorAlert.exists()).toBe(true);
+    // 5. cancelHatch was called to clear pendingSpeciesId
+    expect(cancelSpy).toHaveBeenCalledWith(1);
+
+    // 6. Clicking back button closes modal safely
+    const backBtn = wrapper.find('[data-testid="hatch-error-back-btn"]');
+    expect(backBtn.exists()).toBe(true);
+    await backBtn.trigger('click');
+    expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
+  it('prevents double-click duplicate hatch calls using isSubmitting guard', async () => {
+    const game = useGameStore();
+    const hatchSpy = vi.spyOn(game, 'hatchEgg');
+
+    const wrapper = mount(HatchModal, {
+      props: {
+        slotId: 1,
+      },
+    });
+
+    // Advance to reveal stage
+    const egg = wrapper.find('[data-testid="interactive-egg"]');
+    await egg.trigger('click');
+    await egg.trigger('click');
+    await egg.trigger('click');
+
+    const confirmBtn = wrapper.find('[data-testid="hatch-confirm-btn"]');
+    expect(confirmBtn.exists()).toBe(true);
+
+    // Click once, then immediately trigger click again
+    await confirmBtn.trigger('click');
+    await confirmBtn.trigger('click');
+
+    expect(hatchSpy).toHaveBeenCalledTimes(1);
   });
 });
 

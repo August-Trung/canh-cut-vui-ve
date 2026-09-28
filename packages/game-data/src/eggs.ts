@@ -51,7 +51,7 @@ export const EGG_CATALOG: Record<string, EggShopDefinition> = {
     incubationSeconds: 180,
     playerLevelRequired: 1,
     priceCoins: 150,
-    icon: '🥚',
+    icon: 'egg_basic',
   },
   frozen_egg: {
     id: 'frozen_egg',
@@ -60,7 +60,7 @@ export const EGG_CATALOG: Record<string, EggShopDefinition> = {
     incubationSeconds: 900,
     playerLevelRequired: 4,
     priceCoins: 450,
-    icon: '🧊',
+    icon: 'egg_frozen',
   },
   golden_egg: {
     id: 'golden_egg',
@@ -70,6 +70,6 @@ export const EGG_CATALOG: Record<string, EggShopDefinition> = {
     playerLevelRequired: 7,
     priceCoins: 1200,
     priceGems: 10,
-    icon: '✨',
+    icon: 'egg_golden',
   },
 };

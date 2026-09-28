@@ -290,6 +290,11 @@ export const useGameStore = defineStore('game', {
     },
 
     prepareHatch(slotId: number): { success: boolean; pendingSpeciesId?: string; reason?: string } {
+      const maxCapacity = getMaxFlockCapacity(this.player.level);
+      if (this.ownedPenguins.length >= maxCapacity) {
+        return { success: false, reason: 'FLOCK_FULL' };
+      }
+
       const slot = this.incubatorSlots.find((s) => s.slotId === slotId);
       if (!slot || slot.state !== 'READY_TO_HATCH' || !slot.eggTypeId) {
         return { success: false, reason: 'INVALID_SLOT' };
@@ -312,6 +317,11 @@ export const useGameStore = defineStore('game', {
     hatchEgg(slotId: number, customNickname?: string): OwnedPenguin | null {
       const maxCapacity = getMaxFlockCapacity(this.player.level);
       if (this.ownedPenguins.length >= maxCapacity) {
+        const slot = this.incubatorSlots.find((s) => s.slotId === slotId);
+        if (slot) {
+          slot.pendingSpeciesId = undefined;
+          this.persistSave().catch((err) => console.error('Save failed:', err));
+        }
         return null;
       }
 

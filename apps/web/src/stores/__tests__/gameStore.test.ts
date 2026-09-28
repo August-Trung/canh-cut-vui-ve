@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useGameStore } from '../gameStore';
 import { useInventoryStore } from '../inventoryStore';
@@ -538,15 +538,19 @@ describe('Pinia Game Stores', () => {
     });
 
     it('flock capacity gates hatching when at maximum capacity without consuming egg or granting rewards', async () => {
+      const { gameBridge } = await import('../../game/bridge/GameBridge');
+      const bridgeSpy = vi.spyOn(gameBridge, 'emit');
       const game = useGameStore();
       await game.initGame();
-      // At Lv 1, max capacity is 2. Add second penguin so flock is full (2/2)
-      game.ownedPenguins.push({
-        ...game.ownedPenguins[0],
-        id: 'p2',
-        nickname: 'Penguin 2',
-      });
-      expect(game.ownedPenguins.length).toBe(2);
+
+      // At Lv 2, max capacity is 3. Set level = 2 and have 3 penguins (3/3)
+      game.player.level = 2;
+      game.ownedPenguins = [
+        { ...game.ownedPenguins[0], id: 'p1', nickname: 'Penguin 1' },
+        { ...game.ownedPenguins[0], id: 'p2', nickname: 'Penguin 2' },
+        { ...game.ownedPenguins[0], id: 'p3', nickname: 'Penguin 3' },
+      ];
+      expect(game.ownedPenguins.length).toBe(3);
 
       // Set slot 1 to READY_TO_HATCH
       game.incubatorSlots[0] = {
@@ -556,10 +560,43 @@ describe('Pinia Game Stores', () => {
         unlocked: true,
       };
 
+      // prepareHatch returns FLOCK_FULL reason
+      const prep = game.prepareHatch(1);
+      expect(prep.success).toBe(false);
+      expect(prep.reason).toBe('FLOCK_FULL');
+
+      // hatchEgg fails and returns null
       const result = game.hatchEgg(1, 'Cannot Hatch');
       expect(result).toBeNull();
-      expect(game.incubatorSlots[0].state).toBe('READY_TO_HATCH'); // Egg not consumed
-      expect(game.ownedPenguins.length).toBe(2); // No new penguin
+
+      // State preserved: egg not consumed, slot still READY_TO_HATCH, eggTypeId intact
+      expect(game.incubatorSlots[0].state).toBe('READY_TO_HATCH');
+      expect(game.incubatorSlots[0].eggTypeId).toBe('basic_egg');
+      expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined(); // Cleared cleanly
+      expect(game.ownedPenguins.length).toBe(3); // No new penguin
+
+      // No events emitted
+      expect(bridgeSpy).not.toHaveBeenCalledWith('action:hatch', expect.anything());
+      expect(bridgeSpy).not.toHaveBeenCalledWith('penguin:spawn', expect.anything());
+
+      // RETRY AFTER CAPACITY INCREASES:
+      // Player levels up to Level 5 (Capacity increases to 4)
+      game.player.level = 5;
+      const retryPrep = game.prepareHatch(1);
+      expect(retryPrep.success).toBe(true);
+      expect(retryPrep.pendingSpeciesId).toBeDefined();
+
+      const retryResult = game.hatchEgg(1, 'Bé Cánh Cụt');
+      expect(retryResult).toBeDefined();
+      expect(retryResult?.nickname).toBe('Bé Cánh Cụt');
+      expect(game.ownedPenguins.length).toBe(4);
+      expect(game.incubatorSlots[0].state).toBe('EMPTY');
+      expect(game.incubatorSlots[0].eggTypeId).toBeUndefined();
+      expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined();
+
+      // Events now emitted on successful hatch
+      expect(bridgeSpy).toHaveBeenCalledWith('action:hatch', expect.objectContaining({ ownedId: retryResult?.id }));
+      expect(bridgeSpy).toHaveBeenCalledWith('penguin:spawn', expect.objectContaining({ penguin: expect.anything() }));
     });
 
     it('authoritative hatch randomization scopes pendingSpeciesId and clears it on hatch or cancel', async () => {
@@ -604,6 +641,183 @@ describe('Pinia Game Stores', () => {
 
       game.stopNeedsSimulation();
       expect(game.needsSimulationIntervalId).toBeNull();
+    });
+
+    describe('Flock Capacity & Hatch Authoritative Invariants', () => {
+      it('Case 1: 2/3 -> READY_TO_HATCH -> hatch -> success', async () => {
+        const game = useGameStore();
+        await game.initGame();
+        // At Lv 2, max capacity is 3. Set level = 2 and have 2 penguins (2/3)
+        game.player.level = 2;
+        game.ownedPenguins = [
+          { ...game.ownedPenguins[0], id: 'p1', nickname: 'Penguin 1' },
+          { ...game.ownedPenguins[0], id: 'p2', nickname: 'Penguin 2' },
+        ];
+        expect(game.ownedPenguins.length).toBe(2);
+
+        game.incubatorSlots[0] = {
+          slotId: 1,
+          state: 'READY_TO_HATCH',
+          eggTypeId: 'basic_egg',
+          unlocked: true,
+        };
+
+        const result = game.hatchEgg(1, 'Penguin 3');
+        expect(result).toBeDefined();
+        expect(result?.nickname).toBe('Penguin 3');
+        expect(game.ownedPenguins.length).toBe(3);
+        expect(game.incubatorSlots[0].state).toBe('EMPTY');
+      });
+
+      it('Case 2: 3/3 -> place egg -> incubate -> success (incubation allowed at full capacity)', async () => {
+        const game = useGameStore();
+        await game.initGame();
+        const inv = useInventoryStore();
+        inv.addItem({
+          itemId: 'basic_egg',
+          category: 'eggs',
+          name: 'Basic Egg',
+          description: '',
+          quantity: 2,
+          stackable: true,
+        });
+
+        // 3/3 penguins at Lv 2
+        game.player.level = 2;
+        game.ownedPenguins = [
+          { ...game.ownedPenguins[0], id: 'p1', nickname: 'Penguin 1' },
+          { ...game.ownedPenguins[0], id: 'p2', nickname: 'Penguin 2' },
+          { ...game.ownedPenguins[0], id: 'p3', nickname: 'Penguin 3' },
+        ];
+        expect(game.ownedPenguins.length).toBe(3);
+
+        game.incubatorSlots[0] = {
+          slotId: 1,
+          state: 'EMPTY',
+          unlocked: true,
+        };
+
+        // Place egg must succeed even when flock is full
+        const placed = game.placeEggInIncubator(1, 'basic_egg');
+        expect(placed).toBe(true);
+        expect(game.incubatorSlots[0].state).toBe('INCUBATING');
+        expect(game.incubatorSlots[0].eggTypeId).toBe('basic_egg');
+      });
+
+      it('Case 5, 6, 7: 3/3 -> READY_TO_HATCH -> pendingSpeciesId undefined, eggTypeId preserved, hatch attempt fails safely', async () => {
+        const game = useGameStore();
+        await game.initGame();
+
+        game.player.level = 2;
+        game.ownedPenguins = [
+          { ...game.ownedPenguins[0], id: 'p1', nickname: 'Penguin 1' },
+          { ...game.ownedPenguins[0], id: 'p2', nickname: 'Penguin 2' },
+          { ...game.ownedPenguins[0], id: 'p3', nickname: 'Penguin 3' },
+        ];
+        expect(game.ownedPenguins.length).toBe(3);
+
+        game.incubatorSlots[0] = {
+          slotId: 1,
+          state: 'READY_TO_HATCH',
+          eggTypeId: 'frozen_egg',
+          unlocked: true,
+          pendingSpeciesId: undefined,
+        };
+
+        // prepareHatch must fail with FLOCK_FULL and NOT set pendingSpeciesId (Case 5)
+        const prep = game.prepareHatch(1);
+        expect(prep.success).toBe(false);
+        expect(prep.reason).toBe('FLOCK_FULL');
+        expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined();
+
+        // eggTypeId remains preserved (Case 6)
+        expect(game.incubatorSlots[0].eggTypeId).toBe('frozen_egg');
+
+        // hatch attempt fails safely returning null (Case 7)
+        const hatchRes = game.hatchEgg(1, 'Blocked');
+        expect(hatchRes).toBeNull();
+        expect(game.ownedPenguins.length).toBe(3);
+        expect(game.incubatorSlots[0].state).toBe('READY_TO_HATCH');
+        expect(game.incubatorSlots[0].eggTypeId).toBe('frozen_egg');
+        expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined();
+      });
+
+      it('Case 8: 3/3 -> READY_TO_HATCH -> increase capacity to 4 -> hatch succeeds', async () => {
+        const game = useGameStore();
+        await game.initGame();
+
+        game.player.level = 2;
+        game.ownedPenguins = [
+          { ...game.ownedPenguins[0], id: 'p1', nickname: 'Penguin 1' },
+          { ...game.ownedPenguins[0], id: 'p2', nickname: 'Penguin 2' },
+          { ...game.ownedPenguins[0], id: 'p3', nickname: 'Penguin 3' },
+        ];
+
+        game.incubatorSlots[0] = {
+          slotId: 1,
+          state: 'READY_TO_HATCH',
+          eggTypeId: 'basic_egg',
+          unlocked: true,
+        };
+
+        // Level up to Level 5 (Capacity increases from 3 to 4)
+        game.player.level = 5;
+
+        const prep = game.prepareHatch(1);
+        expect(prep.success).toBe(true);
+        expect(prep.pendingSpeciesId).toBeDefined();
+
+        const hatchRes = game.hatchEgg(1, 'Penguin 4');
+        expect(hatchRes).toBeDefined();
+        expect(game.ownedPenguins.length).toBe(4);
+        expect(game.incubatorSlots[0].state).toBe('EMPTY');
+      });
+
+      it('Case 9: Successful hatch -> slot EMPTY, eggTypeId undefined, pendingSpeciesId undefined', async () => {
+        const game = useGameStore();
+        await game.initGame();
+
+        game.incubatorSlots[0] = {
+          slotId: 1,
+          state: 'READY_TO_HATCH',
+          eggTypeId: 'golden_egg',
+          unlocked: true,
+        };
+
+        const result = game.hatchEgg(1, 'Golden Boy');
+        expect(result).toBeDefined();
+
+        expect(game.incubatorSlots[0].state).toBe('EMPTY');
+        expect(game.incubatorSlots[0].eggTypeId).toBeUndefined();
+        expect(game.incubatorSlots[0].pendingSpeciesId).toBeUndefined();
+        expect(game.incubatorSlots[0].startTime).toBeUndefined();
+        expect(game.incubatorSlots[0].readyAt).toBeUndefined();
+      });
+
+      it('Case 10: Successful hatch called on same slot a second time -> returns null and does not create 2nd penguin', async () => {
+        const game = useGameStore();
+        await game.initGame();
+
+        game.incubatorSlots[0] = {
+          slotId: 1,
+          state: 'READY_TO_HATCH',
+          eggTypeId: 'basic_egg',
+          unlocked: true,
+        };
+
+        const initialFlockCount = game.ownedPenguins.length;
+
+        // First hatch succeeds
+        const firstHatch = game.hatchEgg(1, 'First Hatch');
+        expect(firstHatch).toBeDefined();
+        expect(game.ownedPenguins.length).toBe(initialFlockCount + 1);
+        expect(game.incubatorSlots[0].state).toBe('EMPTY');
+
+        // Second hatch call on the exact same slot must return null
+        const secondHatch = game.hatchEgg(1, 'Duplicate Hatch');
+        expect(secondHatch).toBeNull();
+        expect(game.ownedPenguins.length).toBe(initialFlockCount + 1); // No 2nd penguin created
+      });
     });
   });
 });

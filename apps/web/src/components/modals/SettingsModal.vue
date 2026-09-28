@@ -22,7 +22,7 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="modal-header__title-group">
-          <span class="modal-header__icon">⚙️</span>
+          <GameIcon name="settings" size="sm" />
           <h2 class="modal-header__title">Cài Đặt Trò Chơi</h2>
         </div>
         <button
@@ -36,7 +36,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          ✕
+          <GameIcon name="close" size="xs" />
         </button>
       </div>
 
@@ -61,7 +61,8 @@
             data-testid="toggle-audio-btn"
             @click="handleToggleAudio"
           >
-            {{ gameStore.audioMuted ? '🔇 Tắt' : '🔊 Bật' }}
+            <GameIcon :name="gameStore.audioMuted ? 'sound_off' : 'sound_on'" size="xs" />
+            <span>{{ gameStore.audioMuted ? 'Tắt' : 'Bật' }}</span>
           </button>
         </div>
 
@@ -84,7 +85,8 @@
               data-testid="btn-export-save"
               @click="handleExportSave"
             >
-              📥 Xuất Dữ Liệu (JSON)
+              <GameIcon name="export" size="xs" />
+              <span>Xuất Dữ Liệu (JSON)</span>
             </button>
             <button
               type="button"
@@ -92,7 +94,8 @@
               data-testid="btn-import-save"
               @click="openImportDialog"
             >
-              📤 Nhập Dữ Liệu (JSON)
+              <GameIcon name="import" size="xs" />
+              <span>Nhập Dữ Liệu (JSON)</span>
             </button>
           </div>
 
@@ -129,7 +132,8 @@
             data-testid="btn-reset-save"
             @click="promptResetSave"
           >
-            🗑️ Đặt Lại Toàn Bộ Dữ Liệu
+            <GameIcon name="trash" size="xs" />
+            <span>Đặt Lại Toàn Bộ Dữ Liệu</span>
           </button>
         </div>
       </div>
@@ -158,6 +162,7 @@ import { gameStorage } from '../../services/StorageService';
 import { soundService } from '../../services/SoundService';
 import { gameBridge } from '../../game/bridge/GameBridge';
 import ConfirmModal from './ConfirmModal.vue';
+import GameIcon from '../common/GameIcon.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -431,6 +436,10 @@ async function handleConfirmReset() {
 }
 
 .toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 8px 16px;
   border-radius: 12px;
   border: none;
@@ -482,6 +491,10 @@ async function handleConfirmReset() {
 }
 
 .btn-save-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid #CBD5E1;
@@ -568,6 +581,10 @@ async function handleConfirmReset() {
 }
 
 .btn-danger-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px 16px;
   border-radius: 14px;
   border: none;

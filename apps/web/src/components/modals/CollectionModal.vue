@@ -22,7 +22,7 @@
       <!-- Frost Header Bar -->
       <div class="modal-header">
         <div class="modal-header__title-group">
-          <span class="modal-header__icon">📖</span>
+          <GameIcon name="collection" size="sm" class="modal-header__icon" />
           <h2 class="modal-header__title">Bộ Sưu Tập Cánh Cụt</h2>
           <span class="progress-pill">
             {{ colStore.discoveredCount }} / {{ colStore.totalSpeciesCount }} Đã Thu Thập
@@ -39,7 +39,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          ✕
+          <GameIcon name="close" size="sm" />
         </button>
       </div>
 
@@ -134,19 +134,23 @@
 
             <div class="detail-stats-grid">
               <div class="stat-row">
-                <span class="stat-label">✨ Đặc điểm:</span>
+                <GameIcon name="star" size="xs" />
+                <span class="stat-label">Đặc điểm:</span>
                 <span class="stat-value">{{ selectedSpecies.trait }}</span>
               </div>
               <div class="stat-row">
-                <span class="stat-label">🐟 Món khoái khẩu:</span>
+                <GameIcon name="fish" size="xs" />
+                <span class="stat-label">Món khoái khẩu:</span>
                 <span class="stat-value">{{ selectedSpecies.favoriteFood }}</span>
               </div>
               <div class="stat-row">
-                <span class="stat-label">🙅 Không thích:</span>
+                <GameIcon name="close" size="xs" />
+                <span class="stat-label">Không thích:</span>
                 <span class="stat-value">{{ selectedSpecies.dislikedFood }}</span>
               </div>
               <div class="stat-row">
-                <span class="stat-label">📅 Ngày phát hiện:</span>
+                <GameIcon name="calendar" size="xs" />
+                <span class="stat-label">Ngày phát hiện:</span>
                 <span class="stat-value">{{ getDiscoveredDate(selectedSpecies.id) }}</span>
               </div>
             </div>
@@ -154,7 +158,7 @@
 
           <div v-else class="detail-panel__undiscovered">
             <div class="clue-box">
-              <span class="clue-icon">🔍</span>
+              <GameIcon name="target" size="xs" class="clue-icon" />
               <p class="clue-text">
                 <strong>Gợi ý:</strong> {{ selectedSpecies.clue }}
               </p>
@@ -171,6 +175,7 @@ import { ref } from 'vue';
 import { PenguinSpecies, RarityTier } from '@penguin/types';
 import { SPECIES_LIST } from '@penguin/game-data';
 import { useCollectionStore } from '../../stores/collectionStore';
+import GameIcon from '../common/GameIcon.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;

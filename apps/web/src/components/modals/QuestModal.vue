@@ -22,7 +22,7 @@
       <!-- Modal Header -->
       <div class="quest-header">
         <div class="quest-header__title-group">
-          <span class="quest-header__icon">📜</span>
+          <GameIcon name="quests" size="sm" class="quest-header__icon" />
           <div>
             <h2 class="quest-header__title">Nhiệm Vụ & Điểm Danh</h2>
             <p class="quest-header__sub">Đăng nhập mỗi ngày và hoàn thành nhiệm vụ để nhận quà khủng!</p>
@@ -40,7 +40,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          ✕
+          <GameIcon name="close" size="sm" />
         </button>
       </div>
 
@@ -48,7 +48,10 @@
         <!-- 1. Daily Login Streak Section -->
         <section class="section-login" data-testid="section-daily-login">
           <div class="section-title-wrap">
-            <h3 class="section-title">📅 Chuỗi Điểm Danh 7 Ngày</h3>
+            <h3 class="section-title">
+              <GameIcon name="calendar" size="xs" />
+              <span>Chuỗi Điểm Danh 7 Ngày</span>
+            </h3>
             <span class="streak-badge" data-testid="streak-count">
               Chuỗi hiện tại: {{ gameStore.dailyLogin.currentStreak }} ngày
             </span>
@@ -66,12 +69,20 @@
               :data-testid="`streak-day-${reward.day}`"
             >
               <div class="day-num">Ngày {{ reward.day }}</div>
-              <div class="day-icon">{{ getDayRewardIcon(reward.day) }}</div>
+              <div class="day-icon">
+                <GameIcon :name="getDayRewardIcon(reward.day)" size="md" />
+              </div>
               <div class="day-desc">{{ reward.description }}</div>
               <div class="day-status">
-                <span v-if="isDayClaimed(reward.day)" class="status-claimed">✓ Đã Nhận</span>
-                <span v-else-if="isDayReadyToClaim(reward.day)" class="status-ready">Nhận Ngay!</span>
-                <span v-else class="status-locked">🔒 Chưa Đến</span>
+                <span v-if="isDayClaimed(reward.day)" class="status-claimed">
+                  <GameIcon name="check" size="xs" /> Đã Nhận
+                </span>
+                <span v-else-if="isDayReadyToClaim(reward.day)" class="status-ready">
+                  <GameIcon name="gift" size="xs" /> Nhận Ngay!
+                </span>
+                <span v-else class="status-locked">
+                  <GameIcon name="lock" size="xs" /> Chưa Đến
+                </span>
               </div>
             </div>
           </div>
@@ -84,7 +95,8 @@
               data-testid="btn-claim-daily-login"
               @click="claimDailyLogin"
             >
-              {{ questStore.canClaimDailyLogin ? '🎁 Điểm Danh Nhận Thưởng Ngay' : '✓ Hôm Nay Đã Điểm Danh' }}
+              <GameIcon :name="questStore.canClaimDailyLogin ? 'gift' : 'check'" size="xs" />
+              <span>{{ questStore.canClaimDailyLogin ? 'Điểm Danh Nhận Thưởng Ngay' : 'Hôm Nay Đã Điểm Danh' }}</span>
             </button>
           </div>
         </section>
@@ -92,7 +104,10 @@
         <!-- 2. Daily Quests Section -->
         <section class="section-quests" data-testid="section-daily-quests">
           <div class="section-title-wrap">
-            <h3 class="section-title">🎯 Nhiệm Vụ Hôm Nay</h3>
+            <h3 class="section-title">
+              <GameIcon name="target" size="xs" />
+              <span>Nhiệm Vụ Hôm Nay</span>
+            </h3>
             <span class="quest-date-badge">{{ gameStore.questState.assignedDate }}</span>
           </div>
 
@@ -107,7 +122,9 @@
               }"
               :data-testid="`quest-card-${quest.questId}`"
             >
-              <div class="quest-card__icon">{{ quest.template.icon }}</div>
+              <div class="quest-card__icon">
+                <GameIcon :name="quest.template.icon" size="md" />
+              </div>
 
               <div class="quest-card__content">
                 <div class="quest-card__title">{{ quest.template.title }}</div>
@@ -130,9 +147,15 @@
               <!-- Rewards & Action -->
               <div class="quest-card__right">
                 <div class="reward-preview">
-                  <span class="reward-tag">🪙 +{{ quest.template.rewardCoins }}</span>
-                  <span class="reward-tag reward-tag--exp">⭐ +{{ quest.template.rewardExp }} EXP</span>
-                  <span v-if="quest.template.rewardGems" class="reward-tag reward-tag--gem">💎 +{{ quest.template.rewardGems }}</span>
+                  <span class="reward-tag">
+                    <GameIcon name="coin" size="xs" /> +{{ quest.template.rewardCoins }}
+                  </span>
+                  <span class="reward-tag reward-tag--exp">
+                    <GameIcon name="star" size="xs" /> +{{ quest.template.rewardExp }} EXP
+                  </span>
+                  <span v-if="quest.template.rewardGems" class="reward-tag reward-tag--gem">
+                    <GameIcon name="gem" size="xs" /> +{{ quest.template.rewardGems }}
+                  </span>
                 </div>
 
                 <button
@@ -161,6 +184,7 @@ import { QUEST_POOL } from '@penguin/game-data';
 import { LOGIN_STREAK_REWARDS } from '../../services/QuestService';
 import { useGameStore } from '../../stores/gameStore';
 import { useQuestStore } from '../../stores/questStore';
+import GameIcon from '../common/GameIcon.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -177,7 +201,7 @@ const activeQuestsWithTemplate = computed(() => {
       id: q.questId,
       title: 'Nhiệm Vụ',
       description: '',
-      icon: '⭐',
+      icon: 'star',
       targetType: 'pet' as const,
       targetCount: q.targetCount,
       rewardCoins: 50,
@@ -206,21 +230,21 @@ function isDayReadyToClaim(day: number): boolean {
 function getDayRewardIcon(day: number): string {
   switch (day) {
     case 1:
-      return '🐟';
+      return 'fish';
     case 2:
-      return '🥚';
+      return 'egg_basic';
     case 3:
-      return '🦐';
+      return 'krill';
     case 4:
-      return '💎';
+      return 'gem';
     case 5:
-      return '❄️';
+      return 'snowflake';
     case 6:
-      return '🦑';
+      return 'squid';
     case 7:
-      return '👑';
+      return 'crown';
     default:
-      return '🎁';
+      return 'gift';
   }
 }
 

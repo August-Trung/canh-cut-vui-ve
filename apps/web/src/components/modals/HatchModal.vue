@@ -34,7 +34,7 @@
         @mouseup.stop
         @click.stop="handleClose"
       >
-        ✕
+        <GameIcon name="close" size="sm" />
       </button>
 
       <!-- Stage 1-3: Egg Animation Stages (Wobble, Crack, Burst) -->
@@ -45,7 +45,7 @@
         @click="advanceStage"
       >
         <div class="hatch-instruction">
-          <span class="pulse-icon">✨</span>
+          <GameIcon name="star" size="xs" class="pulse-icon" />
           <span v-if="currentStage === 'wobble'">Chạm vào quả trứng để ấp nở!</span>
           <span v-else-if="currentStage === 'crack'">Vỏ trứng đang nứt ra...!</span>
           <span v-else-if="currentStage === 'burst'">Ánh sáng bừng nở...!</span>
@@ -122,11 +122,11 @@
           >
             <div class="burst-light-ray"></div>
             <div class="burst-stars">
-              <span class="burst-star star-1">⭐</span>
-              <span class="burst-star star-2">✨</span>
-              <span class="burst-star star-3">🌟</span>
-              <span class="burst-star star-4">⭐</span>
-              <span class="burst-star star-5">✨</span>
+              <GameIcon name="star" size="xs" class="burst-star star-1" />
+              <GameIcon name="star" size="xs" class="burst-star star-2" />
+              <GameIcon name="star" size="sm" class="burst-star star-3" />
+              <GameIcon name="star" size="xs" class="burst-star star-4" />
+              <GameIcon name="star" size="sm" class="burst-star star-5" />
             </div>
             <svg viewBox="0 0 120 160" class="egg-svg">
               <ellipse cx="60" cy="90" rx="46" ry="60" fill="#FDE68A" stroke="#F59E0B" stroke-width="4" />
@@ -135,7 +135,8 @@
         </div>
 
         <button type="button" class="btn-advance">
-          {{ currentStage === 'wobble' ? 'Chạm Để Nứt ➔' : 'Tiếp Tục ➔' }}
+          <span>{{ currentStage === 'wobble' ? 'Chạm Để Nứt' : 'Tiếp Tục' }}</span>
+          <GameIcon name="arrow_right" size="xs" />
         </button>
       </div>
 
@@ -217,15 +218,37 @@
           </div>
         </div>
 
+        <!-- Error Message / Capacity Full Alert -->
+        <div
+          v-if="errorMessage"
+          class="hatch-error-alert"
+          data-testid="hatch-capacity-error"
+        >
+          <GameIcon name="lock" size="xs" />
+          <span>{{ errorMessage }}</span>
+        </div>
+
         <!-- Action Button -->
         <button
+          v-if="!errorMessage"
           type="button"
           class="btn-confirm-hatch"
-          :disabled="!!nicknameError"
+          :disabled="isSubmitting || !!nicknameError"
           data-testid="hatch-confirm-btn"
           @click="completeHatching"
         >
-          🎉 Đón Bé Về Đảo!
+          <GameIcon name="gift" size="xs" />
+          <span>Đón Bé Về Đảo!</span>
+        </button>
+        <button
+          v-else
+          type="button"
+          class="btn-confirm-hatch btn-confirm-hatch--back"
+          data-testid="hatch-error-back-btn"
+          @click="handleClose"
+        >
+          <GameIcon name="close" size="xs" />
+          <span>Giữ Ấp Trứng & Quay Lại</span>
         </button>
       </div>
     </div>
@@ -241,6 +264,8 @@ import { gameBridge } from '../../game/bridge/GameBridge';
 import { validateNickname } from '../../services/NicknameValidator';
 import { randomService } from '../../services/RandomService';
 import { soundService } from '../../services/SoundService';
+import { getMaxFlockCapacity, getNextFlockCapacityLevel } from '../../services/ProgressionService';
+import GameIcon from '../common/GameIcon.vue';
 
 const props = defineProps<{
   slotId: number;
@@ -257,6 +282,18 @@ const currentStage = ref<HatchStage>('wobble');
 const nicknameInput = ref('');
 const nicknameError = ref<string | null>(null);
 const revealedSpecies = ref<PenguinSpecies | null>(null);
+const errorMessage = ref<string | null>(null);
+const isSubmitting = ref(false);
+
+const currentFlock = computed(() => gameStore.ownedPenguins.length);
+const maxFlock = computed(() => getMaxFlockCapacity(gameStore.player.level));
+const nextCapacityLevel = computed(() => getNextFlockCapacityLevel(gameStore.player.level));
+const flockFullFeedback = computed(() => {
+  if (nextCapacityLevel.value) {
+    return `Đảo đã đạt giới hạn đàn (${currentFlock.value}/${maxFlock.value} con)! Hãy nâng cấp người chơi lên Cấp ${nextCapacityLevel.value} để mở thêm chỗ ở trước khi đón bé về.`;
+  }
+  return `Đảo đã đạt giới hạn đàn tối đa (${currentFlock.value}/${maxFlock.value} con)!`;
+});
 
 // Slot information
 const currentSlot = computed(() => gameStore.getSlotById(props.slotId));
@@ -289,6 +326,9 @@ function advanceStage() {
         revealedSpecies.value = SPECIES_MAP.get(prep.pendingSpeciesId) ?? SPECIES_LIST[0]!;
       } else {
         revealedSpecies.value = SPECIES_LIST[0]!;
+        if (prep?.reason === 'FLOCK_FULL') {
+          errorMessage.value = flockFullFeedback.value;
+        }
       }
     }
     nicknameInput.value = revealedSpecies.value?.name ?? '';
@@ -315,11 +355,12 @@ function validateCurrentNickname() {
 }
 
 function completeHatching() {
-  if (nicknameError.value) return;
+  if (isSubmitting.value || nicknameError.value) return;
 
   const raw = nicknameInput.value;
   const nameToPass = raw.trim() ? raw.trim() : '';
 
+  isSubmitting.value = true;
   const newPenguin = gameStore.hatchEgg(
     props.slotId,
     nameToPass
@@ -327,10 +368,14 @@ function completeHatching() {
   if (newPenguin) {
     gameBridge.emit('penguin:spawn', { penguin: newPenguin });
     gameBridge.emit('camera:focus', { x: 0, y: 0 });
+    soundService.playPop();
+    emit('close');
+  } else {
+    // Defensively handle hatchEgg() === null (e.g. flock capacity full)
+    gameStore.cancelHatch(props.slotId);
+    errorMessage.value = flockFullFeedback.value;
+    isSubmitting.value = false;
   }
-
-  soundService.playPop();
-  emit('close');
 }
 
 function handleClose() {
@@ -702,6 +747,31 @@ function getRarityLabel(rarity: RarityTier): string {
   box-shadow: none;
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.btn-confirm-hatch--back {
+  background: linear-gradient(180deg, #64748B 0%, #475569 100%);
+  box-shadow: 0 4px 14px rgba(71, 85, 105, 0.35);
+}
+
+.btn-confirm-hatch--back:hover {
+  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+}
+
+.hatch-error-alert {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #FEF2F2;
+  border: 1.5px solid #FCA5A5;
+  color: #B91C1C;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
 }
 
 .rarity-badge {

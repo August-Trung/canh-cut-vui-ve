@@ -10,7 +10,7 @@
       @keydown.enter="isExpanded = !isExpanded"
     >
       <div class="neighbor-strip__badge">
-        <span class="neighbor-strip__badge-icon">🏘️</span>
+        <GameIcon name="decorate" size="xs" class="neighbor-strip__badge-icon" />
         <span class="neighbor-strip__badge-text">Hàng Xóm Đảo Băng <small class="neighbor-strip__badge-sub">(NPC Mô Phỏng)</small></span>
       </div>
       <button
@@ -20,7 +20,12 @@
         :title="isExpanded ? 'Thu gọn' : 'Mở rộng'"
         @click.stop="isExpanded = !isExpanded"
       >
-        <span class="neighbor-strip__toggle-chevron" :class="{ 'is-flipped': !isExpanded }">▼</span>
+        <GameIcon
+          name="chevron_right"
+          size="xs"
+          class="neighbor-strip__toggle-chevron"
+          :class="{ 'is-flipped': isExpanded }"
+        />
       </button>
     </div>
 
@@ -35,7 +40,7 @@
       >
         <!-- Avatar Frame -->
         <div class="neighbor-card__avatar-box" :style="{ background: neighbor.avatarBg }">
-          <span class="neighbor-card__emoji">{{ neighbor.avatarEmoji }}</span>
+          <GameIcon :name="neighbor.avatarIcon" size="sm" class="neighbor-card__avatar-icon" />
           <span class="neighbor-card__level">Lv.{{ neighbor.level }}</span>
         </div>
 
@@ -53,7 +58,7 @@
           :title="`Vẫy tay chào ${neighbor.name}`"
           @click="handleWave(neighbor)"
         >
-          <span class="neighbor-card__action-icon">👋</span>
+          <GameIcon name="pet" size="xs" class="neighbor-card__action-icon" />
           <span class="neighbor-card__action-text">Chào</span>
         </button>
       </div>
@@ -70,6 +75,7 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue';
+import GameIcon from '../common/GameIcon.vue';
 
 export interface SimulatedNeighbor {
   id: string;
@@ -77,7 +83,7 @@ export interface SimulatedNeighbor {
   role: string;
   level: number;
   status: string;
-  avatarEmoji: string;
+  avatarIcon: string;
   avatarBg: string;
   response: string;
 }
@@ -93,9 +99,9 @@ const neighbors: SimulatedNeighbor[] = [
     role: 'Ngư Dân Đảo Băng',
     level: 12,
     status: 'Đang câu cá hồi tuyết',
-    avatarEmoji: '🐻‍❄️',
+    avatarIcon: 'fish',
     avatarBg: 'linear-gradient(135deg, #BAE6FD 0%, #38BDF8 100%)',
-    response: 'Bác Gấu Tuyết mỉm cười gật đầu và ném cho bạn một con cá tươi! 🐟',
+    response: 'Bác Gấu Tuyết mỉm cười gật đầu và ném cho bạn một con cá tươi!',
   },
   {
     id: 'npc-neighbor',
@@ -103,9 +109,9 @@ const neighbors: SimulatedNeighbor[] = [
     role: 'Hàng Xóm Vui Vẻ',
     level: 4,
     status: 'Đang trượt băng nghệ thuật',
-    avatarEmoji: '🐧',
+    avatarIcon: 'crown',
     avatarBg: 'linear-gradient(135deg, #DDD6FE 0%, #8B5CF6 100%)',
-    response: 'Cánh Cụt Bé Nhỏ trượt một vòng số 8 tuyệt đẹp chào bạn! ✨',
+    response: 'Cánh Cụt Bé Nhỏ trượt một vòng số 8 tuyệt đẹp chào bạn!',
   },
   {
     id: 'npc-explorer',
@@ -113,9 +119,9 @@ const neighbors: SimulatedNeighbor[] = [
     role: 'Nhà Khám Phá Nam Cực',
     level: 8,
     status: 'Đang khảo sát hang băng',
-    avatarEmoji: '🧭',
+    avatarIcon: 'target',
     avatarBg: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
-    response: 'Đội Thám Hiểm giơ kính viễn vọng chào bạn từ xa! 🏔️',
+    response: 'Đội Thám Hiểm giơ kính viễn vọng chào bạn từ xa!',
   },
   {
     id: 'npc-tailor',
@@ -123,9 +129,9 @@ const neighbors: SimulatedNeighbor[] = [
     role: 'Nghệ Nhân Đan Len',
     level: 6,
     status: 'Đang đan mũ len đỏ',
-    avatarEmoji: '🧶',
+    avatarIcon: 'gift',
     avatarBg: 'linear-gradient(135deg, #FECDD3 0%, #F43F5E 100%)',
-    response: 'Thợ May vẫy cuộn len ấm áp chúc bạn một ngày vui vẻ! 🧣',
+    response: 'Thợ May vẫy cuộn len ấm áp chúc bạn một ngày vui vẻ!',
   },
 ];
 

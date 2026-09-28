@@ -31,7 +31,7 @@
         @mouseup.stop
         @click.stop="emit('close')"
       >
-        ✕
+        <GameIcon name="close" size="sm" />
       </button>
 
       <!-- Feedback Toast Notification -->
@@ -65,7 +65,8 @@
               <span class="level-tag">Lv. {{ penguin.level }}</span>
             </div>
             <span class="mood-badge" data-testid="inspect-mood">
-              {{ getMoodIcon(penguin.mood) }} {{ penguin.mood }}
+              <GameIcon :name="getMoodAssetKey(penguin.mood)" size="xs" />
+              <span>{{ penguin.mood }}</span>
             </span>
           </div>
         </div>
@@ -75,7 +76,8 @@
           <!-- Happiness Bar -->
           <div class="vital-row">
             <div class="vital-label-wrap">
-              <span class="vital-name">💖 Vui Vẻ:</span>
+              <GameIcon name="nurture" size="xs" />
+              <span class="vital-name">Vui Vẻ:</span>
               <span class="vital-value">{{ penguin.happiness }}/100</span>
             </div>
             <div
@@ -96,7 +98,8 @@
           <!-- Hunger Bar -->
           <div class="vital-row">
             <div class="vital-label-wrap">
-              <span class="vital-name">🐟 Đói Bụng:</span>
+              <GameIcon name="fish" size="xs" />
+              <span class="vital-name">Đói Bụng:</span>
               <span class="vital-value">{{ penguin.hunger }}/100</span>
             </div>
             <div
@@ -123,7 +126,7 @@
             data-testid="btn-action-pet"
             @click="handlePet"
           >
-            <span class="btn-emoji">✋</span>
+            <GameIcon name="pet" size="md" class="btn-icon-asset" />
             <div class="btn-text-wrap">
               <span class="btn-main-text">Vuốt Ve</span>
               <span class="btn-sub-text">+15 EXP (+10 Vui)</span>
@@ -136,11 +139,13 @@
             data-testid="btn-action-feed"
             @click="handleFeed"
           >
-            <span class="btn-emoji">{{ selectedFoodDef?.icon || '🐟' }}</span>
+            <GameIcon :name="selectedFoodDef?.icon || 'sardine'" size="md" class="btn-icon-asset" />
             <div class="btn-text-wrap">
               <span class="btn-main-text">Cho Ăn {{ selectedFoodDef?.name || 'Cá' }}</span>
               <span class="btn-sub-text">
-                <template v-if="isFavoriteFood">⭐ Khoái Khẩu (+50% EXP)</template>
+                <template v-if="isFavoriteFood">
+                  <GameIcon name="star" size="xs" /> Khoái Khẩu (+50% EXP)
+                </template>
                 <template v-else>-1 {{ selectedFoodDef?.name || 'Cá' }}</template>
               </span>
             </div>
@@ -163,8 +168,9 @@
               :data-testid="`food-chip-${food.id}`"
               @click="selectedFoodId = food.id"
             >
-              <span>{{ food.icon }} {{ food.name }} ({{ food.count }})</span>
-              <span v-if="speciesDef?.favoriteFoodId === food.id" class="fav-star">⭐</span>
+              <GameIcon :name="food.icon" size="xs" />
+              <span>{{ food.name }} ({{ food.count }})</span>
+              <GameIcon v-if="speciesDef?.favoriteFoodId === food.id" name="star" size="xs" class="fav-star" />
             </button>
           </div>
         </div>
@@ -184,6 +190,7 @@ import { PenguinMood } from '@penguin/types';
 import { useGameStore } from '../../stores/gameStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { gameBridge } from '../../game/bridge/GameBridge';
+import GameIcon from '../common/GameIcon.vue';
 
 const props = defineProps<{
   penguinId: string;
@@ -247,20 +254,22 @@ const speciesColor = computed(() => {
   }
 });
 
-function getMoodIcon(mood: PenguinMood): string {
+function getMoodAssetKey(mood: PenguinMood): string {
   switch (mood) {
     case 'happy':
-      return '😊';
+      return 'mood_happy';
     case 'excited':
-      return '🤩';
+      return 'mood_excited';
     case 'playful':
-      return '🥳';
+      return 'mood_excited';
     case 'sleepy':
-      return '😴';
+      return 'mood_sleepy';
     case 'hungry':
-      return '🤤';
+      return 'mood_hungry';
     case 'sad':
-      return '🥺';
+      return 'mood_sad';
+    default:
+      return 'mood_happy';
   }
 }
 
@@ -278,7 +287,7 @@ function handlePet() {
       ownedId: penguin.value.id,
       action: 'pet',
     });
-    showFeedback(`${penguin.value.nickname} rất thích khi được bạn vuốt ve! 🥰 (+15 EXP)`, 'success');
+    showFeedback(`${penguin.value.nickname} rất thích khi được bạn vuốt ve! (+15 EXP)`, 'success');
   } else {
     showFeedback('Bé đang nghỉ ngơi, hãy đợi một chút nhé!', 'warning');
   }
@@ -299,8 +308,8 @@ function handleFeed() {
       ownedId: penguin.value.id,
       action: 'feed',
     });
-    const bonusText = isFavoriteFood.value ? ' (Món khoái khẩu! +50% EXP ⭐)' : '';
-    showFeedback(`Đã cho ${penguin.value.nickname} ăn ${selectedFoodDef.value.name}! 😋${bonusText}`, 'success');
+    const bonusText = isFavoriteFood.value ? ' (Món khoái khẩu! +50% EXP)' : '';
+    showFeedback(`Đã cho ${penguin.value.nickname} ăn ${selectedFoodDef.value.name}!${bonusText}`, 'success');
   } else {
     showFeedback(`${penguin.value.nickname} đã no rồi, không muốn ăn nữa đâu!`, 'info');
   }

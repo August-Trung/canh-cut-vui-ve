@@ -35,7 +35,7 @@ describe('HatcheryModal.vue', () => {
     expect(slot1.find('[data-testid="slot-timer-1"]').exists()).toBe(true);
   });
 
-  it('shows "Mở Trứng" button when a slot is READY_TO_HATCH and emits hatch event on click', async () => {
+  it('shows "Mở Trứng" button when a slot is READY_TO_HATCH and emits hatch event on click when capacity is available', async () => {
     const game = useGameStore();
     const slot = game.incubatorSlots.find((s) => s.slotId === 1)!;
     slot.state = 'READY_TO_HATCH';
@@ -43,12 +43,59 @@ describe('HatcheryModal.vue', () => {
 
     const wrapper = mount(HatcheryModal);
 
+    // Shows flock capacity badge in header
+    const flockBadge = wrapper.find('[data-testid="hatchery-flock-badge"]');
+    expect(flockBadge.exists()).toBe(true);
+    expect(flockBadge.text()).toContain('Đàn: 1/2');
+
+    // Shows slot flock info
+    const slotCapacity = wrapper.find('[data-testid="slot-flock-capacity"]');
+    expect(slotCapacity.exists()).toBe(true);
+    expect(slotCapacity.text()).toContain('1/2 con');
+
     const hatchBtn = wrapper.find('[data-testid="btn-hatch-slot-1"]');
     expect(hatchBtn.exists()).toBe(true);
     expect(hatchBtn.text()).toContain('Mở Trứng');
 
     await hatchBtn.trigger('click');
     expect(wrapper.emitted('hatch')?.[0]).toEqual([1]);
+  });
+
+  it('prevents opening hatch animation and shows explicit capacity-full warning toast when flock is full at Lv 2 (3/3)', async () => {
+    const game = useGameStore();
+    game.player.level = 2; // Capacity = 3
+    game.ownedPenguins = [
+      { ...game.ownedPenguins[0], id: 'p1', nickname: 'P1' },
+      { ...game.ownedPenguins[0], id: 'p2', nickname: 'P2' },
+      { ...game.ownedPenguins[0], id: 'p3', nickname: 'P3' },
+    ];
+    expect(game.ownedPenguins.length).toBe(3);
+
+    const slot = game.incubatorSlots.find((s) => s.slotId === 1)!;
+    slot.state = 'READY_TO_HATCH';
+    slot.eggTypeId = 'basic_egg';
+
+    const wrapper = mount(HatcheryModal);
+
+    // Verify flock badge marks full
+    const flockBadge = wrapper.find('[data-testid="hatchery-flock-badge"]');
+    expect(flockBadge.text()).toContain('Đàn: 3/3');
+    expect(flockBadge.classes()).toContain('flock-badge--full');
+
+    // Button indicates island is full
+    const hatchBtn = wrapper.find('[data-testid="btn-hatch-slot-1"]');
+    expect(hatchBtn.exists()).toBe(true);
+    expect(hatchBtn.text()).toContain('Đảo Đã Đầy Đàn (3/3)');
+
+    // Clicking button does NOT emit hatch
+    await hatchBtn.trigger('click');
+    expect(wrapper.emitted('hatch')).toBeFalsy();
+
+    // Shows feedback toast with dynamic next level (Level 5)
+    const toast = wrapper.find('[data-testid="hatchery-feedback-toast"]');
+    expect(toast.exists()).toBe(true);
+    expect(toast.text()).toContain('Đảo đã đạt giới hạn đàn (3/3 con)!');
+    expect(toast.text()).toContain('Cấp 5');
   });
 
   it('emits open-inventory when clicking on an empty slot button', async () => {

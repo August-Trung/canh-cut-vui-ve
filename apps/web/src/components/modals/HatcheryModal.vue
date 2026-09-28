@@ -22,8 +22,17 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="modal-header__title-group">
-          <span class="modal-header__icon">🪺</span>
+          <GameIcon name="hatchery" size="sm" class="modal-header__icon" />
           <h2 class="modal-header__title">Tổ Ấp Trứng Cánh Cụt</h2>
+          <div
+            class="flock-badge"
+            :class="{ 'flock-badge--full': isFlockFull }"
+            data-testid="hatchery-flock-badge"
+            :title="`Sức chứa đàn: ${currentFlock}/${maxFlock}`"
+          >
+            <GameIcon name="crown" size="xs" />
+            <span>Đàn: {{ currentFlock }}/{{ maxFlock }}</span>
+          </div>
         </div>
         <button
           type="button"
@@ -36,9 +45,21 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          ✕
+          <GameIcon name="close" size="sm" />
         </button>
       </div>
+
+      <!-- Feedback Toast Notification -->
+      <transition name="toast-fade">
+        <div
+          v-if="feedbackMessage"
+          class="feedback-toast"
+          :class="`feedback-toast--${feedbackType}`"
+          data-testid="hatchery-feedback-toast"
+        >
+          {{ feedbackMessage }}
+        </div>
+      </transition>
 
       <!-- Incubator Slots -->
       <div class="slots-container">
@@ -78,19 +99,14 @@
               <!-- Egg in Nest (if not empty) -->
               <template v-if="slot.state !== 'EMPTY'">
                 <div class="nest-egg" :class="{ 'nest-egg--ready': slot.state === 'READY_TO_HATCH' }">
-                  <svg viewBox="0 0 48 64" class="egg-svg">
-                    <ellipse cx="24" cy="36" rx="18" ry="24" fill="#E0F2FE" stroke="#0284C7" stroke-width="2" />
-                    <circle cx="18" cy="28" r="3" fill="#38BDF8" opacity="0.8" />
-                    <circle cx="30" cy="35" r="4" fill="#38BDF8" opacity="0.8" />
-                    <ellipse cx="16" cy="22" rx="3" ry="6" transform="rotate(-30 16 22)" fill="#FFFFFF" opacity="0.8" />
-                  </svg>
+                  <GameIcon :name="getEggAsset(slot.eggTypeId)" size="xl" />
                 </div>
               </template>
 
               <!-- Empty Nest Placeholder -->
               <template v-else>
                 <div class="empty-nest-placeholder">
-                  <span class="placeholder-icon">🪹</span>
+                  <GameIcon name="snowflake" size="md" class="placeholder-icon" />
                 </div>
               </template>
             </div>
@@ -108,7 +124,7 @@
                 :disabled="gameStore.currencies.gems < (slot.unlockCost ?? 50)"
                 @click="gameStore.unlockIncubatorSlot(slot.slotId)"
               >
-                💎 Mở Khóa ({{ slot.unlockCost ?? 50 }} Kim Cương)
+                <GameIcon name="gem" size="xs" /> Mở Khóa ({{ slot.unlockCost ?? 50 }} Kim Cương)
               </button>
             </template>
 
@@ -121,14 +137,14 @@
                 :data-testid="`btn-place-egg-slot-${slot.slotId}`"
                 @click="emit('open-inventory')"
               >
-                🎒 Mở Túi Đồ Đặt Trứng
+                <GameIcon name="inventory" size="xs" /> Mở Túi Đồ Đặt Trứng
               </button>
             </template>
 
             <!-- 2. INCUBATING STATE -->
             <template v-else-if="slot.state === 'INCUBATING'">
               <div class="timer-box" :data-testid="`slot-timer-${slot.slotId}`">
-                <span class="timer-icon">⏳</span>
+                <GameIcon name="calendar" size="xs" class="timer-icon" />
                 <span class="timer-value">{{ getRemainingTime(slot) }}</span>
               </div>
               <div class="progress-bar-container">
@@ -142,21 +158,32 @@
                 :disabled="!canNurture(slot)"
                 @click="handleNurture(slot.slotId)"
               >
-                💖 Ấp Nhanh (-15s) [{{ slot.nurtureCount || 0 }}/10]
+                <GameIcon name="nurture" size="xs" /> Ấp Nhanh (-15s) [{{ slot.nurtureCount || 0 }}/10]
                 <span v-if="getNurtureCooldown(slot) > 0">({{ getNurtureCooldown(slot) }}s)</span>
               </button>
             </template>
 
             <!-- 3. READY TO HATCH STATE -->
             <template v-else-if="slot.state === 'READY_TO_HATCH'">
-              <p class="ready-banner">✨ Trứng đã sẵn sàng nở!</p>
+              <div class="ready-banner-wrap">
+                <p class="ready-banner">
+                  <GameIcon name="star" size="xs" /> Trứng đã sẵn sàng nở!
+                </p>
+                <div class="slot-flock-info" data-testid="slot-flock-capacity">
+                  <span>Sức chứa: </span>
+                  <strong :class="{ 'text-danger': isFlockFull }">{{ currentFlock }}/{{ maxFlock }} con</strong>
+                  <span v-if="isFlockFull" class="flock-full-tag"> (Đầy Đàn)</span>
+                </div>
+              </div>
               <button
                 type="button"
-                class="btn-slot-action btn-slot-action--hatch"
+                class="btn-slot-action"
+                :class="isFlockFull ? 'btn-slot-action--full' : 'btn-slot-action--hatch'"
                 :data-testid="`btn-hatch-slot-${slot.slotId}`"
-                @click="emit('hatch', slot.slotId)"
+                @click="handleHatchClick(slot.slotId)"
               >
-                🐣 Mở Trứng Ngay!
+                <GameIcon :name="isFlockFull ? 'lock' : 'hatch'" size="xs" />
+                <span>{{ isFlockFull ? 'Đảo Đã Đầy Đàn (' + currentFlock + '/' + maxFlock + ')' : 'Mở Trứng Ngay!' }}</span>
               </button>
             </template>
           </div>
@@ -167,9 +194,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { IncubatorSlot, IncubatorState } from '@penguin/types';
 import { useGameStore } from '../../stores/gameStore';
+import { getMaxFlockCapacity, getNextFlockCapacityLevel } from '../../services/ProgressionService';
+import GameIcon from '../common/GameIcon.vue';
+
+function getEggAsset(eggTypeId?: string): string {
+  if (eggTypeId === 'frozen_egg') return 'egg_frozen';
+  if (eggTypeId === 'golden_egg') return 'egg_golden';
+  return 'egg_basic';
+}
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -180,6 +215,33 @@ const emit = defineEmits<{
 const gameStore = useGameStore();
 const now = ref(Date.now());
 let timerInterval: ReturnType<typeof setInterval> | null = null;
+
+const currentFlock = computed(() => gameStore.ownedPenguins.length);
+const maxFlock = computed(() => getMaxFlockCapacity(gameStore.player.level));
+const isFlockFull = computed(() => currentFlock.value >= maxFlock.value);
+const nextCapacityLevel = computed(() => getNextFlockCapacityLevel(gameStore.player.level));
+const flockFullMessage = computed(() => {
+  if (nextCapacityLevel.value) {
+    return `Đảo đã đạt giới hạn đàn (${currentFlock.value}/${maxFlock.value} con)! Hãy tăng sức chứa đàn trước khi đón bé mới (Cần đạt Cấp ${nextCapacityLevel.value}).`;
+  }
+  return `Đảo đã đạt giới hạn đàn tối đa (${currentFlock.value}/${maxFlock.value} con)! Hãy tăng sức chứa đàn trước khi đón bé mới.`;
+});
+
+const feedbackMessage = ref<string | null>(null);
+const feedbackType = ref<'success' | 'warning' | 'info'>('info');
+
+function showFeedback(msg: string, type: 'success' | 'warning' | 'info' = 'info') {
+  feedbackMessage.value = msg;
+  feedbackType.value = type;
+}
+
+function handleHatchClick(slotId: number) {
+  if (isFlockFull.value) {
+    showFeedback(flockFullMessage.value, 'warning');
+    return;
+  }
+  emit('hatch', slotId);
+}
 
 onMounted(() => {
   timerInterval = setInterval(() => {
@@ -523,6 +585,97 @@ function handleNurture(slotId: number) {
   color: #FFFFFF;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
   animation: pulse 1.2s infinite alternate;
+}
+
+.btn-slot-action--full {
+  background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+.btn-slot-action--full:hover {
+  background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%);
+}
+
+.flock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #E0F2FE;
+  color: #0369A1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1px solid #BAE6FD;
+}
+
+.flock-badge--full {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+.ready-banner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.slot-flock-info {
+  font-size: 0.8rem;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.text-danger {
+  color: #DC2626;
+  font-weight: 800;
+}
+
+.flock-full-tag {
+  color: #DC2626;
+  font-weight: 800;
+}
+
+/* Feedback Toast */
+.feedback-toast {
+  margin: 10px 16px 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.feedback-toast--warning {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.feedback-toast--success {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.feedback-toast--info {
+  background: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 @keyframes eggBounce {

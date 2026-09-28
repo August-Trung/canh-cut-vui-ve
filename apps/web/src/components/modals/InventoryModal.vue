@@ -22,7 +22,7 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="modal-header__title-group">
-          <span class="modal-header__icon">🎒</span>
+          <GameIcon name="inventory" size="sm" class="modal-header__icon" />
           <h2 class="modal-header__title">Túi Đồ Của Bạn</h2>
         </div>
         <button
@@ -36,7 +36,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          ✕
+          <GameIcon name="close" size="sm" />
         </button>
       </div>
 
@@ -69,7 +69,8 @@
           :aria-selected="activeCategory === 'eggs'"
           @click="activeCategory = 'eggs'"
         >
-          🥚 Trứng
+          <GameIcon name="hatch" size="xs" />
+          <span>Trứng</span>
         </button>
         <button
           type="button"
@@ -80,14 +81,15 @@
           :aria-selected="activeCategory === 'food'"
           @click="activeCategory = 'food'"
         >
-          🐟 Thức Ăn
+          <GameIcon name="fish" size="xs" />
+          <span>Thức Ăn</span>
         </button>
       </div>
 
       <!-- Inventory Item Grid -->
       <div class="inventory-body">
         <div v-if="filteredItems.length === 0" class="empty-state">
-          <span class="empty-icon">❄️</span>
+          <GameIcon name="snowflake" size="xl" class="empty-icon" />
           <p class="empty-text">Túi đồ trống trong danh mục này.</p>
         </div>
 
@@ -100,10 +102,7 @@
             role="listitem"
           >
             <div class="item-card__icon-box">
-              <!-- Item icon visual -->
-              <span v-if="item.category === 'eggs'" class="item-emoji">🥚</span>
-              <span v-else-if="item.category === 'food'" class="item-emoji">🐟</span>
-              <span v-else class="item-emoji">📦</span>
+              <GameIcon :name="getItemAssetKey(item)" size="lg" />
               <span class="item-card__quantity">x{{ item.quantity }}</span>
             </div>
 
@@ -143,9 +142,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { InventoryItem } from '@penguin/types';
 import { useGameStore } from '../../stores/gameStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { gameBridge } from '../../game/bridge/GameBridge';
+import GameIcon from '../common/GameIcon.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -157,6 +158,21 @@ const invStore = useInventoryStore();
 const activeCategory = ref<'all' | 'eggs' | 'food'>('all');
 const feedbackMessage = ref<string | null>(null);
 const feedbackType = ref<'success' | 'warning' | 'info'>('info');
+
+function getItemAssetKey(item: InventoryItem): string {
+  if (item.category === 'eggs') {
+    if (item.itemId === 'frozen_egg') return 'egg_frozen';
+    if (item.itemId === 'golden_egg') return 'egg_golden';
+    return 'egg_basic';
+  }
+  if (item.category === 'food') {
+    return item.itemId || 'fish';
+  }
+  if (item.category === 'decorations') {
+    return 'decorate';
+  }
+  return 'inventory';
+}
 
 const filteredItems = computed(() => {
   return invStore.itemsByCategory(activeCategory.value);

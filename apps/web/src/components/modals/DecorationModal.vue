@@ -22,7 +22,7 @@
       <!-- Header -->
       <div class="decor-header">
         <div class="decor-header__title-group">
-          <span class="decor-header__icon">🎄</span>
+          <GameIcon name="decorate" size="sm" class="decor-header__icon" />
           <div>
             <h2 class="decor-header__title">Trang Trí Đảo Tuyết</h2>
             <p class="decor-header__sub">Sắp đặt các công trình để tăng Điểm Ấm Cúng và thưởng rơi Vàng!</p>
@@ -31,7 +31,8 @@
 
         <div class="decor-header__right">
           <div class="cozy-chip" data-testid="decor-cozy-rating">
-            ✨ {{ decorStore.cozyRating }} Điểm Ấm Cúng (+{{ Math.round((decorStore.coinDropMultiplier - 1) * 100) }}% Vàng)
+            <GameIcon name="star" size="xs" />
+            <span>{{ decorStore.cozyRating }} Điểm Ấm Cúng (+{{ Math.round((decorStore.coinDropMultiplier - 1) * 100) }}% Vàng)</span>
           </div>
 
           <button
@@ -45,7 +46,7 @@
             @mouseup.stop
             @click.stop="emit('close')"
           >
-            ✕
+            <GameIcon name="close" size="sm" />
           </button>
         </div>
       </div>
@@ -54,7 +55,10 @@
       <div class="decor-body">
         <!-- Plots Grid -->
         <div class="plots-section">
-          <h3 class="section-label">📍 Chọn Vị Trí Cắm Cọc (6 Điểm):</h3>
+          <h3 class="section-label">
+            <GameIcon name="target" size="xs" />
+            <span>Chọn Vị Trí Cắm Cọc (6 Điểm):</span>
+          </h3>
           <div class="plots-grid">
             <button
               v-for="plot in decorStore.plots"
@@ -70,7 +74,7 @@
             >
               <div class="plot-card__id">Điểm #{{ plot.id }}</div>
               <div class="plot-card__icon">
-                {{ isPlotOccupied(plot.id) ? '🏡' : '🪧' }}
+                <GameIcon :name="isPlotOccupied(plot.id) ? 'decorate' : 'target'" size="md" />
               </div>
               <div class="plot-card__name">{{ plot.name }}</div>
               <div class="plot-card__status">
@@ -89,11 +93,13 @@
           <!-- Occupied Plot State -->
           <div v-if="currentPlacedDecor" class="occupied-box" data-testid="plot-occupied-view">
             <div class="occupied-info">
-              <span class="occupied-icon">🏡</span>
+              <GameIcon name="decorate" size="md" class="occupied-icon" />
               <div>
                 <div class="occupied-title">{{ currentPlacedDecorDef?.name }}</div>
                 <div class="occupied-desc">{{ currentPlacedDecorDef?.description }}</div>
-                <div class="occupied-points">✨ +{{ currentPlacedDecorDef?.cozyPoints }} Điểm Ấm Cúng</div>
+                <div class="occupied-points">
+                  <GameIcon name="star" size="xs" /> +{{ currentPlacedDecorDef?.cozyPoints }} Điểm Ấm Cúng
+                </div>
               </div>
             </div>
 
@@ -104,7 +110,8 @@
                 data-testid="btn-remove-decor"
                 @click="removeCurrentDecor"
               >
-                📦 Thu Hồi Vào Túi Đồ
+                <GameIcon name="inventory" size="xs" />
+                <span>Thu Hồi Vào Túi Đồ</span>
               </button>
             </div>
 
@@ -146,7 +153,8 @@
                 data-testid="btn-go-shop"
                 @click="emit('open-shop')"
               >
-                🛍️ Đến Cửa Hàng Mua Đồ Trang Trí
+                <GameIcon name="shop" size="xs" />
+                <span>Đến Cửa Hàng Mua Đồ Trang Trí</span>
               </button>
             </div>
 
@@ -157,7 +165,9 @@
                 class="inv-decor-card"
                 :data-testid="`inv-decor-${item.itemId}`"
               >
-                <div class="inv-decor-card__icon">🏡</div>
+                <div class="inv-decor-card__icon">
+                  <GameIcon name="decorate" size="md" />
+                </div>
                 <div class="inv-decor-card__name">{{ item.name }}</div>
                 <div class="inv-decor-card__qty">Còn: {{ item.quantity }}</div>
                 <button
@@ -182,6 +192,7 @@ import { ref, computed } from 'vue';
 import { DECORATION_CATALOG } from '@penguin/game-data';
 import { useDecorationStore } from '../../stores/decorationStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
+import GameIcon from '../common/GameIcon.vue';
 
 const props = withDefaults(
   defineProps<{

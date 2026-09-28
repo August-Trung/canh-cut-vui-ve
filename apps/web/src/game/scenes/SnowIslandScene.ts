@@ -192,7 +192,7 @@ export class SnowIslandScene extends Phaser.Scene {
     postContainer.add(graphics);
 
     // Sign label text
-    const label = this.add.text(0, -27, '❄ Đảo Tuyết', {
+    const label = this.add.text(0, -27, 'Đảo Tuyết', {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '9px',
       color: '#ffffff',
@@ -440,7 +440,7 @@ export class SnowIslandScene extends Phaser.Scene {
   spawnCoinDropEffect(x: number, y: number, amount: number): void {
     soundService.playCoinDrop();
 
-    const coinText = this.add.text(x, y - 20, `+${amount} 🪙`, {
+    const coinText = this.add.text(x, y - 20, `+${amount} Xu`, {
       fontSize: '18px',
       color: '#facc15',
       fontStyle: 'bold',

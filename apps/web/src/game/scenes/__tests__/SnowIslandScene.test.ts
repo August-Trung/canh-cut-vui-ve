@@ -674,7 +674,7 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
         expect(mockAdd.text).toHaveBeenCalledWith(
           50,
           60,
-          '+25 🪙',
+          '+25 Xu',
           expect.objectContaining({ color: '#facc15' })
         );
         expect(mockTweens.add).toHaveBeenCalledWith(

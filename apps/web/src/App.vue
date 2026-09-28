@@ -87,6 +87,7 @@ import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useGameStore } from './stores/gameStore';
 import { gameBridge } from './game/bridge/GameBridge';
 import { soundService } from './services/SoundService';
+import { getMaxFlockCapacity } from './services/ProgressionService';
 import IslandCanvas from './components/canvas/IslandCanvas.vue';
 import TopBar from './components/hud/TopBar.vue';
 import ShelfRack from './components/dock/ShelfRack.vue';
@@ -204,7 +205,10 @@ onMounted(async () => {
   const unsubEggClick = gameBridge.on('egg:clicked', ({ slotId }) => {
     soundService.playPop();
     const slot = gameStore.getSlotById(slotId);
-    if (slot?.state === 'READY_TO_HATCH') {
+    const maxCapacity = getMaxFlockCapacity(gameStore.player.level);
+    const isFlockFull = gameStore.ownedPenguins.length >= maxCapacity;
+
+    if (slot?.state === 'READY_TO_HATCH' && !isFlockFull) {
       openHatchModal(slotId);
     } else {
       activeModal.value = 'hatchery';

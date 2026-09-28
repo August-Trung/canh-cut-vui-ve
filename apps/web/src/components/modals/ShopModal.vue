@@ -22,7 +22,7 @@
       <!-- Header -->
       <div class="shop-header">
         <div class="shop-header__title-group">
-          <span class="shop-header__icon">🛍️</span>
+          <GameIcon name="shop" size="sm" class="shop-header__icon" />
           <div>
             <h2 class="shop-header__title">Cửa Hàng Đảo Tuyết</h2>
             <p class="shop-header__sub">Sắm sửa thức ăn, trứng quý và đồ trang trí ấm cúng!</p>
@@ -31,8 +31,14 @@
 
         <div class="shop-header__right">
           <div class="currency-chips">
-            <span class="chip chip--coin" data-testid="shop-coin-balance">🪙 {{ gameStore.currencies.coins.toLocaleString() }}</span>
-            <span class="chip chip--gem" data-testid="shop-gem-balance">💎 {{ gameStore.currencies.gems.toLocaleString() }}</span>
+            <span class="chip chip--coin" data-testid="shop-coin-balance">
+              <GameIcon name="coin" size="xs" />
+              <span>{{ gameStore.currencies.coins.toLocaleString() }}</span>
+            </span>
+            <span class="chip chip--gem" data-testid="shop-gem-balance">
+              <GameIcon name="gem" size="xs" />
+              <span>{{ gameStore.currencies.gems.toLocaleString() }}</span>
+            </span>
           </div>
 
           <button
@@ -46,7 +52,7 @@
             @mouseup.stop
             @click.stop="emit('close')"
           >
-            ✕
+            <GameIcon name="close" size="sm" />
           </button>
         </div>
       </div>
@@ -61,7 +67,8 @@
           data-testid="tab-food"
           @click="activeTab = 'food'"
         >
-          🐟 Thức Ăn
+          <GameIcon name="fish" size="xs" />
+          <span>Thức Ăn</span>
         </button>
         <button
           type="button"
@@ -71,7 +78,8 @@
           data-testid="tab-eggs"
           @click="activeTab = 'eggs'"
         >
-          🐣 Trứng Cánh Cụt
+          <GameIcon name="hatch" size="xs" />
+          <span>Trứng Cánh Cụt</span>
         </button>
         <button
           type="button"
@@ -81,7 +89,8 @@
           data-testid="tab-decorations"
           @click="activeTab = 'decorations'"
         >
-          🎄 Đồ Trang Trí
+          <GameIcon name="decorate" size="xs" />
+          <span>Đồ Trang Trí</span>
         </button>
       </div>
 
@@ -102,9 +111,11 @@
             :data-testid="`shop-item-${item.id}`"
           >
             <div class="shop-card__badge" v-if="gameStore.player.level < item.playerLevelRequired">
-              🔒 Yêu cầu Lv. {{ item.playerLevelRequired }}
+              <GameIcon name="lock" size="xs" /> Yêu cầu Lv. {{ item.playerLevelRequired }}
             </div>
-            <div class="shop-card__icon">{{ item.icon }}</div>
+            <div class="shop-card__icon">
+              <GameIcon :name="item.icon" size="lg" />
+            </div>
             <div class="shop-card__name">{{ item.name }}</div>
             <div class="shop-card__desc">{{ item.description }}</div>
             <div class="shop-card__stats">
@@ -112,7 +123,9 @@
               <span class="stat-tag stat-tag--happy">Vui: +{{ item.happinessBonus }}</span>
             </div>
             <div class="shop-card__bottom">
-              <span class="price-tag">🪙 {{ item.coinPrice }} Vàng</span>
+              <span class="price-tag">
+                <GameIcon name="coin" size="xs" /> {{ item.coinPrice }} Vàng
+              </span>
               <button
                 type="button"
                 class="btn-buy"
@@ -136,18 +149,26 @@
             :data-testid="`shop-item-${egg.id}`"
           >
             <div class="shop-card__badge" v-if="gameStore.player.level < egg.playerLevelRequired">
-              🔒 Yêu cầu Lv. {{ egg.playerLevelRequired }}
+              <GameIcon name="lock" size="xs" /> Yêu cầu Lv. {{ egg.playerLevelRequired }}
             </div>
-            <div class="shop-card__icon">{{ egg.icon }}</div>
+            <div class="shop-card__icon">
+              <GameIcon :name="egg.icon" size="lg" />
+            </div>
             <div class="shop-card__name">{{ egg.name }}</div>
             <div class="shop-card__desc">{{ egg.description }}</div>
             <div class="shop-card__stats">
-              <span class="stat-tag">⏱️ {{ Math.round(egg.incubationSeconds / 60) }} phút</span>
+              <span class="stat-tag">
+                <GameIcon name="calendar" size="xs" /> {{ Math.round(egg.incubationSeconds / 60) }} phút
+              </span>
             </div>
             <div class="shop-card__bottom">
               <span class="price-tag">
-                <template v-if="egg.priceGems">💎 {{ egg.priceGems }} Kim Cương</template>
-                <template v-else>🪙 {{ egg.priceCoins }} Vàng</template>
+                <template v-if="egg.priceGems">
+                  <GameIcon name="gem" size="xs" /> {{ egg.priceGems }} Kim Cương
+                </template>
+                <template v-else>
+                  <GameIcon name="coin" size="xs" /> {{ egg.priceCoins }} Vàng
+                </template>
               </span>
               <button
                 type="button"
@@ -172,18 +193,22 @@
             :data-testid="`shop-item-${dec.id}`"
           >
             <div class="shop-card__badge" v-if="gameStore.player.level < dec.playerLevelRequired">
-              🔒 Yêu cầu Lv. {{ dec.playerLevelRequired }}
+              <GameIcon name="lock" size="xs" /> Yêu cầu Lv. {{ dec.playerLevelRequired }}
             </div>
-            <div class="shop-card__icon">🏡</div>
+            <div class="shop-card__icon">
+              <GameIcon name="decorate" size="lg" />
+            </div>
             <div class="shop-card__name">{{ dec.name }}</div>
             <div class="shop-card__desc">{{ dec.description }}</div>
             <div class="shop-card__stats">
-              <span class="stat-tag stat-tag--cozy">✨ +{{ dec.cozyPoints }} Điểm Ấm Cúng</span>
+              <span class="stat-tag stat-tag--cozy">
+                <GameIcon name="star" size="xs" /> +{{ dec.cozyPoints }} Điểm Ấm Cúng
+              </span>
             </div>
             <div class="shop-card__bottom">
               <span class="price-tag">
-                🪙 {{ dec.priceCoins }} Vàng
-                <span v-if="dec.priceGems"> + 💎 {{ dec.priceGems }}</span>
+                <GameIcon name="coin" size="xs" /> {{ dec.priceCoins }} Vàng
+                <span v-if="dec.priceGems"> + <GameIcon name="gem" size="xs" /> {{ dec.priceGems }}</span>
               </span>
               <button
                 type="button"
@@ -208,6 +233,7 @@ import { FoodItemDefinition, EggShopDefinition, DecorationDefinition } from '@pe
 import { FOOD_CATALOG, EGG_CATALOG, DECORATION_CATALOG } from '@penguin/game-data';
 import { useGameStore } from '../../stores/gameStore';
 import { useShopStore } from '../../stores/shopStore';
+import GameIcon from '../common/GameIcon.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;

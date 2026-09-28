@@ -9,7 +9,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 10,
     playerLevelRequired: 1,
     coinPrice: 15,
-    icon: '🐟',
+    icon: 'sardine',
   },
   krill: {
     id: 'krill',
@@ -19,7 +19,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 12,
     playerLevelRequired: 2,
     coinPrice: 25,
-    icon: '🦐',
+    icon: 'krill',
   },
   warm_milk: {
     id: 'warm_milk',
@@ -29,7 +29,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 18,
     playerLevelRequired: 3,
     coinPrice: 35,
-    icon: '🥛',
+    icon: 'milk',
   },
   sweet_berries: {
     id: 'sweet_berries',
@@ -39,7 +39,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 22,
     playerLevelRequired: 3,
     coinPrice: 40,
-    icon: '🍓',
+    icon: 'berries',
   },
   squid: {
     id: 'squid',
@@ -49,7 +49,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 20,
     playerLevelRequired: 4,
     coinPrice: 55,
-    icon: '🦑',
+    icon: 'squid',
   },
   fat_salmon: {
     id: 'fat_salmon',
@@ -59,7 +59,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 30,
     playerLevelRequired: 5,
     coinPrice: 80,
-    icon: '🍣',
+    icon: 'salmon',
   },
   ice_cream: {
     id: 'ice_cream',
@@ -69,7 +69,7 @@ export const FOOD_CATALOG: Record<string, FoodItemDefinition> = {
     happinessBonus: 45,
     playerLevelRequired: 6,
     coinPrice: 90,
-    icon: '🍦',
+    icon: 'icecream',
   },
 };
 
