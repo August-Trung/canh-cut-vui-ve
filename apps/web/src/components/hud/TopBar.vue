@@ -22,6 +22,16 @@
 
       <div class="top-bar__player-meta">
         <span class="top-bar__player-name">{{ playerName }}</span>
+        <div
+          class="top-bar__exp-bar"
+          :title="expTooltip"
+          data-testid="player-exp-bar"
+        >
+          <div
+            class="top-bar__exp-fill"
+            :style="{ width: `${levelInfo.progressPercent}%` }"
+          ></div>
+        </div>
       </div>
     </div>
 
@@ -105,6 +115,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/gameStore';
+import { getPlayerLevelFromExp } from '../../services/ProgressionService';
 import CurrencyBadge from './CurrencyBadge.vue';
 
 const emit = defineEmits<{
@@ -115,6 +126,12 @@ const gameStore = useGameStore();
 
 const playerLevel = computed(() => gameStore.player.level ?? 1);
 const playerName = computed(() => gameStore.player.displayName || 'Chim Cánh Cụt');
+
+const levelInfo = computed(() => getPlayerLevelFromExp(gameStore.player.exp ?? 0));
+const expTooltip = computed(() => {
+  if (levelInfo.value.level >= 10) return 'Cấp tối đa (Lv. 10)';
+  return `EXP: ${gameStore.player.exp ?? 0}/${levelInfo.value.nextLevelExp} (${levelInfo.value.progressPercent}%)`;
+});
 
 function handleToggleAudio() {
   gameStore.toggleAudio();
@@ -209,6 +226,24 @@ function handleToggleAudio() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.top-bar__exp-bar {
+  width: 90px;
+  height: 6px;
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.top-bar__exp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38BDF8 0%, #0284C7 100%);
+  border-radius: 9999px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Center Currencies */

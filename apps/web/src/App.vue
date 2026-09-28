@@ -14,6 +14,8 @@
           @open-inventory="openModal('inventory')"
           @open-collection="openModal('collection')"
           @open-hatchery="openModal('hatchery')"
+          @open-shop="openModal('shop')"
+          @open-quests="openModal('quest')"
           @open-settings="openModal('settings')"
         />
       </footer>
@@ -49,6 +51,29 @@
       @close="closeModal"
     />
 
+    <ShopModal
+      v-if="activeModal === 'shop'"
+      @close="closeModal"
+    />
+
+    <QuestModal
+      v-if="activeModal === 'quest'"
+      @close="closeModal"
+    />
+
+    <DecorationModal
+      v-if="activeModal === 'decoration'"
+      :initial-plot-id="activePlotId"
+      @close="closeModal"
+      @open-shop="openModal('shop')"
+    />
+
+    <LevelUpModal
+      v-if="activeModal === 'levelup'"
+      :new-level="levelUpNewLevel"
+      @close="closeModal"
+    />
+
     <SettingsModal
       v-if="activeModal === 'settings'"
       @close="closeModal"
@@ -70,12 +95,18 @@ import CollectionModal from './components/modals/CollectionModal.vue';
 import HatcheryModal from './components/modals/HatcheryModal.vue';
 import HatchModal from './components/modals/HatchModal.vue';
 import PenguinInspectModal from './components/modals/PenguinInspectModal.vue';
+import ShopModal from './components/modals/ShopModal.vue';
+import QuestModal from './components/modals/QuestModal.vue';
+import DecorationModal from './components/modals/DecorationModal.vue';
+import LevelUpModal from './components/modals/LevelUpModal.vue';
 import SettingsModal from './components/modals/SettingsModal.vue';
 
 const gameStore = useGameStore();
 const activeModal = ref<string | null>(null);
 const activeHatchSlotId = ref<number>(1);
 const inspectedPenguinId = ref<string | null>(null);
+const activePlotId = ref<number>(1);
+const levelUpNewLevel = ref<number>(2);
 const canvasReady = ref(false);
 
 function openModal(modalName: string) {
@@ -107,15 +138,31 @@ function syncNest() {
   });
 }
 
+function syncDecorations() {
+  if (!canvasReady.value || !gameStore.isLoaded) return;
+  gameBridge.emit('decorations:sync', {
+    decorations: gameStore.island.decorations ?? [],
+  });
+}
+
 function syncWorld() {
   syncPenguins();
   syncNest();
+  syncDecorations();
 }
 
 watch(
   () => [gameStore.incubatorSlots[0]?.state, gameStore.incubatorSlots[0]?.eggTypeId],
   () => {
     syncNest();
+  },
+  { deep: true }
+);
+
+watch(
+  () => gameStore.island.decorations,
+  () => {
+    syncDecorations();
   },
   { deep: true }
 );
@@ -140,7 +187,7 @@ watch(
 let unsubs: (() => void)[] = [];
 
 onMounted(async () => {
-  // Subscribe to canvas:ready to synchronize penguins and nest once the island scene is ready
+  // Subscribe to canvas:ready to synchronize penguins, nest, and decorations once the island scene is ready
   const unsubCanvasReady = gameBridge.on('canvas:ready', () => {
     canvasReady.value = true;
     syncWorld();
@@ -164,6 +211,17 @@ onMounted(async () => {
     }
   });
 
+  const unsubPlotClick = gameBridge.on('plot:clicked', ({ plotId }) => {
+    soundService.playPop();
+    activePlotId.value = plotId;
+    activeModal.value = 'decoration';
+  });
+
+  const unsubLevelUp = gameBridge.on('effect:level_up', ({ newLevel }) => {
+    levelUpNewLevel.value = newLevel;
+    activeModal.value = 'levelup';
+  });
+
   const unsubPenguinAction = gameBridge.on('penguin:action', ({ action }) => {
     if (action === 'pet') {
       soundService.playChirp();
@@ -172,7 +230,16 @@ onMounted(async () => {
     }
   });
 
-  unsubs.push(unsubCanvasReady, unsubPenguinClick, unsubEggClick, unsubPenguinAction);
+  unsubs.push(
+    unsubCanvasReady,
+    unsubPenguinClick,
+    unsubEggClick,
+    unsubPlotClick,
+    unsubLevelUp,
+    unsubPenguinAction
+  );
+
+  gameStore.startNeedsSimulation();
 
   if (!gameStore.isLoaded) {
     await gameStore.initGame();
@@ -181,6 +248,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  gameStore.stopNeedsSimulation();
   for (const unsub of unsubs) {
     unsub();
   }
@@ -191,8 +259,13 @@ defineExpose({
   activeModal,
   activeHatchSlotId,
   inspectedPenguinId,
+  activePlotId,
+  levelUpNewLevel,
   canvasReady,
   syncPenguins,
+  syncNest,
+  syncDecorations,
+  syncWorld,
   openModal,
   closeModal,
   openHatchModal,

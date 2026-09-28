@@ -146,7 +146,49 @@
         <span class="shelf-btn__label">Ấp Trứng</span>
       </button>
 
-      <!-- 4. Cài Đặt (Settings) -->
+      <!-- 4. Cửa Hàng (Shop) -->
+      <button
+        type="button"
+        class="shelf-btn shelf-btn--shop"
+        data-testid="btn-shop"
+        title="Cửa Hàng"
+        aria-label="Cửa Hàng"
+        @click="emit('open-shop')"
+      >
+        <div class="shelf-btn__icon-plate">
+          <svg class="shelf-btn__icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 10H26L28 16H4L6 10Z" fill="#F43F5E" />
+            <path d="M4 16H28V26C28 27.1 27.1 28 26 28H6C4.9 28 4 27.1 4 26V16Z" fill="#FB7185" />
+            <path d="M11 10V6C11 4.9 11.9 4 13 4H19C20.1 4 21 4.9 21 6V10" stroke="#FFE4E6" stroke-width="2" fill="none" />
+            <circle cx="16" cy="21" r="3" fill="#FFE4E6" />
+          </svg>
+        </div>
+        <span class="shelf-btn__label">Cửa Hàng</span>
+      </button>
+
+      <!-- 5. Nhiệm Vụ (Quests) -->
+      <button
+        type="button"
+        class="shelf-btn shelf-btn--quests"
+        data-testid="btn-quests"
+        title="Nhiệm Vụ"
+        aria-label="Nhiệm Vụ"
+        @click="emit('open-quests')"
+      >
+        <div class="shelf-btn__icon-plate">
+          <svg class="shelf-btn__icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 6C6 4.9 6.9 4 8 4H24C25.1 4 26 4.9 26 6V24C26 25.1 25.1 26 24 26H8C6.9 26 6 25.1 6 24V6Z" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5" />
+            <line x1="10" y1="9" x2="22" y2="9" stroke="#B45309" stroke-width="2" stroke-linecap="round" />
+            <line x1="10" y1="14" x2="22" y2="14" stroke="#B45309" stroke-width="2" stroke-linecap="round" />
+            <line x1="10" y1="19" x2="18" y2="19" stroke="#B45309" stroke-width="2" stroke-linecap="round" />
+            <circle cx="21" cy="20" r="4" fill="#10B981" />
+            <path d="M19.5 20L20.5 21L22.5 19" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <span class="shelf-btn__label">Nhiệm Vụ</span>
+      </button>
+
+      <!-- 6. Cài Đặt (Settings) -->
       <button
         type="button"
         class="shelf-btn shelf-btn--settings"
@@ -190,6 +232,8 @@ const emit = defineEmits<{
   (e: 'open-inventory'): void;
   (e: 'open-collection'): void;
   (e: 'open-hatchery'): void;
+  (e: 'open-shop'): void;
+  (e: 'open-quests'): void;
   (e: 'open-settings'): void;
 }>();
 </script>

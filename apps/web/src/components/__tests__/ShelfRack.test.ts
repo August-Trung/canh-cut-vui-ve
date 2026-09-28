@@ -4,11 +4,13 @@ import { mount } from '@vue/test-utils';
 import ShelfRack from '../dock/ShelfRack.vue';
 
 describe('ShelfRack Component', () => {
-  it('renders all four action buttons with Vietnamese labels', () => {
+  it('renders all six action buttons with Vietnamese labels', () => {
     const wrapper = mount(ShelfRack);
     expect(wrapper.text()).toContain('Túi Đồ');
     expect(wrapper.text()).toContain('Bộ Sưu Tập');
     expect(wrapper.text()).toContain('Ấp Trứng');
+    expect(wrapper.text()).toContain('Cửa Hàng');
+    expect(wrapper.text()).toContain('Nhiệm Vụ');
     expect(wrapper.text()).toContain('Cài Đặt');
   });
 
@@ -40,6 +42,26 @@ describe('ShelfRack Component', () => {
     await btn.trigger('click');
     expect(wrapper.emitted('open-hatchery')).toBeTruthy();
     expect(wrapper.emitted('open-hatchery')?.length).toBe(1);
+  });
+
+  it('emits open-shop when Cửa Hàng is clicked', async () => {
+    const wrapper = mount(ShelfRack);
+    const btn = wrapper.find('[data-testid="btn-shop"]');
+    expect(btn.exists()).toBe(true);
+
+    await btn.trigger('click');
+    expect(wrapper.emitted('open-shop')).toBeTruthy();
+    expect(wrapper.emitted('open-shop')?.length).toBe(1);
+  });
+
+  it('emits open-quests when Nhiệm Vụ is clicked', async () => {
+    const wrapper = mount(ShelfRack);
+    const btn = wrapper.find('[data-testid="btn-quests"]');
+    expect(btn.exists()).toBe(true);
+
+    await btn.trigger('click');
+    expect(wrapper.emitted('open-quests')).toBeTruthy();
+    expect(wrapper.emitted('open-quests')?.length).toBe(1);
   });
 
   it('emits open-settings when Cài Đặt is clicked', async () => {

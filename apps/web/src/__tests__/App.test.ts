@@ -58,6 +58,16 @@ describe('App Component', () => {
     expect(vm.activeModal).toBe('hatchery');
     expect(wrapper.findComponent({ name: 'HatcheryModal' }).exists()).toBe(true);
 
+    // Shop
+    await shelfRack.vm.$emit('open-shop');
+    expect(vm.activeModal).toBe('shop');
+    expect(wrapper.findComponent({ name: 'ShopModal' }).exists()).toBe(true);
+
+    // Quests
+    await shelfRack.vm.$emit('open-quests');
+    expect(vm.activeModal).toBe('quest');
+    expect(wrapper.findComponent({ name: 'QuestModal' }).exists()).toBe(true);
+
     // Settings
     await shelfRack.vm.$emit('open-settings');
     expect(vm.activeModal).toBe('settings');
@@ -354,5 +364,51 @@ describe('App Component', () => {
     expect(vm.activeModal).toBeNull();
     expect(eggClickHandler).not.toHaveBeenCalled();
     expect(wrapper.findComponent({ name: 'HatcheryModal' }).exists()).toBe(false);
+  });
+
+  it('opens DecorationModal when plot:clicked event is emitted from gameBridge', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    gameBridge.emit('plot:clicked', { plotId: 3 });
+    await wrapper.vm.$nextTick();
+
+    const vm = wrapper.vm as unknown as { activeModal: string | null; activePlotId: number };
+    expect(vm.activeModal).toBe('decoration');
+    expect(vm.activePlotId).toBe(3);
+    expect(wrapper.findComponent({ name: 'DecorationModal' }).exists()).toBe(true);
+  });
+
+  it('opens LevelUpModal when effect:level_up event is emitted from gameBridge', async () => {
+    const game = useGameStore();
+    await game.initGame();
+
+    const wrapper = mount(App);
+    await wrapper.vm.$nextTick();
+
+    gameBridge.emit('effect:level_up', { newLevel: 4 });
+    await wrapper.vm.$nextTick();
+
+    const vm = wrapper.vm as unknown as { activeModal: string | null; levelUpNewLevel: number };
+    expect(vm.activeModal).toBe('levelup');
+    expect(vm.levelUpNewLevel).toBe(4);
+    expect(wrapper.findComponent({ name: 'LevelUpModal' }).exists()).toBe(true);
+  });
+
+  it('starts needs simulation on mount and stops it on unmount', async () => {
+    const game = useGameStore();
+    const startSpy = vi.spyOn(game, 'startNeedsSimulation');
+    const stopSpy = vi.spyOn(game, 'stopNeedsSimulation');
+
+    const wrapper = mount(App);
+    expect(startSpy).toHaveBeenCalledTimes(1);
+
+    stopSpy.mockClear();
+    wrapper.unmount();
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(game.needsSimulationIntervalId).toBeNull();
   });
 });

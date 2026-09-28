@@ -22,14 +22,18 @@ describe('TopBar Component', () => {
     expect(wrapper.text()).toContain('10');
   });
 
-  it('renders player level and display name', () => {
+  it('renders player level, display name, and exp progress tooltip', () => {
     const game = useGameStore();
-    game.player.level = 5;
+    game.player.level = 2;
+    game.player.exp = 150;
     game.player.displayName = 'Pudgy Penguin';
 
     const wrapper = mount(TopBar);
-    expect(wrapper.text()).toContain('Lv.5');
+    expect(wrapper.text()).toContain('Lv.2');
     expect(wrapper.text()).toContain('Pudgy Penguin');
+    const expBar = wrapper.find('[data-testid="player-exp-bar"]');
+    expect(expBar.exists()).toBe(true);
+    expect(expBar.attributes('title')).toContain('EXP: 150/300');
   });
 
   it('toggles audio muted state when sound button is clicked', async () => {
