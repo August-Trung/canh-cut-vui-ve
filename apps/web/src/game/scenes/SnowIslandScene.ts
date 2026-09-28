@@ -34,13 +34,23 @@ export class SnowIslandScene extends Phaser.Scene {
   private nestContainer: Phaser.GameObjects.Container | null = null;
 
   private islandBounds: IslandBounds = {
-    minX: -260,
-    maxX: 260,
+    minX: -320,
+    maxX: 320,
     minY: -160,
-    maxY: 160,
-    pondCenter: { x: 0, y: 10, radiusX: 95, radiusY: 55 },
-    fishingHole: { x: -170, y: 70 },
+    maxY: 150,
+    pondCenter: { x: 0, y: 15, radiusX: 190, radiusY: 105 },
+    fishingHole: { x: -260, y: 70 },
   };
+
+  private static readonly SPAWN_POINTS = [
+    { x: -160, y: 70 },   // Lower-left snowy bank
+    { x: 140, y: 80 },    // Lower-right near snowman
+    { x: -170, y: -60 },  // Upper-left near igloo
+    { x: 120, y: -70 },   // Upper-right near incubator nest
+    { x: 0, y: 115 },     // Front shore
+    { x: -130, y: 15 },   // Left pond shore
+    { x: 130, y: 15 },    // Right pond shore
+  ];
 
   constructor() {
     super({ key: 'SnowIslandScene' });
@@ -77,35 +87,35 @@ export class SnowIslandScene extends Phaser.Scene {
 
     // Deep ice cliff shadow
     cliffs.fillStyle(0x5a8fa8, 0.45);
-    cliffs.fillEllipse(0, 50, 620, 360);
+    cliffs.fillEllipse(0, 60, 880, 480);
 
     // Mid ice cliff body
     cliffs.fillStyle(0x7fb3cd, 0.7);
-    cliffs.fillEllipse(0, 35, 590, 330);
+    cliffs.fillEllipse(0, 40, 840, 450);
 
     // Soft ice shelf rim
     cliffs.fillStyle(0xa6d8ef, 0.85);
-    cliffs.fillEllipse(0, 20, 560, 310);
+    cliffs.fillEllipse(0, 20, 800, 420);
 
-    // 2. Base Snow Ground Island surface
-    const snowGround = this.add.image(0, 0, 'snow_ground');
+    // 2. Base Snow Ground Island surface (organic elliptical snowy plateau)
+    const snowGround = this.add.image(0, 5, 'snow_ground');
     snowGround.setOrigin(0.5, 0.5);
-    snowGround.setScale(1.0);
+    snowGround.setScale(3.2, 1.7);
     snowGround.setDepth(-50);
 
     // 3. Multi-layer soft snow banks surrounding the perimeter
     const snowBanks = this.add.graphics();
     snowBanks.setDepth(-40);
     snowBanks.fillStyle(0xffffff, 0.5);
-    snowBanks.fillEllipse(-160, -90, 220, 110);
-    snowBanks.fillEllipse(170, -80, 210, 100);
-    snowBanks.fillEllipse(-150, 70, 200, 95);
-    snowBanks.fillEllipse(160, 60, 190, 90);
+    snowBanks.fillEllipse(-230, -110, 260, 130);
+    snowBanks.fillEllipse(240, -100, 250, 120);
+    snowBanks.fillEllipse(-210, 90, 240, 115);
+    snowBanks.fillEllipse(220, 80, 230, 110);
 
-    // 4. Center Frozen Ice Pond
-    const icePond = this.add.image(0, 10, 'ice_pond');
+    // 4. Center Frozen Ice Pond (focal point scaled gracefully)
+    const icePond = this.add.image(0, 15, 'ice_pond');
     icePond.setOrigin(0.5, 0.5);
-    icePond.setScale(1.0);
+    icePond.setScale(1.35);
     icePond.setDepth(-10);
   }
 
@@ -114,19 +124,20 @@ export class SnowIslandScene extends Phaser.Scene {
    */
   private buildWinterProps(): void {
     // 1. Cozy Igloo placed in upper-left snow bank
-    const igloo = this.add.image(-160, -90, 'igloo');
+    const igloo = this.add.image(-230, -105, 'igloo');
     igloo.setOrigin(0.5, 0.82);
-    igloo.setScale(0.65);
-    igloo.setDepth(-90);
+    igloo.setScale(0.85);
+    igloo.setDepth(-105);
 
     // 2. Pine trees dusted in snow around perimeter
     const treePositions = [
-      { x: -220, y: -110, scale: 0.68 },
-      { x: -190, y: -135, scale: 0.54 },
-      { x: 180, y: -120, scale: 0.64 },
-      { x: 220, y: -90, scale: 0.72 },
-      { x: 210, y: 50, scale: 0.62 },
-      { x: -210, y: 60, scale: 0.66 },
+      { x: -320, y: -125, scale: 0.90 },
+      { x: -270, y: -155, scale: 0.75 },
+      { x: 260, y: -140, scale: 0.85 },
+      { x: 310, y: -105, scale: 0.92 },
+      { x: 300, y: 70, scale: 0.82 },
+      { x: -300, y: 80, scale: 0.85 },
+      { x: 0, y: -170, scale: 0.70 },
     ];
 
     for (const pos of treePositions) {
@@ -137,13 +148,13 @@ export class SnowIslandScene extends Phaser.Scene {
     }
 
     // 3. Cute Snowman placed in lower-right snow bank
-    const snowman = this.add.image(150, 70, 'snowman');
+    const snowman = this.add.image(220, 90, 'snowman');
     snowman.setOrigin(0.5, 0.85);
-    snowman.setScale(0.65);
-    snowman.setDepth(70);
+    snowman.setScale(0.82);
+    snowman.setDepth(90);
 
     // 4. Wooden Signpost with snow cap
-    this.buildSignpost(-180, 30);
+    this.buildSignpost(-250, 45);
   }
 
   /**
@@ -187,8 +198,8 @@ export class SnowIslandScene extends Phaser.Scene {
    * Constructs interactive Incubator Nest with egg sprite.
    */
   private buildIncubatorNest(): void {
-    const nestX = 120;
-    const nestY = -60;
+    const nestX = 175;
+    const nestY = -75;
 
     const container = this.add.container(nestX, nestY);
     container.setDepth(nestY);
@@ -197,29 +208,29 @@ export class SnowIslandScene extends Phaser.Scene {
 
     // Ground nest shadow
     nestGraphics.fillStyle(0x000000, 0.2);
-    nestGraphics.fillEllipse(0, 10, 48, 22);
+    nestGraphics.fillEllipse(0, 14, 62, 28);
 
     // Woven twig & snow nest ring
     nestGraphics.fillStyle(0x8a5a36, 0.95);
-    nestGraphics.fillEllipse(0, 4, 44, 20);
+    nestGraphics.fillEllipse(0, 5, 56, 26);
 
     nestGraphics.fillStyle(0x5c3a21, 1.0);
-    nestGraphics.fillEllipse(0, 3, 38, 16);
+    nestGraphics.fillEllipse(0, 4, 48, 20);
 
     nestGraphics.fillStyle(0xe8f4f8, 0.9);
-    nestGraphics.fillEllipse(0, 1, 32, 12);
+    nestGraphics.fillEllipse(0, 1, 40, 15);
 
     container.add(nestGraphics);
 
     // Egg sprite resting in nest
-    const eggSprite = this.add.image(0, -6, 'egg_basic');
-    eggSprite.setScale(0.55);
+    const eggSprite = this.add.image(0, -8, 'egg_basic');
+    eggSprite.setScale(0.72);
     container.add(eggSprite);
 
     // Interactive click area
-    container.setSize(56, 56);
+    container.setSize(72, 72);
     container.setInteractive(
-      new Phaser.Geom.Circle(0, 0, 28),
+      new Phaser.Geom.Circle(0, 0, 36),
       Phaser.Geom.Circle.Contains
     );
 
@@ -265,7 +276,7 @@ export class SnowIslandScene extends Phaser.Scene {
    */
   private buildAmbientSnowParticles(): void {
     this.snowParticles = this.add.particles(0, -320, 'particle_snow', {
-      x: { min: -460, max: 460 },
+      x: { min: -520, max: 520 },
       y: 0,
       lifespan: { min: 4500, max: 7500 },
       speedY: { min: 25, max: 60 },
@@ -280,6 +291,41 @@ export class SnowIslandScene extends Phaser.Scene {
   }
 
   /**
+   * Dynamically frames the island to fill the viewport responsively.
+   */
+  public updateCameraFraming(): void {
+    if (!this.cameras?.main) return;
+
+    const camera = this.cameras.main;
+    const width = this.scale?.width || 1280;
+    const height = this.scale?.height || 720;
+
+    // Island content reference dimensions
+    const targetWidth = 1000;
+    const targetHeight = 650;
+
+    // Available space reserving room for TopBar (~54px) and Bottom ShelfRack (~104px)
+    const availWidth = Math.max(380, width - 40);
+    const availHeight = Math.max(300, height - 160);
+
+    const zoomX = availWidth / targetWidth;
+    const zoomY = availHeight / targetHeight;
+
+    // Fit island with high visual presence
+    const optimalZoom = Phaser.Math.Clamp(Math.min(zoomX, zoomY), 0.75, 1.75);
+    camera.setZoom(optimalZoom);
+
+    // Center camera on island (0, 0) with a slight vertical balance
+    const verticalOffset = (54 - 104) / (2 * optimalZoom);
+    camera.centerOn(0, verticalOffset);
+
+    // World bounds clamped to allow gentle panning
+    const boundW = Math.max(2200, width / optimalZoom + 600);
+    const boundH = Math.max(1600, height / optimalZoom + 600);
+    camera.setBounds(-boundW / 2, -boundH / 2, boundW, boundH);
+  }
+
+  /**
    * Configures camera drag/pan, zoom clamping (0.75x to 1.5x), and world bounds.
    */
   private setupCameraControls(): void {
@@ -288,8 +334,16 @@ export class SnowIslandScene extends Phaser.Scene {
     // Center camera on island center (0, 0)
     camera.centerOn(0, 0);
 
-    // Clamped bounds to keep island centered and prevent panning into empty void
-    camera.setBounds(-800, -600, 1600, 1200);
+    // Initial clamped bounds
+    camera.setBounds(-1100, -800, 2200, 1600);
+
+    // Apply responsive camera framing
+    this.updateCameraFraming();
+
+    // Re-frame automatically when game canvas / window resizes
+    this.scale?.on?.('resize', () => {
+      this.updateCameraFraming();
+    });
 
     // 1. Mouse Drag & Touch Pan
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -313,7 +367,7 @@ export class SnowIslandScene extends Phaser.Scene {
 
         if (this.lastPinchDistance > 0) {
           const ratio = dist / this.lastPinchDistance;
-          const targetZoom = Phaser.Math.Clamp(camera.zoom * ratio, 0.75, 1.5);
+          const targetZoom = Phaser.Math.Clamp(camera.zoom * ratio, 0.65, 2.0);
           camera.setZoom(targetZoom);
         }
         this.lastPinchDistance = dist;
@@ -337,7 +391,7 @@ export class SnowIslandScene extends Phaser.Scene {
       this.lastPinchDistance = 0;
     });
 
-    // 3. Mouse Wheel Zoom (clamped between 0.75x and 1.5x)
+    // 3. Mouse Wheel Zoom (clamped between 0.65x and 2.0x)
     this.input.on(
       'wheel',
       (
@@ -347,7 +401,7 @@ export class SnowIslandScene extends Phaser.Scene {
         deltaY: number
       ) => {
         const zoomDelta = deltaY > 0 ? -0.06 : 0.06;
-        const nextZoom = Phaser.Math.Clamp(camera.zoom + zoomDelta, 0.75, 1.5);
+        const nextZoom = Phaser.Math.Clamp(camera.zoom + zoomDelta, 0.65, 2.0);
         camera.setZoom(nextZoom);
       }
     );
@@ -413,9 +467,11 @@ export class SnowIslandScene extends Phaser.Scene {
       return existing;
     }
 
-    // Spawn near island center or incubator nest
-    const spawnX = Phaser.Math.Between(-140, 140);
-    const spawnY = Phaser.Math.Between(-80, 80);
+    // Select curated spawn point with subtle jitter
+    const index = this.penguins.size % SnowIslandScene.SPAWN_POINTS.length;
+    const basePoint = SnowIslandScene.SPAWN_POINTS[index];
+    const spawnX = basePoint.x + Phaser.Math.Between(-12, 12);
+    const spawnY = basePoint.y + Phaser.Math.Between(-8, 8);
 
     const entity = new PenguinEntity(
       this,
@@ -461,6 +517,8 @@ export class SnowIslandScene extends Phaser.Scene {
    * Cleans up all GameBridge subscriptions and active entities on scene shutdown.
    */
   private handleShutdown(): void {
+    this.scale?.off?.('resize');
+
     for (const unsub of this.unsubs) {
       unsub();
     }

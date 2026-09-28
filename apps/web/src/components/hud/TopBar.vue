@@ -123,23 +123,23 @@ function handleToggleAudio() {
 
 <style scoped>
 .top-bar {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  height: 56px;
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(224, 242, 254, 0.45) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1.5px solid rgba(255, 255, 255, 0.65);
-  border-radius: 20px;
+  padding: 0 16px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(224, 242, 254, 0.75) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 9999px;
   box-shadow:
-    0 8px 24px rgba(15, 23, 42, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    0 6px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
   z-index: 50;
   pointer-events: auto;
 }

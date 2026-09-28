@@ -209,18 +209,23 @@ body,
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding-bottom: env(safe-area-inset-bottom, 12px);
+  padding: 12px 16px 14px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
   z-index: 10;
 }
 
 /* Bottom Dock Area */
 .bottom-dock {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px 14px;
+  gap: 8px;
   pointer-events: none;
+  max-width: 900px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .bottom-dock > * {
@@ -228,9 +233,12 @@ body,
 }
 
 @media (max-width: 640px) {
+  .ui-overlay {
+    padding: 8px 10px 10px;
+  }
+
   .bottom-dock {
     gap: 6px;
-    padding: 0 8px 8px;
   }
 }
 </style>

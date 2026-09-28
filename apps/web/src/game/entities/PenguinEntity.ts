@@ -32,6 +32,10 @@ const DEFAULT_BOUNDS: IslandBounds = {
  * emit typed events over GameBridge.
  */
 export class PenguinEntity extends Phaser.GameObjects.Container {
+  public static readonly BASE_BODY_SCALE = 0.72;
+  public static readonly BASE_SHADOW_SCALE_X = 0.82;
+  public static readonly BASE_SHADOW_SCALE_Y = 0.52;
+
   readonly ownedPenguin: OwnedPenguin;
   readonly fsm: PenguinFSM;
 
@@ -65,8 +69,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.targetY = y;
 
     // 1. Soft ground drop shadow (always at bottom of container)
-    this.shadow = scene.add.image(0, 16, 'entity_shadow');
-    this.shadow.setScale(0.58, 0.38);
+    this.shadow = scene.add.image(0, 20, 'entity_shadow');
+    this.shadow.setScale(PenguinEntity.BASE_SHADOW_SCALE_X, PenguinEntity.BASE_SHADOW_SCALE_Y);
     this.shadow.setAlpha(0.65);
     this.add(this.shadow);
 
@@ -74,17 +78,17 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     const textureKey = `penguin_${ownedPenguin.speciesId}`;
     this.bodySprite = scene.add.sprite(0, 0, textureKey);
     this.bodySprite.setOrigin(0.5, 0.85); // Pivot at feet for natural squash & stretch
-    this.bodySprite.setScale(0.52);
+    this.bodySprite.setScale(PenguinEntity.BASE_BODY_SCALE);
     this.add(this.bodySprite);
 
     // 3. Cute Speech Bubble (positioned over head)
-    this.speechBubble = new SpeechBubble(scene, 0, -62);
+    this.speechBubble = new SpeechBubble(scene, 0, -84);
     this.add(this.speechBubble);
 
     // 4. Interactive Click Area
-    this.setSize(56, 64);
+    this.setSize(72, 84);
     this.setInteractive(
-      new Phaser.Geom.Circle(0, -12, 28),
+      new Phaser.Geom.Circle(0, -18, 36),
       Phaser.Geom.Circle.Contains
     );
 
@@ -281,8 +285,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     // Gentle breathing squash & stretch tween
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
-      scaleY: 0.54,
-      scaleX: 0.50,
+      scaleY: PenguinEntity.BASE_BODY_SCALE * 1.04,
+      scaleX: PenguinEntity.BASE_BODY_SCALE * 0.96,
       duration: 1200,
       yoyo: true,
       repeat: -1,
@@ -293,9 +297,17 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   private enterWaddleState(): void {
     this.resetBodyTransform();
 
-    // Pick random wander waypoint within bounds
-    const wanderX = Phaser.Math.Between(this.bounds.minX, this.bounds.maxX);
-    const wanderY = Phaser.Math.Between(this.bounds.minY, this.bounds.maxY);
+    // Pick random wander waypoint guaranteed to remain inside the elliptical island
+    const rx = Math.max(100, (this.bounds.maxX - this.bounds.minX) / 2);
+    const ry = Math.max(60, (this.bounds.maxY - this.bounds.minY) / 2);
+    const centerX = (this.bounds.minX + this.bounds.maxX) / 2;
+    const centerY = (this.bounds.minY + this.bounds.maxY) / 2;
+
+    const angle = Math.random() * Math.PI * 2;
+    const rad = Math.sqrt(Math.random()) * 0.86; // Stay well inside the perimeter
+    const wanderX = Math.round(centerX + rad * rx * Math.cos(angle));
+    const wanderY = Math.round(centerY + rad * ry * Math.sin(angle));
+
     this.targetX = wanderX;
     this.targetY = wanderY;
 
@@ -310,7 +322,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     const slideAngle = facingLeft ? -75 : 75;
 
     // Slide across pond towards exit coordinate
-    const pond = this.bounds.pondCenter ?? { x: 0, y: 10, radiusX: 95, radiusY: 55 };
+    const pond = this.bounds.pondCenter ?? { x: 0, y: 15, radiusX: 190, radiusY: 105 };
     const exitAngle = Math.random() * Math.PI * 2;
     this.targetX = pond.x + Math.cos(exitAngle) * (pond.radiusX + 25);
     this.targetY = pond.y + Math.sin(exitAngle) * (pond.radiusY + 20);
@@ -318,8 +330,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
       angle: slideAngle,
-      scaleY: 0.44,
-      scaleX: 0.58,
+      scaleY: PenguinEntity.BASE_BODY_SCALE * 0.85,
+      scaleX: PenguinEntity.BASE_BODY_SCALE * 1.12,
       duration: 200,
       ease: 'Quad.easeOut',
     });
@@ -332,7 +344,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.resetBodyTransform();
 
     // Squat down into cozy sleeping posture
-    this.bodySprite.setScale(0.55, 0.45);
+    this.bodySprite.setScale(PenguinEntity.BASE_BODY_SCALE * 1.05, PenguinEntity.BASE_BODY_SCALE * 0.86);
     this.bodySprite.setAngle(0);
 
     // Spawn floating Zzz indicators periodically
@@ -365,9 +377,9 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     // Joyful eating hop & excited wiggles
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
-      y: -14,
-      scaleY: 0.56,
-      scaleX: 0.48,
+      y: -18,
+      scaleY: PenguinEntity.BASE_BODY_SCALE * 1.08,
+      scaleX: PenguinEntity.BASE_BODY_SCALE * 0.92,
       duration: 220,
       yoyo: true,
       repeat: 3,
@@ -375,7 +387,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     });
 
     // Spawn heart burst above head
-    this.spawnFloatingHeart(0, -32);
+    this.spawnFloatingHeart(0, -42);
   }
 
   private enterPlayState(): void {
@@ -384,9 +396,9 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     // Playful double hop with rotation
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
-      y: -24,
-      scaleY: 0.58,
-      scaleX: 0.46,
+      y: -30,
+      scaleY: PenguinEntity.BASE_BODY_SCALE * 1.12,
+      scaleX: PenguinEntity.BASE_BODY_SCALE * 0.88,
       duration: 280,
       yoyo: true,
       repeat: 2,
@@ -407,7 +419,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.resetBodyTransform();
 
     // Head towards fishing hole
-    const hole = this.bounds.fishingHole ?? { x: -170, y: 70 };
+    const hole = this.bounds.fishingHole ?? { x: -260, y: 70 };
     this.targetX = hole.x + Phaser.Math.Between(-15, 15);
     this.targetY = hole.y + Phaser.Math.Between(-10, 10);
 
@@ -464,24 +476,24 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     // Full 360-degree celebration jump
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
-      y: -36,
-      scaleX: 0.56,
-      scaleY: 0.48,
+      y: -46,
+      scaleX: PenguinEntity.BASE_BODY_SCALE * 1.08,
+      scaleY: PenguinEntity.BASE_BODY_SCALE * 0.92,
       angle: 360,
       duration: 650,
       ease: 'Quad.easeInOut',
       onComplete: () => {
         if (!this.active) return;
         this.resetBodyTransform();
-        this.spawnFloatingHeart(0, -35);
+        this.spawnFloatingHeart(0, -46);
       },
     });
 
     // Shadow scales down during high jump
     this.activeShadowTween = this.scene.tweens.add({
       targets: this.shadow,
-      scaleX: 0.35,
-      scaleY: 0.22,
+      scaleX: PenguinEntity.BASE_SHADOW_SCALE_X * 0.6,
+      scaleY: PenguinEntity.BASE_SHADOW_SCALE_Y * 0.6,
       alpha: 0.3,
       duration: 325,
       yoyo: true,
@@ -495,8 +507,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     // Squash down first, then joyful jump
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,
-      scaleX: 0.60,
-      scaleY: 0.42,
+      scaleX: PenguinEntity.BASE_BODY_SCALE * 1.15,
+      scaleY: PenguinEntity.BASE_BODY_SCALE * 0.80,
       duration: 90,
       ease: 'Quad.easeOut',
       onComplete: () => {
@@ -505,9 +517,9 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
         // Jump upward with heart
         this.activeBodyTween = this.scene.tweens.add({
           targets: this.bodySprite,
-          y: -22,
-          scaleX: 0.48,
-          scaleY: 0.58,
+          y: -28,
+          scaleX: PenguinEntity.BASE_BODY_SCALE * 0.92,
+          scaleY: PenguinEntity.BASE_BODY_SCALE * 1.12,
           duration: 260,
           yoyo: true,
           ease: 'Back.easeOut',
@@ -520,14 +532,14 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
         // Shadow contracts during jump
         this.activeShadowTween = this.scene.tweens.add({
           targets: this.shadow,
-          scaleX: 0.42,
-          scaleY: 0.26,
+          scaleX: PenguinEntity.BASE_SHADOW_SCALE_X * 0.72,
+          scaleY: PenguinEntity.BASE_SHADOW_SCALE_Y * 0.72,
           alpha: 0.4,
           duration: 260,
           yoyo: true,
         });
 
-        this.spawnFloatingHeart(0, -32);
+        this.spawnFloatingHeart(0, -42);
       },
     });
   }
@@ -536,16 +548,16 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     if (!this.scene?.textures?.exists('particle_heart')) return;
 
     const heart = this.scene.add.image(offsetX, offsetY, 'particle_heart');
-    heart.setScale(0.35);
+    heart.setScale(0.5);
     heart.setAlpha(1);
     this.add(heart);
 
     this.scene.tweens.add({
       targets: heart,
-      y: offsetY - 36,
-      x: offsetX + Phaser.Math.Between(-10, 10),
-      scaleX: 0.65,
-      scaleY: 0.65,
+      y: offsetY - 44,
+      x: offsetX + Phaser.Math.Between(-12, 12),
+      scaleX: 0.85,
+      scaleY: 0.85,
       alpha: 0,
       duration: 850,
       ease: 'Quad.easeOut',
@@ -558,9 +570,9 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   private spawnZzzIndicator(): void {
     if (!this.active || this.fsm.currentState !== 'SLEEP') return;
 
-    const zzz = this.scene.add.text(12, -28, 'Zzz', {
+    const zzz = this.scene.add.text(16, -36, 'Zzz', {
       fontFamily: `'Nunito', 'Segoe UI', sans-serif`,
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#90CAF9',
       fontStyle: 'bold',
     });
@@ -569,8 +581,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
     this.scene.tweens.add({
       targets: zzz,
-      x: 24,
-      y: -58,
+      x: 30,
+      y: -70,
       alpha: 0,
       scaleX: 1.3,
       scaleY: 1.3,
@@ -585,17 +597,17 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   private spawnSlideSnowPuff(): void {
     if (!this.scene?.textures?.exists('particle_snow')) return;
 
-    const puff = this.scene.add.image(0, 8, 'particle_snow');
-    puff.setScale(0.3);
+    const puff = this.scene.add.image(0, 10, 'particle_snow');
+    puff.setScale(0.4);
     puff.setAlpha(0.7);
     this.add(puff);
 
     this.scene.tweens.add({
       targets: puff,
-      x: this.bodySprite.flipX ? 20 : -20,
-      y: 12,
-      scaleX: 0.6,
-      scaleY: 0.6,
+      x: this.bodySprite.flipX ? 24 : -24,
+      y: 16,
+      scaleX: 0.75,
+      scaleY: 0.75,
       alpha: 0,
       duration: 400,
       onComplete: () => puff.destroy(),
@@ -603,7 +615,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   }
 
   private isInsideIcePond(x: number, y: number): boolean {
-    const pond = this.bounds.pondCenter ?? { x: 0, y: 10, radiusX: 95, radiusY: 55 };
+    const pond = this.bounds.pondCenter ?? { x: 0, y: 15, radiusX: 190, radiusY: 105 };
     const dx = (x - pond.x) / pond.radiusX;
     const dy = (y - pond.y) / pond.radiusY;
     return dx * dx + dy * dy <= 1;
@@ -611,10 +623,10 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
   private resetBodyTransform(): void {
     this.bodySprite.setPosition(0, 0);
-    this.bodySprite.setScale(0.52);
+    this.bodySprite.setScale(PenguinEntity.BASE_BODY_SCALE);
     this.bodySprite.setAngle(0);
 
-    this.shadow.setScale(0.58, 0.38);
+    this.shadow.setScale(PenguinEntity.BASE_SHADOW_SCALE_X, PenguinEntity.BASE_SHADOW_SCALE_Y);
     this.shadow.setAlpha(0.65);
   }
 

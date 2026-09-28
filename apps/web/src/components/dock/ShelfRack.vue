@@ -225,14 +225,14 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 10px 24px 14px;
+  gap: 12px;
+  padding: 6px 20px 8px;
   background: linear-gradient(180deg, #A16207 0%, #78350F 50%, #451A03 100%);
   border: 2px solid #D97706;
   border-top-color: #FDE68A;
-  border-radius: 24px;
+  border-radius: 22px;
   box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.35),
     inset 0 2px 4px rgba(254, 240, 138, 0.4),
     inset 0 -3px 6px rgba(0, 0, 0, 0.5);
   position: relative;
@@ -242,10 +242,10 @@ const emit = defineEmits<{
 .shelf-rack__wood-board::after {
   content: '';
   position: absolute;
-  bottom: 3px;
+  bottom: 2px;
   left: 16px;
   right: 16px;
-  height: 3px;
+  height: 2px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 2px;
 }
@@ -255,43 +255,43 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 16px;
+  padding: 2px 4px;
+  border-radius: 14px;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
   outline: none;
 }
 
 .shelf-btn:hover {
-  transform: translateY(-5px) scale(1.06);
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+  transform: translateY(-4px) scale(1.05);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
 }
 
 .shelf-btn:active {
   transform: translateY(1px) scale(0.96);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .shelf-btn:focus-visible {
   outline: 2px solid #FDE047;
-  outline-offset: 4px;
+  outline-offset: 3px;
 }
 
 /* Button Icon Plate */
 .shelf-btn__icon-plate {
-  width: 54px;
-  height: 54px;
-  border-radius: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 100%);
   border: 2px solid #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 4px 10px rgba(0, 0, 0, 0.2),
+    0 3px 8px rgba(0, 0, 0, 0.2),
     inset 0 2px 3px rgba(255, 255, 255, 0.9);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
@@ -317,8 +317,8 @@ const emit = defineEmits<{
 }
 
 .shelf-btn__icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.15));
 }
 
@@ -326,7 +326,7 @@ const emit = defineEmits<{
 .shelf-btn__label {
   font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
   font-weight: 800;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: #FEF3C7;
   letter-spacing: 0.02em;
   text-shadow:

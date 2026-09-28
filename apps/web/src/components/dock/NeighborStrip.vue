@@ -1,8 +1,15 @@
 <template>
   <aside class="neighbor-strip" aria-label="Danh sách Hàng Xóm Mô Phỏng">
     <!-- Header Badge: explicitly labeled as simulated local NPCs -->
-    <div class="neighbor-strip__header">
-      <div class="neighbor-strip__badge" title="Hàng xóm NPC mô phỏng ngoại tuyến (Offline NPC)">
+    <div
+      class="neighbor-strip__header"
+      role="button"
+      tabindex="0"
+      :title="isExpanded ? 'Thu gọn hàng xóm' : 'Xem hàng xóm đảo băng'"
+      @click="isExpanded = !isExpanded"
+      @keydown.enter="isExpanded = !isExpanded"
+    >
+      <div class="neighbor-strip__badge">
         <span class="neighbor-strip__badge-icon">🏘️</span>
         <span class="neighbor-strip__badge-text">Hàng Xóm Đảo Băng <small class="neighbor-strip__badge-sub">(NPC Mô Phỏng)</small></span>
       </div>
@@ -11,7 +18,7 @@
         class="neighbor-strip__toggle"
         :aria-expanded="isExpanded"
         :title="isExpanded ? 'Thu gọn' : 'Mở rộng'"
-        @click="isExpanded = !isExpanded"
+        @click.stop="isExpanded = !isExpanded"
       >
         <span class="neighbor-strip__toggle-chevron" :class="{ 'is-flipped': !isExpanded }">▼</span>
       </button>
@@ -75,7 +82,7 @@ export interface SimulatedNeighbor {
   response: string;
 }
 
-const isExpanded = ref(true);
+const isExpanded = ref(false);
 const toastMessage = ref('');
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -158,19 +165,31 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.neighbor-strip__header:hover {
+  transform: translateY(-1px);
 }
 
 .neighbor-strip__badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   padding: 3px 12px;
   border-radius: 9999px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.neighbor-strip__header:hover .neighbor-strip__badge {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
 .neighbor-strip__badge-icon {

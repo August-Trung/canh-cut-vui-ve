@@ -896,6 +896,7 @@ function drawIcePond(): HTMLCanvasElement {
 
 /**
  * snow_ground: Layered organic snow ground (256x256).
+ * Renders an elliptical snow plateau with soft radial shading, clipped dunes, and transparent margins.
  */
 function drawSnowGround(): HTMLCanvasElement {
   const canvas = createSafeCanvas(256, 256);
@@ -903,16 +904,24 @@ function drawSnowGround(): HTMLCanvasElement {
   if (!ctx) return canvas;
 
   ctx.save();
+  ctx.clearRect(0, 0, 256, 256);
 
-  // Base cool snow gradient
-  const baseGrad = ctx.createLinearGradient(0, 0, 0, 256);
+  // 1. Base elliptical snow plateau
+  ctx.beginPath();
+  ctx.ellipse(128, 128, 124, 124, 0, 0, Math.PI * 2);
+  const baseGrad = ctx.createRadialGradient(128, 100, 20, 128, 128, 124);
   baseGrad.addColorStop(0, '#FFFFFF');
-  baseGrad.addColorStop(0.5, '#F1F5F9');
+  baseGrad.addColorStop(0.65, '#F1F5F9');
   baseGrad.addColorStop(1, '#E2E8F0');
   ctx.fillStyle = baseGrad;
-  ctx.fillRect(0, 0, 256, 256);
+  ctx.fill();
 
-  // Layered organic snow dunes
+  // 2. Layered organic snow dunes clipped inside the ellipse
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(128, 128, 124, 124, 0, 0, Math.PI * 2);
+  ctx.clip();
+
   const drawSnowDune = (y: number, cp1x: number, cp1y: number, cp2x: number, cp2y: number, fillColor: string) => {
     ctx.beginPath();
     ctx.moveTo(0, y);
@@ -944,6 +953,14 @@ function drawSnowGround(): HTMLCanvasElement {
     ctx.arc(gx, gy, 1.8, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.restore();
+
+  // 3. Soft frosted outer rim border
+  ctx.beginPath();
+  ctx.ellipse(128, 128, 124, 124, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(203, 213, 225, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 
   ctx.restore();
   return canvas;
