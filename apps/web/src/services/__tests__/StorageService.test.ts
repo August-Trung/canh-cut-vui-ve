@@ -80,8 +80,8 @@ describe('StorageService', () => {
     expect(loaded).toBeNull();
   });
 
-  describe('migrateSaveData (Pure V1 -> V2 Migration)', () => {
-    it('converts legacy currencies.fish into sardine inventory items and sets currencies.fish = 0 without side effects', async () => {
+  describe('migrateSaveData (Pure V1/V2 -> V3 Migration)', () => {
+    it('converts legacy currencies.fish into sardine inventory items and upgrades to schemaVersion 3', async () => {
       const { migrateSaveData } = await import('../StorageService');
       const v1Data = {
         schemaVersion: 1,
@@ -89,33 +89,56 @@ describe('StorageService', () => {
         inventory: [{ itemId: 'sardine', quantity: 5, category: 'food' }],
         ownedPenguins: [{ id: 'p1', speciesId: 'snowy', nickname: 'Snowy', lastNeedsUpdateAt: 100000 }],
       };
-      const v2 = migrateSaveData(v1Data);
-      expect(v2.schemaVersion).toBe(2);
-      expect(v2.currencies.fish).toBe(0);
-      expect(v2.currencies.coins).toBe(200);
-      const sardine = v2.inventory.find((i: any) => i.itemId === 'sardine');
+      const v3 = migrateSaveData(v1Data);
+      expect(v3.schemaVersion).toBe(3);
+      expect(v3.currencies.fish).toBe(0);
+      expect(v3.currencies.coins).toBe(200);
+      const sardine = v3.inventory.find((i: any) => i.itemId === 'sardine');
       expect(sardine?.quantity).toBe(20); // 5 + 15
-      expect(v2.ownedPenguins[0].lastNeedsUpdateAt).toBe(100000);
+      expect(v3.ownedPenguins[0].lastNeedsUpdateAt).toBe(100000);
       // @ts-expect-error isFavorite should not exist
-      expect(v2.ownedPenguins[0].isFavorite).toBeUndefined();
+      expect(v3.ownedPenguins[0].isFavorite).toBeUndefined();
+
+      // Phase 3 additions:
+      expect(v3.ownedPenguins[0].traits).toEqual([]);
+      expect(v3.ownedPenguins[0].breedingCount).toBe(0);
+      expect(v3.ownedPenguins[0].lastBredAt).toBe(0);
+      expect(v3.ownedPenguins[0].stats.fishCaught).toBe(0);
+      expect(v3.breedingSlot.state).toBe('EMPTY');
+      expect(v3.miniGameState.lastPlayedDate).toBe('');
     });
 
-    it('is strictly idempotent on repeated migration (V1 -> V2 -> V2)', async () => {
+    it('canonicalizes exp from legacy experience without diverging', async () => {
+      const { migrateSaveData } = await import('../StorageService');
+      const legacySave = {
+        schemaVersion: 2,
+        ownedPenguins: [
+          { id: 'p1', speciesId: 'snowy', experience: 350 }, // only experience present
+        ],
+      };
+      const v3 = migrateSaveData(legacySave);
+      expect(v3.ownedPenguins[0].exp).toBe(350);
+      expect(v3.ownedPenguins[0].experience).toBe(350);
+    });
+
+    it('is strictly idempotent on repeated migration (V1 -> V3 -> V3)', async () => {
       const { migrateSaveData } = await import('../StorageService');
       const v1Data = { schemaVersion: 1, currencies: { fish: 10, coins: 100 } };
-      const v2First = migrateSaveData(v1Data);
-      const v2Second = migrateSaveData(v2First as unknown as Record<string, unknown>);
-      expect(v2Second.currencies.fish).toBe(0);
-      const sardine = v2Second.inventory.find((i: any) => i.itemId === 'sardine');
+      const v3First = migrateSaveData(v1Data);
+      const v3Second = migrateSaveData(v3First as unknown as Record<string, unknown>);
+      expect(v3Second.schemaVersion).toBe(3);
+      expect(v3Second.currencies.fish).toBe(0);
+      const sardine = v3Second.inventory.find((i: any) => i.itemId === 'sardine');
       expect(sardine?.quantity).toBe(10); // Not doubled
+      expect(v3Second.breedingSlot.state).toBe('EMPTY');
     });
 
     it('is pure and does not call Date.now() or getLocalDateString() or generate daily quests', async () => {
       const { migrateSaveData } = await import('../StorageService');
       const v1Data = { schemaVersion: 1 };
-      const v2 = migrateSaveData(v1Data);
-      expect(v2.questState.assignedDate).toBe('');
-      expect(v2.questState.quests).toEqual([]);
+      const v3 = migrateSaveData(v1Data);
+      expect(v3.questState.assignedDate).toBe('');
+      expect(v3.questState.quests).toEqual([]);
     });
 
     it('does not set epoch 0 when timestamps are missing from source data', async () => {
@@ -124,8 +147,8 @@ describe('StorageService', () => {
         schemaVersion: 1,
         ownedPenguins: [{ id: 'p1', speciesId: 'snowy' }],
       };
-      const v2 = migrateSaveData(v1Data);
-      expect(v2.ownedPenguins[0].lastNeedsUpdateAt).toBe(0);
+      const v3 = migrateSaveData(v1Data);
+      expect(v3.ownedPenguins[0].lastNeedsUpdateAt).toBe(0);
     });
   });
 

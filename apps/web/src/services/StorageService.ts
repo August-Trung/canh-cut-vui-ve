@@ -1,6 +1,7 @@
 import type {
   GameSaveData,
   GameSaveDataV2,
+  GameSaveDataV3,
   OwnedPenguin,
   IncubatorSlot,
   InventoryItem,
@@ -11,14 +12,18 @@ import type {
   ActiveQuest,
   PlacedDecoration,
   PenguinMood,
+  BreedingSlot,
+  BreedingSlotState,
+  GeneticsResult,
+  MiniGameState,
 } from '@penguin/types';
 import { INITIAL_ITEMS } from '@penguin/game-data';
 
 export interface IGameStorage {
-  load(): Promise<GameSaveData | GameSaveDataV2 | null>;
-  save(data: GameSaveData | GameSaveDataV2): Promise<void>;
-  exportJson(data: GameSaveData | GameSaveDataV2): string;
-  importJson(json: string): GameSaveData | GameSaveDataV2 | null;
+  load(): Promise<GameSaveData | GameSaveDataV2 | GameSaveDataV3 | null>;
+  save(data: GameSaveData | GameSaveDataV2 | GameSaveDataV3): Promise<void>;
+  exportJson(data: GameSaveData | GameSaveDataV2 | GameSaveDataV3): string;
+  importJson(json: string): GameSaveData | GameSaveDataV2 | GameSaveDataV3 | null;
   clear(): Promise<void>;
 }
 
@@ -136,7 +141,84 @@ export function createDefaultSaveDataV2(): GameSaveDataV2 {
   };
 }
 
-export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
+export function createDefaultSaveDataV3(): GameSaveDataV3 {
+  const now = Date.now();
+  const starterPenguin: OwnedPenguin = {
+    id: `penguin_${now}_starter`,
+    speciesId: 'snowy',
+    nickname: 'Snowy',
+    level: 1,
+    exp: 0,
+    experience: 0,
+    happiness: 80,
+    energy: 100,
+    hunger: 20,
+    mood: 'happy',
+    lastPetAt: 0,
+    lastFedAt: 0,
+    lastNeedsUpdateAt: 0,
+    acquiredAt: now,
+    generation: 1,
+    createdAt: now,
+    traits: [],
+    breedingCount: 0,
+    lastBredAt: 0,
+    stats: {
+      fishCaught: 0,
+      totalPets: 0,
+      totalFeedings: 0,
+      gamesPlayed: 0,
+    },
+  };
+
+  return {
+    schemaVersion: 3,
+    player: {
+      level: 1,
+      exp: 0,
+      name: 'Chủ Đảo Tập Sự',
+      avatar: 'avatar_default',
+    },
+    currencies: {
+      coins: 500,
+      gems: 10,
+      fish: 0,
+    },
+    inventory: INITIAL_ITEMS.map((item) => ({ ...item })),
+    ownedPenguins: [starterPenguin],
+    incubatorSlots: [
+      { slotId: 1, state: 'EMPTY', unlocked: true, lastNurtureAt: 0, nurtureCount: 0 },
+      { slotId: 2, state: 'EMPTY', unlocked: false, unlockCost: 500, lastNurtureAt: 0, nurtureCount: 0 },
+    ],
+    island: {
+      decorations: [],
+      unlockedPlacementExpIds: [],
+    },
+    dailyLogin: {
+      lastClaimDate: null,
+      currentStreak: 1,
+    },
+    questState: {
+      assignedDate: '',
+      quests: [],
+    },
+    timestamps: {
+      createdAt: now,
+      lastSavedAt: now,
+      lastLoginAt: now,
+    },
+    breedingSlot: {
+      slotId: 1,
+      state: 'EMPTY',
+    },
+    miniGameState: {
+      lastPlayedDate: '',
+      dailyPlaysCount: {},
+    },
+  };
+}
+
+export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV3 {
   const rawCurrencies = (data.currencies as Record<string, unknown>) ?? {};
   const rawInventory = (data.inventory as InventoryItem[]) ?? [];
 
@@ -162,7 +244,7 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     }
   }
 
-  const currencies: GameSaveDataV2['currencies'] = {
+  const currencies: GameSaveDataV3['currencies'] = {
     coins: Number(rawCurrencies.coins ?? 100),
     gems: Number(rawCurrencies.gems ?? 0),
     fish: 0,
@@ -176,14 +258,17 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     const rawNeedsUpdate = Number(p.lastNeedsUpdateAt ?? 0);
     // Preserve valid positive historical timestamp; if missing/invalid, use savedAt if > 0, else 0
     const lastNeedsUpdateAt = rawNeedsUpdate > 0 ? rawNeedsUpdate : (savedAt > 0 ? savedAt : 0);
+    // Canonical exp field:
     const expVal = Number(p.exp ?? p.experience ?? 0);
+    const rawStats = (p.stats as Record<string, unknown>) ?? {};
+
     return {
       id: String(p.id),
       speciesId: String(p.speciesId),
       nickname: String(p.nickname ?? 'Cánh Cụt'),
       level: Number(p.level ?? 1),
       exp: expVal,
-      experience: expVal,
+      experience: expVal, // Synced alias for migration compatibility
       happiness: Number(p.happiness ?? 80),
       energy: Number(p.energy ?? 100),
       hunger: Number(p.hunger ?? 20),
@@ -193,6 +278,19 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
       lastNeedsUpdateAt,
       generation: Number(p.generation ?? 1),
       createdAt: Number(p.createdAt ?? savedAt),
+      parentAId: p.parentAId ? String(p.parentAId) : undefined,
+      parentBId: p.parentBId ? String(p.parentBId) : undefined,
+
+      // Phase 3 additions:
+      traits: Array.isArray(p.traits) ? [...(p.traits as string[])] : [],
+      breedingCount: Number(p.breedingCount ?? 0),
+      lastBredAt: Number(p.lastBredAt ?? 0),
+      stats: {
+        fishCaught: Number(rawStats.fishCaught ?? 0),
+        totalPets: Number(rawStats.totalPets ?? 0),
+        totalFeedings: Number(rawStats.totalFeedings ?? 0),
+        gamesPlayed: Number(rawStats.gamesPlayed ?? 0),
+      },
     };
   });
 
@@ -247,8 +345,27 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
     avatar: String(rawPlayer.avatar ?? rawPlayer.avatarId ?? 'avatar_default'),
   };
 
+  // Phase 3 additions:
+  const rawBreedingSlot = (data.breedingSlot as Record<string, unknown>) ?? {};
+  const breedingSlot: BreedingSlot = {
+    slotId: Number(rawBreedingSlot.slotId ?? 1),
+    state: (rawBreedingSlot.state as BreedingSlotState) ?? 'EMPTY',
+    parentAId: rawBreedingSlot.parentAId ? String(rawBreedingSlot.parentAId) : undefined,
+    parentBId: rawBreedingSlot.parentBId ? String(rawBreedingSlot.parentBId) : undefined,
+    startedAt: rawBreedingSlot.startedAt ? Number(rawBreedingSlot.startedAt) : undefined,
+    durationSec: rawBreedingSlot.durationSec ? Number(rawBreedingSlot.durationSec) : undefined,
+    targetCollectTime: rawBreedingSlot.targetCollectTime ? Number(rawBreedingSlot.targetCollectTime) : undefined,
+    geneticsResult: (rawBreedingSlot.geneticsResult as GeneticsResult) ?? undefined,
+  };
+
+  const rawMiniGame = (data.miniGameState as Record<string, unknown>) ?? {};
+  const miniGameState: MiniGameState = {
+    lastPlayedDate: String(rawMiniGame.lastPlayedDate ?? ''),
+    dailyPlaysCount: (rawMiniGame.dailyPlaysCount as Record<string, number>) ?? {},
+  };
+
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     player,
     currencies,
     inventory,
@@ -262,6 +379,8 @@ export function migrateSaveData(data: Record<string, unknown>): GameSaveDataV2 {
       lastSavedAt: Number(rawTimestamps.lastSavedAt ?? savedAt),
       lastLoginAt: Number(rawTimestamps.lastLoginAt ?? savedAt),
     },
+    breedingSlot,
+    miniGameState,
   };
 }
 
@@ -301,13 +420,16 @@ export class LocalStorageAdapter implements IGameStorage {
     this.key = key;
   }
 
-  async load(): Promise<GameSaveData | GameSaveDataV2 | null> {
+  async load(): Promise<GameSaveData | GameSaveDataV2 | GameSaveDataV3 | null> {
     try {
       const raw = localStorage.getItem(this.key);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') {
         return null;
+      }
+      if (parsed.schemaVersion === 3) {
+        return parsed as GameSaveDataV3;
       }
       if (parsed.schemaVersion === 2) {
         return parsed as GameSaveDataV2;
@@ -321,7 +443,7 @@ export class LocalStorageAdapter implements IGameStorage {
     }
   }
 
-  async save(data: GameSaveData | GameSaveDataV2): Promise<void> {
+  async save(data: GameSaveData | GameSaveDataV2 | GameSaveDataV3): Promise<void> {
     if ('updatedAt' in data) {
       data.updatedAt = Date.now();
     } else if ('timestamps' in data && data.timestamps) {
@@ -330,14 +452,17 @@ export class LocalStorageAdapter implements IGameStorage {
     localStorage.setItem(this.key, JSON.stringify(data));
   }
 
-  exportJson(data: GameSaveData | GameSaveDataV2): string {
+  exportJson(data: GameSaveData | GameSaveDataV2 | GameSaveDataV3): string {
     return JSON.stringify(data, null, 2);
   }
 
-  importJson(json: string): GameSaveData | GameSaveDataV2 | null {
+  importJson(json: string): GameSaveData | GameSaveDataV2 | GameSaveDataV3 | null {
     try {
       const parsed = JSON.parse(json);
       if (parsed && typeof parsed === 'object') {
+        if (parsed.schemaVersion === 3) {
+          return parsed as GameSaveDataV3;
+        }
         if (parsed.schemaVersion === 2) {
           return parsed as GameSaveDataV2;
         }
