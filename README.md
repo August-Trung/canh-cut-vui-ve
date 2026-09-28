@@ -101,11 +101,104 @@ npm run dev
 ```
 Open your browser at `http://localhost:5173`.
 
+---
+
+## 🌟 Milestone 2: Phase 2 — Core Game Loop & Island Life (Completed)
+
+> *"A living, breathing island where players nurture their penguins, decorate anchor plots, complete deterministic daily quests, level up their caretaker rank, and enjoy a rich offline simulation loop."*
+
+### Key Features Implemented in Phase 2:
+1. **Player Caretaker Progression (Lv. 1–10):**
+   - Cumulative EXP thresholds: 0 (Lv. 1) to 9,200 (Lv. 10).
+   - Dynamic flock capacity: 2 penguins (Lv. 1), 3 (Lv. 2–4), 4 (Lv. 5–7), 5 (Lv. 8–10). Hatching beyond capacity is strictly prevented.
+   - Milestone rewards on level-up: Coins, Gems, and unlocked store items.
+   - Level-up celebration modal with synthesized fanfare.
+2. **Penguin Care & Needs Simulation Loop:**
+   - **Petting:** 15s cooldown per penguin, grants +8 Happiness, +3 Penguin EXP, +2 Player EXP, and **strictly 0 Coins**.
+   - **Feeding:** Atomically consumes selected food from inventory without cooldown.
+   - **Favorite Food System:** Feeding a species its favorite food grants +50% bonus Penguin EXP, +12 Player EXP, and generates tactile gold coin drops!
+   - **Continuous & Offline Needs Simulation:** Piecewise decay algorithm where happiness decays faster when hunger >= 80 (every 90s vs 180s). Recalculates mood deterministically upon return. Missing timestamps are safely handled without accidental starvation.
+3. **Island Life & 6 Anchor Plots:**
+   - 6 visually balanced 2.5D anchor plots spread across snow banks and shoreline.
+   - Interactive plot markers with hover effects; clicking a plot opens `DecorationModal`.
+   - **Cozy Rating & Multiplier:** Placed decorations increase island Cozy points, granting up to a 1.25x coin drop multiplier.
+   - **Anti-Exploit System:** Placing each unique decoration item grants +15 Player EXP exactly once per save file (`unlockedPlacementExpIds`). Removing and re-placing grants 0 EXP.
+4. **General In-Game Shop (`ShopModal`):**
+   - 3 categorized tabs: **Thức Ăn (Food)**, **Trứng (Eggs)**, and **Trang Trí (Decorations)**.
+   - Atomic transactions: validates player level requirements, verifies coin/gem balances, deducts currency, and delivers inventory items in a single safe pass.
+5. **Daily Login & Deterministic Quests (`QuestModal`):**
+   - **7-Day Streak Calendar:** Progressive daily rewards with Day 7 milestone gift.
+   - **Deterministic Daily Quests:** Generates 3 daily quests from date seed (`YYYY-MM-DD`).
+   - **Decoupled Observer Architecture:** `questStore` strictly listens to GameBridge action events (`action:pet`, `action:feed`, `action:hatch`, `action:shop_purchase`, `action:decorate`) and is never directly imported by gameplay stores.
+6. **Procedural Vector Art & Audio Expansion:**
+   - 6 high-res vector decoration textures rendered to HTML5 canvas: Winter Wood Bench, Crystal Pine, Vintage Street Lamp, Mini Snow Castle, Igloo Ice Lantern, and Caretaker Trophy.
+   - Synthesized Web Audio sound effects: Coin drop cascade, Level-up fanfare, and Shop buy chime.
+
+---
+
+## 🏗️ Repository Architecture
+
+```
+/
+├── apps/
+│   ├── web/                           # Vue 3 + TypeScript + Vite + Phaser 3
+│   │   ├── src/
+│   │   │   ├── game/                  # Pure Phaser 3 game world
+│   │   │   │   ├── scenes/            # BootScene, SnowIslandScene (with 6 anchor plots)
+│   │   │   │   ├── entities/          # PenguinEntity, SpeechBubble
+│   │   │   │   ├── ai/                # PenguinFSM (11 states)
+│   │   │   │   ├── bridge/            # Typed GameBridge
+│   │   │   │   └── textures/          # High-Res 2.5D Canvas TextureGenerator (Species & Decors)
+│   │   │   ├── components/            # Vue 3 UI Layer
+│   │   │   │   ├── hud/               # TopBar (with EXP progress & tooltip), CurrencyBadge
+│   │   │   │   ├── dock/              # ShelfRack (6 action buttons), NeighborStrip
+│   │   │   │   └── modals/            # ShopModal, QuestModal, DecorationModal, LevelUpModal,
+│   │   │   │                          # HatchModal, CollectionModal, InventoryModal,
+│   │   │   │                          # HatcheryModal, PenguinInspectModal, SettingsModal, ConfirmModal
+│   │   │   ├── stores/                # Pinia: gameStore, inventoryStore, collectionStore, shopStore, decorationStore, questStore
+│   │   │   └── services/              # StorageService, ProgressionService, NeedsService, QuestService,
+│   │   │                              # DecorationService, RandomService, NicknameValidator, SoundService
+│   │   └── dist/                      # Production build bundle
+│   └── api/                           # Reserved for Phase 4 NestJS backend
+├── packages/
+│   ├── types/                         # Shared TypeScript interfaces (@penguin/types)
+│   ├── game-data/                     # Data-driven catalogs, drop pools & validator (@penguin/game-data)
+│   └── config/                        # Shared configurations
+└── package.json                       # Monorepo root config
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js >= 18.x
+- npm >= 9.x
+
+### Installation
+```bash
+npm install
+```
+
+### Run Development Server
+```bash
+npm run dev
+```
+Open your browser at `http://localhost:5173`.
+
 ### Run Tests
 ```bash
 npm test
 ```
-Runs 176 Vitest tests across 25 suites verifying drop table validation, nickname sanitizer, random drop distribution, versioned storage adapter, Pinia stores, FSM transitions, Phaser scenes, UI components, and complete player journey integration.
+Runs 311 Vitest tests across 37 test suites verifying:
+- Drop table validation & deterministic random drop distribution
+- Nickname sanitization & Vietnamese accents
+- Idempotent V1 → V2 save migration & piecewise offline needs simulation
+- Acyclic Pinia stores (`gameStore`, `inventoryStore`, `shopStore`, `decorationStore`, `questStore`)
+- FSM state transitions & autonomous penguin behavior
+- Procedural canvas texture generation & Phaser scene anchor plots
+- Decoupled GameBridge action events & synthetic Web Audio effects
+- Complete end-to-end player progression and island life loop
 
 ### Build Production Bundle
 ```bash
@@ -122,3 +215,4 @@ Typechecks with `tsc --noEmit` and bundles via Vite with chunk splitting (`dist/
 - No boolean comparisons directly with `true`/`false`.
 - Mandatory confirmation modal before destructive actions (Reset Save).
 - Proper accented Vietnamese UTF-8 encoding.
+

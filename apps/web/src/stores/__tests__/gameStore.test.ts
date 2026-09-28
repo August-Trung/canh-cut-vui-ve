@@ -392,7 +392,7 @@ describe('Pinia Game Stores', () => {
 
       // First pet succeeds
       const res1 = game.petPenguin(penguin.id);
-      expect(typeof res1 === 'boolean' ? res1 : res1.success).toBe(true);
+      expect(res1).toBe(true);
       expect(game.currencies.coins).toBe(initialCoins); // 0 coins
       expect(game.player.exp).toBe(initialExp + 2); // +2 Player EXP
       expect(penguin.happiness).toBe(88); // 80 + 8
@@ -400,10 +400,7 @@ describe('Pinia Game Stores', () => {
 
       // Immediate second pet fails due to 15s cooldown
       const res2 = game.petPenguin(penguin.id);
-      expect(typeof res2 === 'boolean' ? res2 : res2.success).toBe(false);
-      if (typeof res2 === 'object') {
-        expect(res2.reason).toBe('COOLDOWN');
-      }
+      expect(res2).toBe(false);
       expect(game.player.exp).toBe(initialExp + 2); // No extra rewards
     });
 
@@ -418,7 +415,7 @@ describe('Pinia Game Stores', () => {
       expect(initialSardines).toBeGreaterThan(0);
 
       const res1 = game.feedPenguin(penguin.id, 'sardine');
-      expect(typeof res1 === 'boolean' ? res1 : res1.success).toBe(true);
+      expect(res1).toBe(true);
       expect(invStore.getItemCount('sardine')).toBe(initialSardines - 1);
       expect(penguin.lastFedAt).toBeGreaterThan(0);
       expect(game.player.exp).toBe(12); // +12 Player EXP for favorite food
@@ -426,7 +423,7 @@ describe('Pinia Game Stores', () => {
 
       // Second feed immediately without cooldown succeeds as long as food exists
       const res2 = game.feedPenguin(penguin.id, 'sardine');
-      expect(typeof res2 === 'boolean' ? res2 : res2.success).toBe(true);
+      expect(res2).toBe(true);
       expect(invStore.getItemCount('sardine')).toBe(initialSardines - 2);
     });
 
@@ -453,7 +450,7 @@ describe('Pinia Game Stores', () => {
       });
 
       const res = game.feedPenguin('p_hungry', 'fat_salmon');
-      expect(typeof res === 'boolean' ? res : res.success).toBe(true);
+      expect(res).toBe(true);
       expect(hungryPenguin.exp).toBe(18); // +18 Penguin EXP for Hungry species
     });
 

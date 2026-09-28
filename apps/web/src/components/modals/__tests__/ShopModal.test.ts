@@ -62,7 +62,7 @@ describe('ShopModal.vue', () => {
     gameStore.player.level = 2;
     gameStore.currencies.coins = 500;
 
-    const buySpy = vi.spyOn(shopStore, 'buyFood').mockReturnValue(true);
+    const buySpy = vi.spyOn(shopStore, 'buyFood').mockReturnValue({ success: true });
 
     const wrapper = mount(ShopModal);
     await wrapper.find('[data-testid="btn-buy-sardine"]').trigger('click');

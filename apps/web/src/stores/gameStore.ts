@@ -105,7 +105,7 @@ export const useGameStore = defineStore('game', {
       }
 
       // Pure migration: deterministic, no Date.now(), no quest generation
-      const dataV2 = migrateSaveData(raw as Record<string, unknown>);
+      const dataV2 = migrateSaveData(raw as unknown as Record<string, unknown>);
 
       // Safe boot-time needs simulation:
       const bootTime = Date.now();
