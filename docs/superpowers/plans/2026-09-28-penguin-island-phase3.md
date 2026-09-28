@@ -79,15 +79,15 @@ apps/web/src/
 **Interfaces:**
 - Produces: `PenguinTraitDefinition`, `GeneticsResult`, `BreedingSlot`, `MiniGameConfig`, `MiniGameResult`, `MiniGameReward`, `GameSaveDataV3`.
 
-- [ ] **Step 1: Write failing tests for Phase 3 types, mutation pools, and data catalogs**
+- [x] **Step 1: Write failing tests for Phase 3 types, mutation pools, and data catalogs**
   - Verify `TRAITS_CATALOG` entries (`glutton`, `speedy`, `cozy_aura`, `lucky`, `angler`, `romantic`).
   - Verify `BREEDING_CONFIG` (minParentLevel: 3, costCoins: 200, costGems: 1, cooldownMs: 1800000).
   - Verify `GENETICS_MUTATION_POOLS` (sameSpeciesMutationPool, crossSpeciesMutationPool).
   - Verify `MINIGAME_CATCH_FISH_CONFIG` (durationSeconds: 30, dailyFreePlays: 3, maxExtraPlaysPerDay: 3, extraPlayCostCoins: 50).
-- [ ] **Step 2: Run test to verify it fails**
-- [ ] **Step 3: Implement Phase 3 interfaces in `packages/types` and catalogs in `packages/game-data`**
-- [ ] **Step 4: Run tests to verify green**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Implement Phase 3 interfaces in `packages/types` and catalogs in `packages/game-data`**
+- [x] **Step 4: Run tests to verify green**
+- [x] **Step 5: Commit**
 ```bash
 git add packages/
 git commit -m "feat(types): add Phase 3 traits, breeding mutation pools, and mini-game data definitions"
@@ -109,18 +109,18 @@ git commit -m "feat(types): add Phase 3 traits, breeding mutation pools, and min
 - Consumes: `@penguin/types`, `@penguin/game-data`, `IRandomService`.
 - Produces: `deriveOffspringGenetics`, `validateBreedingEligibility(..., now)`, `calculateCatchFishReward`, `validateMiniGameSession`.
 
-- [ ] **Step 1: Write unit tests for `GeneticsService` with mocked deterministic RNG**
+- [x] **Step 1: Write unit tests for `GeneticsService` with mocked deterministic RNG**
   - Verify 8-step deterministic trait inheritance order and max 2 traits limit.
   - Verify non-stacking of parent traits (e.g. romantic applies once).
   - Verify data-driven same-species and cross-species mutation pools.
   - Verify generation calculation: `child.generation = Math.max(parentA.generation, parentB.generation) + 1`.
-- [ ] **Step 2: Implement `GeneticsService.ts`**
-- [ ] **Step 3: Write unit tests and implement `BreedingService.ts`**
+- [x] **Step 2: Implement `GeneticsService.ts`**
+- [x] **Step 3: Write unit tests and implement `BreedingService.ts`**
   - Verify pure signature requiring explicit `now: number` (no `Date.now()` default).
   - Verify eligibility checks (same-penguin, level < 3, 30-min cooldown, starving, funds).
-- [ ] **Step 4: Write unit tests and implement `MiniGameRewardService.ts`**
+- [x] **Step 4: Write unit tests and implement `MiniGameRewardService.ts`**
   - Verify score capping, reward tier mapping, anti-exploit replay protection, and daily play limit (3 free + 3 extra = max 6).
-- [ ] **Step 5: Run tests to verify all green and commit**
+- [x] **Step 5: Run tests to verify all green and commit**
 ```bash
 git add apps/web/src/services/
 git commit -m "feat(services): implement pure GeneticsService, BreedingService, and MiniGameRewardService"
@@ -138,7 +138,7 @@ git commit -m "feat(services): implement pure GeneticsService, BreedingService, 
 - Consumes: `GameSaveDataV2`, `GameSaveDataV3`.
 - Produces: `migrateSaveData(data): GameSaveDataV3`.
 
-- [ ] **Step 1: Write tests for migrating V1 and V2 saves to V3**
+- [x] **Step 1: Write tests for migrating V1 and V2 saves to V3**
   - Verify canonical `exp` field: `p.exp = Number(p.exp ?? p.experience ?? 0)`.
   - Verify missing traits default to `[]`.
   - Verify missing generation defaults to `1`.
@@ -146,9 +146,9 @@ git commit -m "feat(services): implement pure GeneticsService, BreedingService, 
   - Verify breedingSlot initialized to empty.
   - Verify miniGameState initialized with zero plays.
   - Verify idempotence when migrating a V3 save.
-- [ ] **Step 2: Update `StorageService.ts` to implement V3 migration**
-- [ ] **Step 3: Run tests to verify green**
-- [ ] **Step 4: Commit**
+- [x] **Step 2: Update `StorageService.ts` to implement V3 migration**
+- [x] **Step 3: Run tests to verify green**
+- [x] **Step 4: Commit**
 ```bash
 git add apps/web/src/services/StorageService.ts apps/web/src/services/__tests__/StorageService.test.ts
 git commit -m "feat(storage): implement pure idempotent V2 to V3 save migration with canonical exp"
@@ -167,13 +167,13 @@ git commit -m "feat(storage): implement pure idempotent V2 to V3 save migration 
 **Interfaces:**
 - Produces: `addPenguinExp`, `checkPenguinLevelUp`, `effect:penguin_level_up` event.
 
-- [ ] **Step 1: Write tests for individual penguin leveling**
+- [x] **Step 1: Write tests for individual penguin leveling**
   - EXP threshold transitions for `OwnedPenguin` using canonical `exp`.
   - Maximum level capped at 10.
   - Event `effect:penguin_level_up` emitted on level transition.
   - Feeding coin drop scaling with penguin level.
-- [ ] **Step 2: Implement penguin progression methods in `gameStore.ts`**
-- [ ] **Step 3: Run tests to verify green and commit**
+- [x] **Step 2: Implement penguin progression methods in `gameStore.ts`**
+- [x] **Step 3: Run tests to verify green and commit**
 ```bash
 git add apps/web/src/stores/gameStore.ts apps/web/src/stores/__tests__/gameStore.test.ts
 git commit -m "feat(progression): implement individual penguin EXP leveling and level-up events"
@@ -194,12 +194,12 @@ git commit -m "feat(progression): implement individual penguin EXP leveling and 
 - Consumes: `IRandomService`, `PenguinPersonality`, `OwnedPenguin`.
 - Produces: Injected RNG FSM, personality-weighted autonomous picks, social proximity flocking.
 
-- [ ] **Step 1: Write tests for `PenguinFSM` with injected deterministic `IRandomService`**
+- [x] **Step 1: Write tests for `PenguinFSM` with injected deterministic `IRandomService`**
   - Personality bias checks (`lazy` sleeps more, `hungry` fishes more, `chaotic` slides more).
   - Vitals override checks (`hunger >= 80` forces seeking/begging).
-- [ ] **Step 2: Update `PenguinFSM.ts` and `PenguinEntity.ts`**
-- [ ] **Step 3: Implement social proximity evaluation in `SnowIslandScene.ts` (TALK / FOLLOW interaction)**
-- [ ] **Step 4: Run tests to verify green and commit**
+- [x] **Step 2: Update `PenguinFSM.ts` and `PenguinEntity.ts`**
+- [x] **Step 3: Implement social proximity evaluation in `SnowIslandScene.ts` (TALK / FOLLOW interaction)**
+- [x] **Step 4: Run tests to verify green and commit**
 ```bash
 git add apps/web/src/game/
 git commit -m "feat(ai): enhance PenguinFSM with personality weighting and social proximity flocking"
@@ -219,18 +219,18 @@ git commit -m "feat(ai): enhance PenguinFSM with personality weighting and socia
 - Consumes: `BreedingService`, `GeneticsService`, `useGameStore`, `useInventoryStore`.
 - Produces: `startBreeding`, `collectBreedingEgg`, breeding egg placement into incubator.
 
-- [ ] **Step 1: Write tests for `breedingStore`**
+- [x] **Step 1: Write tests for `breedingStore`**
   - Validate parent eligibility (level, cooldown, starving, funds).
   - Cooldown begins immediately upon breeding **START** (`lastBredAt = now`).
   - GeneticsResult generated **ONCE on START** and persisted in `BreedingSlot`.
   - Complete breeding timer $\to$ collect egg creates `egg_breeding` with persisted genetics metadata in inventory.
-- [ ] **Step 2: Write tests for Breeding Egg incubation & hatching in `gameStore`**
+- [x] **Step 2: Write tests for Breeding Egg incubation & hatching in `gameStore`**
   - Place `egg_breeding` into incubator slot.
   - Incubates to `READY_TO_HATCH`.
   - **Full flock capacity blocks hatching safely** without consuming egg or rerolling genetics.
   - Increased capacity allows successful hatch creating penguin with exact persisted genetics.
-- [ ] **Step 3: Implement `breedingStore.ts` and update `gameStore.ts`**
-- [ ] **Step 4: Run tests to verify green and commit**
+- [x] **Step 3: Implement `breedingStore.ts` and update `gameStore.ts`**
+- [x] **Step 4: Run tests to verify green and commit**
 ```bash
 git add apps/web/src/stores/
 git commit -m "feat(breeding): implement breedingStore with start-time cooldown and hatchery integration"
@@ -250,10 +250,10 @@ git commit -m "feat(breeding): implement breedingStore with start-time cooldown 
 **Interfaces:**
 - Produces: `CatchFishScene` Phaser sub-scene lifecycle (`start`, `catch`, `finish`, `cleanup`), `claimMiniGameReward` store action.
 
-- [ ] **Step 1: Write unit tests for `CatchFishScene` lifecycle and score events**
-- [ ] **Step 2: Implement `CatchFishScene.ts` in Phaser with target fish types, timing windows, and combo multipliers**
-- [ ] **Step 3: Implement daily limit checking (3 free + 3 extra at 50 coins = max 6) and `claimMiniGameReward` in `gameStore.ts`**
-- [ ] **Step 4: Run tests to verify green and commit**
+- [x] **Step 1: Write unit tests for `CatchFishScene` lifecycle and score events**
+- [x] **Step 2: Implement `CatchFishScene.ts` in Phaser with target fish types, timing windows, and combo multipliers**
+- [x] **Step 3: Implement daily limit checking (3 free + 3 extra at 50 coins = max 6) and `claimMiniGameReward` in `gameStore.ts`**
+- [x] **Step 4: Run tests to verify green and commit**
 ```bash
 git add apps/web/src/game/ apps/web/src/stores/gameStore.ts
 git commit -m "feat(minigame): implement CatchFishScene sub-scene and atomic daily limit reward flow"
@@ -275,11 +275,11 @@ git commit -m "feat(minigame): implement CatchFishScene sub-scene and atomic dai
 **Interfaces:**
 - Produces: Interactive Vue modals for breeding and fishing, dock button "Phối Giống" with `<GameIcon>`.
 
-- [ ] **Step 1: Write component tests for `BreedingModal.vue` and `CatchFishModal.vue`**
-- [ ] **Step 2: Implement `BreedingModal.vue` with parent pickers, genetics preview, and timer**
-- [ ] **Step 3: Implement `CatchFishModal.vue` with companion selector, lightweight HUD, and reward summary**
-- [ ] **Step 4: Update `ShelfRack.vue` with "Phối Giống" button and `App.vue` to integrate new modals**
-- [ ] **Step 5: Run tests to verify green and commit**
+- [x] **Step 1: Write component tests for `BreedingModal.vue` and `CatchFishModal.vue`**
+- [x] **Step 2: Implement `BreedingModal.vue` with parent pickers, genetics preview, and timer**
+- [x] **Step 3: Implement `CatchFishModal.vue` with companion selector, lightweight HUD, and reward summary**
+- [x] **Step 4: Update `ShelfRack.vue` with "Phối Giống" button and `App.vue` to integrate new modals**
+- [x] **Step 5: Run tests to verify green and commit**
 ```bash
 git add apps/web/src/components/ apps/web/src/App.vue
 git commit -m "feat(ui): implement BreedingModal, CatchFishModal, and ShelfRack Phối Giống button"
@@ -293,11 +293,11 @@ git commit -m "feat(ui): implement BreedingModal, CatchFishModal, and ShelfRack 
 - Create: `apps/web/src/__tests__/EconomySimulation.test.ts`
 - All tests and modified files.
 
-- [ ] **Step 1: Write and run `EconomySimulation.test.ts` verifying no infinite reward loops across 30 days of care, mini-games, and breeding**
-- [ ] **Step 2: Run full Vitest suite (`npx vitest run`)**
-- [ ] **Step 3: Run TypeScript check and production build (`npm run build`)**
-- [ ] **Step 4: Verify all Phase 1/2 regression invariants (Flock capacity, Hatchery rules)**
-- [ ] **Step 5: Commit and finalize Phase 3**
+- [x] **Step 1: Write and run `EconomySimulation.test.ts` verifying no infinite reward loops across 30 days of care, mini-games, and breeding**
+- [x] **Step 2: Run full Vitest suite (`npx vitest run`)**
+- [x] **Step 3: Run TypeScript check and production build (`npm run build`)**
+- [x] **Step 4: Verify all Phase 1/2 regression invariants (Flock capacity, Hatchery rules)**
+- [x] **Step 5: Commit and finalize Phase 3**
 ```bash
 git commit -m "feat(core): complete Phase 3 progression, breeding, Catch Fish mini-game, and economy validation"
 ```
