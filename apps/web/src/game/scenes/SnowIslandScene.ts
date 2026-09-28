@@ -43,13 +43,14 @@ export class SnowIslandScene extends Phaser.Scene {
   };
 
   private static readonly SPAWN_POINTS = [
-    { x: -160, y: 70 },   // Lower-left snowy bank
-    { x: 140, y: 80 },    // Lower-right near snowman
-    { x: -170, y: -60 },  // Upper-left near igloo
-    { x: 120, y: -70 },   // Upper-right near incubator nest
-    { x: 0, y: 115 },     // Front shore
-    { x: -130, y: 15 },   // Left pond shore
-    { x: 130, y: 15 },    // Right pond shore
+    { x: -200, y: -65 },  // Upper-left snowy bank (near igloo)
+    { x: 180, y: -75 },   // Upper-right snowy bank (near pine trees/nest)
+    { x: -220, y: 60 },   // Lower-left snowy bank (near fishing hole)
+    { x: 210, y: 70 },    // Lower-right snowy bank (near snowman)
+    { x: -50, y: 130 },   // Lower snow bank (south shore)
+    { x: 70, y: 130 },    // Lower-right south shore
+    { x: -240, y: 0 },    // Far-left snowy shore
+    { x: 240, y: 10 },    // Far-right snowy shore
   ];
 
   constructor() {
@@ -83,7 +84,7 @@ export class SnowIslandScene extends Phaser.Scene {
   private buildBackdrop(): void {
     // 1. Lower floating ice cliffs backdrop (faceted depth polygons with gradient shading)
     const cliffs = this.add.graphics();
-    cliffs.setDepth(-100);
+    cliffs.setDepth(-500);
 
     // Deep ice cliff shadow
     cliffs.fillStyle(0x5a8fa8, 0.45);
@@ -101,22 +102,22 @@ export class SnowIslandScene extends Phaser.Scene {
     const snowGround = this.add.image(0, 5, 'snow_ground');
     snowGround.setOrigin(0.5, 0.5);
     snowGround.setScale(3.2, 1.7);
-    snowGround.setDepth(-50);
+    snowGround.setDepth(-400);
 
     // 3. Multi-layer soft snow banks surrounding the perimeter
     const snowBanks = this.add.graphics();
-    snowBanks.setDepth(-40);
+    snowBanks.setDepth(-350);
     snowBanks.fillStyle(0xffffff, 0.5);
     snowBanks.fillEllipse(-230, -110, 260, 130);
     snowBanks.fillEllipse(240, -100, 250, 120);
     snowBanks.fillEllipse(-210, 90, 240, 115);
     snowBanks.fillEllipse(220, 80, 230, 110);
 
-    // 4. Center Frozen Ice Pond (focal point scaled gracefully)
+    // 4. Center Frozen Ice Pond (focal point scaled gracefully, ground level behind entities)
     const icePond = this.add.image(0, 15, 'ice_pond');
     icePond.setOrigin(0.5, 0.5);
     icePond.setScale(1.35);
-    icePond.setDepth(-10);
+    icePond.setDepth(-300);
   }
 
   /**
@@ -304,9 +305,9 @@ export class SnowIslandScene extends Phaser.Scene {
     const targetWidth = 1000;
     const targetHeight = 650;
 
-    // Available space reserving room for TopBar (~54px) and Bottom ShelfRack (~104px)
+    // Available space reserving room for TopBar (~54px) and Bottom ShelfRack (~76px)
     const availWidth = Math.max(380, width - 40);
-    const availHeight = Math.max(300, height - 160);
+    const availHeight = Math.max(300, height - 130);
 
     const zoomX = availWidth / targetWidth;
     const zoomY = availHeight / targetHeight;
@@ -316,7 +317,7 @@ export class SnowIslandScene extends Phaser.Scene {
     camera.setZoom(optimalZoom);
 
     // Center camera on island (0, 0) with a slight vertical balance
-    const verticalOffset = (54 - 104) / (2 * optimalZoom);
+    const verticalOffset = (54 - 76) / (2 * optimalZoom);
     camera.centerOn(0, verticalOffset);
 
     // World bounds clamped to allow gentle panning

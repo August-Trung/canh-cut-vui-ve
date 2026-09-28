@@ -8,9 +8,8 @@
       <!-- Top Resource Bar -->
       <TopBar @open-settings="openModal('settings')" />
 
-      <!-- Bottom Dock: Neighbor Strip & Wooden Shelf Rack -->
+      <!-- Bottom Dock: Wooden Shelf Rack -->
       <footer class="bottom-dock" role="region" aria-label="Bảng điều khiển dưới">
-        <NeighborStrip />
         <ShelfRack
           @open-inventory="openModal('inventory')"
           @open-collection="openModal('collection')"
@@ -66,7 +65,6 @@ import { soundService } from './services/SoundService';
 import IslandCanvas from './components/canvas/IslandCanvas.vue';
 import TopBar from './components/hud/TopBar.vue';
 import ShelfRack from './components/dock/ShelfRack.vue';
-import NeighborStrip from './components/dock/NeighborStrip.vue';
 import InventoryModal from './components/modals/InventoryModal.vue';
 import CollectionModal from './components/modals/CollectionModal.vue';
 import HatcheryModal from './components/modals/HatcheryModal.vue';

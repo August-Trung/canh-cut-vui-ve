@@ -85,23 +85,32 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.speechBubble = new SpeechBubble(scene, 0, -84);
     this.add(this.speechBubble);
 
-    // 4. Interactive Click Area
-    this.setSize(72, 84);
-    this.setInteractive(
-      new Phaser.Geom.Circle(0, -18, 36),
-      Phaser.Geom.Circle.Contains
-    );
+    // 4. Interactive Click Area attached directly to bodySprite
+    // Texture is 128x128. Penguin body occupies approx (16, 12) to (112, 120).
+    // An explicit rectangle matching the actual penguin bounds in texture coordinates:
+    this.bodySprite.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(14, 10, 100, 108),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
 
-    this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    this.bodySprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.handleClick(pointer);
     });
 
-    this.on('pointerover', () => {
+    this.bodySprite.on('pointerover', () => {
       this.scene.input?.setDefaultCursor?.('pointer');
+      this.bodySprite.setTint(0xe0f2fe); // Subtle cool snow highlight
     });
 
-    this.on('pointerout', () => {
+    this.bodySprite.on('pointerout', () => {
       this.scene.input?.setDefaultCursor?.('default');
+      this.bodySprite.clearTint();
+    });
+
+    // Also support pointerdown on the container for direct test calls or event forwarding
+    this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.handleClick(pointer);
     });
 
     // 5. Initialize AI State Machine
@@ -297,16 +306,32 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   private enterWaddleState(): void {
     this.resetBodyTransform();
 
-    // Pick random wander waypoint guaranteed to remain inside the elliptical island
+    // Pick random wander waypoint guaranteed to remain on snowy land outside the pond
     const rx = Math.max(100, (this.bounds.maxX - this.bounds.minX) / 2);
     const ry = Math.max(60, (this.bounds.maxY - this.bounds.minY) / 2);
     const centerX = (this.bounds.minX + this.bounds.maxX) / 2;
     const centerY = (this.bounds.minY + this.bounds.maxY) / 2;
+    const pond = this.bounds.pondCenter ?? { x: 0, y: 15, radiusX: 190, radiusY: 105 };
 
-    const angle = Math.random() * Math.PI * 2;
-    const rad = Math.sqrt(Math.random()) * 0.86; // Stay well inside the perimeter
-    const wanderX = Math.round(centerX + rad * rx * Math.cos(angle));
-    const wanderY = Math.round(centerY + rad * ry * Math.sin(angle));
+    let wanderX = this.x;
+    let wanderY = this.y;
+
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      // Between 0.35 and 0.86 of ellipse radius to stay on island snow banks without falling off
+      const rad = 0.35 + Math.random() * 0.51;
+      const testX = Math.round(centerX + rad * rx * Math.cos(angle));
+      const testY = Math.round(centerY + rad * ry * Math.sin(angle));
+
+      const pondDx = (testX - pond.x) / pond.radiusX;
+      const pondDy = (testY - pond.y) / pond.radiusY;
+      // Outside the pond area
+      if (pondDx * pondDx + pondDy * pondDy >= 1.1) {
+        wanderX = testX;
+        wanderY = testY;
+        break;
+      }
+    }
 
     this.targetX = wanderX;
     this.targetY = wanderY;
@@ -321,11 +346,11 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     const facingLeft = this.bodySprite.flipX;
     const slideAngle = facingLeft ? -75 : 75;
 
-    // Slide across pond towards exit coordinate
+    // Slide across pond towards exit coordinate on snowy bank
     const pond = this.bounds.pondCenter ?? { x: 0, y: 15, radiusX: 190, radiusY: 105 };
     const exitAngle = Math.random() * Math.PI * 2;
-    this.targetX = pond.x + Math.cos(exitAngle) * (pond.radiusX + 25);
-    this.targetY = pond.y + Math.sin(exitAngle) * (pond.radiusY + 20);
+    this.targetX = Math.round(pond.x + Math.cos(exitAngle) * (pond.radiusX + 35));
+    this.targetY = Math.round(pond.y + Math.sin(exitAngle) * (pond.radiusY + 25));
 
     this.activeBodyTween = this.scene.tweens.add({
       targets: this.bodySprite,

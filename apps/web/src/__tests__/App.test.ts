@@ -35,7 +35,6 @@ describe('App Component', () => {
     expect(wrapper.find('#mock-island-canvas').exists()).toBe(true);
     expect(wrapper.findComponent({ name: 'TopBar' }).exists()).toBe(true);
     expect(wrapper.findComponent({ name: 'ShelfRack' }).exists()).toBe(true);
-    expect(wrapper.findComponent({ name: 'NeighborStrip' }).exists()).toBe(true);
   });
 
   it('opens modals via ShelfRack events and renders corresponding modal components', async () => {
