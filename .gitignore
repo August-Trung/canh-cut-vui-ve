@@ -4,3 +4,5 @@ dist/
 *.log
 coverage/
 .turbo/
+__pycache__/
+

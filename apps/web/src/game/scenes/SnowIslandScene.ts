@@ -90,16 +90,27 @@ export class SnowIslandScene extends Phaser.Scene {
    * Constructs expansive natural snow terrain and central feeding pond using raster image assets.
    */
   private buildBackdrop(): void {
-    // 1. Base Snow Ground Island surface (organic snowy plateau)
+    // 1. Base Snow Ground Island surface (organic snowy plateau & glacial cliffs)
     const snowGround = this.add.image(0, 10, 'snow_ground');
     snowGround.setOrigin(0.5, 0.5);
-    snowGround.setScale(4.5, 2.3);
+    const isRasterIsland = typeof snowGround.width === 'number' && snowGround.width >= 800;
+    if (isRasterIsland) {
+      snowGround.setScale(0.75);
+    } else {
+      snowGround.setScale(4.5, 2.3);
+    }
     snowGround.setDepth(-400);
 
-    // 2. Center Water Pond (focal point scaled prominently in center)
+    // 2. Center Water Pond (focal point in center)
     const icePond = this.add.image(0, 15, 'ice_pond');
     icePond.setOrigin(0.5, 0.5);
-    icePond.setScale(1.55);
+    if (isRasterIsland) {
+      icePond.setScale(1.0);
+      icePond.setAlpha(0); // Natural recessed frozen pond is integrated into snow_island.png
+    } else {
+      icePond.setScale(1.55);
+      icePond.setAlpha(1.0);
+    }
     icePond.setDepth(-300);
   }
 
@@ -112,15 +123,15 @@ export class SnowIslandScene extends Phaser.Scene {
     // Living pond ripple wave layered right over water surface (-299)
     const pondRipple = this.add.image(0, 15, 'pond_ripple');
     pondRipple.setOrigin(0.5, 0.5);
-    pondRipple.setScale(1.25);
-    pondRipple.setAlpha(0.45);
+    pondRipple.setScale(1.15);
+    pondRipple.setAlpha(0.35);
     pondRipple.setDepth(-299);
 
     this.tweens.add({
       targets: pondRipple,
-      scaleX: 1.45,
-      scaleY: 1.4,
-      alpha: { from: 0.55, to: 0.2 },
+      scaleX: 1.35,
+      scaleY: 1.3,
+      alpha: { from: 0.45, to: 0.15 },
       duration: 3200,
       yoyo: true,
       repeat: -1,
@@ -155,32 +166,32 @@ export class SnowIslandScene extends Phaser.Scene {
   private buildWinterProps(): void {
     // 1. Cozy Igloo placed in upper-left snow bank
     const igloo = this.add.image(-230, -105, 'igloo');
-    igloo.setOrigin(0.5, 0.82);
-    igloo.setScale(0.85);
+    igloo.setOrigin(0.5, 0.88);
+    igloo.setScale(0.70);
     igloo.setDepth(-105);
 
     // 2. Pine trees dusted in snow around perimeter with visual variations
     const treePositions = [
-      { x: -320, y: -125, scale: 0.90, key: 'pine_tree_a' },
-      { x: -270, y: -155, scale: 0.75, key: 'pine_tree_b' },
-      { x: 260, y: -140, scale: 0.85, key: 'pine_tree_c' },
-      { x: 310, y: -105, scale: 0.92, key: 'pine_tree_a' },
-      { x: 300, y: 70, scale: 0.82, key: 'pine_tree_b' },
-      { x: -300, y: 80, scale: 0.85, key: 'pine_tree_c' },
-      { x: 0, y: -170, scale: 0.70, key: 'pine_tree_b' },
+      { x: -320, y: -125, scale: 0.72, key: 'pine_tree_a' },
+      { x: -270, y: -155, scale: 0.62, key: 'pine_tree_b' },
+      { x: 260, y: -140, scale: 0.68, key: 'pine_tree_c' },
+      { x: 310, y: -105, scale: 0.75, key: 'pine_tree_a' },
+      { x: 300, y: 70, scale: 0.65, key: 'pine_tree_b' },
+      { x: -300, y: 80, scale: 0.68, key: 'pine_tree_c' },
+      { x: 0, y: -170, scale: 0.58, key: 'pine_tree_b' },
     ];
 
     for (const pos of treePositions) {
       const tree = this.add.image(pos.x, pos.y, pos.key);
-      tree.setOrigin(0.5, 0.9);
+      tree.setOrigin(0.5, 0.92);
       tree.setScale(pos.scale);
       tree.setDepth(pos.y);
     }
 
     // 3. Cute Snowman placed in lower-right snow bank
     const snowman = this.add.image(220, 90, 'snowman');
-    snowman.setOrigin(0.5, 0.85);
-    snowman.setScale(0.82);
+    snowman.setOrigin(0.5, 0.88);
+    snowman.setScale(0.62);
     snowman.setDepth(90);
   }
 

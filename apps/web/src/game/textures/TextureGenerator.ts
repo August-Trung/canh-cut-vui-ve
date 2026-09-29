@@ -286,7 +286,7 @@ function resolveSpeciesKey(key: string): PenguinSpeciesKey {
   return 'snowy';
 }
 
-export type PenguinPoseKey = 'idle' | 'walk_0' | 'walk_1' | 'sleep' | 'eat' | 'celebrate' | 'slide';
+export type PenguinPoseKey = 'idle' | 'walk_0' | 'walk_1' | 'walk_2' | 'walk_3' | 'sleep' | 'eat' | 'celebrate' | 'slide';
 
 export function generatePenguinTexture(
   species: string,
@@ -334,11 +334,17 @@ export function generatePenguinTexture(
   };
 
   if (pose === 'walk_0') {
-    drawFoot(44, 110, -0.25);
-    drawFoot(82, 115, 0.1);
+    drawFoot(44, 115, -0.15);
+    drawFoot(82, 107, 0.25);
   } else if (pose === 'walk_1') {
     drawFoot(46, 115, -0.1);
-    drawFoot(84, 110, 0.25);
+    drawFoot(80, 112, 0.1);
+  } else if (pose === 'walk_2') {
+    drawFoot(84, 115, 0.15);
+    drawFoot(46, 107, -0.25);
+  } else if (pose === 'walk_3') {
+    drawFoot(82, 115, 0.1);
+    drawFoot(48, 112, -0.1);
   } else if (pose === 'celebrate') {
     drawFoot(48, 108, -0.3);
     drawFoot(80, 108, 0.3);
@@ -381,8 +387,14 @@ export function generatePenguinTexture(
     drawFlipper(24, 70, 0.45, false);
     drawFlipper(104, 76, -0.05, true);
   } else if (pose === 'walk_1') {
+    drawFlipper(26, 74, 0.25, false);
+    drawFlipper(102, 74, -0.25, true);
+  } else if (pose === 'walk_2') {
     drawFlipper(28, 76, 0.05, false);
     drawFlipper(100, 70, -0.45, true);
+  } else if (pose === 'walk_3') {
+    drawFlipper(26, 74, 0.25, false);
+    drawFlipper(102, 74, -0.25, true);
   } else if (pose === 'eat') {
     drawFlipper(22, 68, 0.6, false);
     drawFlipper(106, 68, -0.6, true);
@@ -2038,9 +2050,9 @@ export function generateDecorationTexture(key: string): HTMLCanvasElement {
  * to strictly prevent duplicate rendering across multiple entities.
  */
 export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
-  // 1. Penguins (5 species, each with 7 pose frames + 1 default alias)
+  // 1. Penguins (5 species, each with 9 pose frames + 1 default alias)
   const penguinSpecies: PenguinSpeciesKey[] = ['snowy', 'sleepy', 'shy', 'happy', 'hungry'];
-  const poses: PenguinPoseKey[] = ['idle', 'walk_0', 'walk_1', 'sleep', 'eat', 'celebrate', 'slide'];
+  const poses: PenguinPoseKey[] = ['idle', 'walk_0', 'walk_1', 'walk_2', 'walk_3', 'sleep', 'eat', 'celebrate', 'slide'];
 
   for (const sp of penguinSpecies) {
     const defaultKey = `penguin_${sp}`;
@@ -2077,11 +2089,11 @@ export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
           key: `${sp}_walk`,
           frames: [
             { key: `penguin_${sp}_walk_0` },
-            { key: `penguin_${sp}_idle` },
             { key: `penguin_${sp}_walk_1` },
-            { key: `penguin_${sp}_idle` },
+            { key: `penguin_${sp}_walk_2` },
+            { key: `penguin_${sp}_walk_3` },
           ],
-          frameRate: 5,
+          frameRate: 6,
           repeat: -1,
         });
       }

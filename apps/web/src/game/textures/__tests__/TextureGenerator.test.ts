@@ -72,10 +72,10 @@ describe('TextureGenerator', () => {
   });
 
   describe('ensureGameTextures and Caching Logic', () => {
-    it('generates and caches all 62 textures when cache is empty', () => {
+    it('generates and caches all 72 textures when cache is empty', () => {
       ensureGameTextures(mockScene);
 
-      // 5 penguins base + 35 poses + 3 eggs + 13 environment/particles + 6 decorations = 62 textures
+      // 5 penguins base + 45 poses (9 poses * 5) + 3 eggs + 13 environment/particles + 6 decorations = 72 textures
       const expectedKeys = [
         'penguin_snowy',
         'penguin_sleepy',
@@ -85,6 +85,8 @@ describe('TextureGenerator', () => {
         'penguin_snowy_idle',
         'penguin_snowy_walk_0',
         'penguin_snowy_walk_1',
+        'penguin_snowy_walk_2',
+        'penguin_snowy_walk_3',
         'penguin_snowy_sleep',
         'penguin_snowy_eat',
         'penguin_snowy_celebrate',
@@ -92,6 +94,8 @@ describe('TextureGenerator', () => {
         'penguin_sleepy_idle',
         'penguin_sleepy_walk_0',
         'penguin_sleepy_walk_1',
+        'penguin_sleepy_walk_2',
+        'penguin_sleepy_walk_3',
         'penguin_sleepy_sleep',
         'penguin_sleepy_eat',
         'penguin_sleepy_celebrate',
@@ -99,6 +103,8 @@ describe('TextureGenerator', () => {
         'penguin_shy_idle',
         'penguin_shy_walk_0',
         'penguin_shy_walk_1',
+        'penguin_shy_walk_2',
+        'penguin_shy_walk_3',
         'penguin_shy_sleep',
         'penguin_shy_eat',
         'penguin_shy_celebrate',
@@ -106,6 +112,8 @@ describe('TextureGenerator', () => {
         'penguin_happy_idle',
         'penguin_happy_walk_0',
         'penguin_happy_walk_1',
+        'penguin_happy_walk_2',
+        'penguin_happy_walk_3',
         'penguin_happy_sleep',
         'penguin_happy_eat',
         'penguin_happy_celebrate',
@@ -113,6 +121,8 @@ describe('TextureGenerator', () => {
         'penguin_hungry_idle',
         'penguin_hungry_walk_0',
         'penguin_hungry_walk_1',
+        'penguin_hungry_walk_2',
+        'penguin_hungry_walk_3',
         'penguin_hungry_sleep',
         'penguin_hungry_eat',
         'penguin_hungry_celebrate',
@@ -141,7 +151,7 @@ describe('TextureGenerator', () => {
         'dec_trophy_master',
       ];
 
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(62);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(72);
       for (const key of expectedKeys) {
         expect(createdTextures.has(key)).toBe(true);
       }
@@ -165,17 +175,17 @@ describe('TextureGenerator', () => {
       expect(mockScene.textures.addCanvas).not.toHaveBeenCalledWith('egg_basic', expect.anything());
       expect(mockScene.textures.addCanvas).not.toHaveBeenCalledWith('ice_pond', expect.anything());
 
-      // 62 total minus 3 already cached = 59 new additions
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(59);
+      // 72 total minus 3 already cached = 69 new additions
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(69);
     });
 
     it('never regenerates any texture on subsequent ensureGameTextures calls', () => {
       ensureGameTextures(mockScene);
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(62);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(72);
 
-      // Second call should generate 0 new textures because all 62 now exist
+      // Second call should generate 0 new textures because all 72 now exist
       ensureGameTextures(mockScene);
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(62);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(72);
     });
 
     it('registers animations when scene.anims is provided', () => {

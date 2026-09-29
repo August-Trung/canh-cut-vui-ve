@@ -69,16 +69,16 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.targetX = x;
     this.targetY = y;
 
-    // 1. Soft ground drop shadow (always at bottom of container)
-    this.shadow = scene.add.image(0, 20, 'entity_shadow');
+    // 1. Soft ground drop shadow (centered at feet ground contact point)
+    this.shadow = scene.add.image(0, 0, 'entity_shadow');
     this.shadow.setScale(PenguinEntity.BASE_SHADOW_SCALE_X, PenguinEntity.BASE_SHADOW_SCALE_Y);
     this.shadow.setAlpha(0.65);
     this.add(this.shadow);
 
-    // 2. Penguin Body Sprite
+    // 2. Penguin Body Sprite (Origin pinned at feet contact point y=120/128)
     const textureKey = `penguin_${ownedPenguin.speciesId}`;
     this.bodySprite = scene.add.sprite(0, 0, textureKey);
-    this.bodySprite.setOrigin(0.5, 0.85); // Pivot at feet for natural squash & stretch
+    this.bodySprite.setOrigin(0.5, 0.9375); // Ground contact line
     this.bodySprite.setScale(PenguinEntity.BASE_BODY_SCALE);
     this.add(this.bodySprite);
 
@@ -87,10 +87,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
     this.add(this.speechBubble);
 
     // 4. Interactive Click Area attached directly to bodySprite
-    // Texture is 128x128. Penguin body occupies approx (16, 12) to (112, 120).
-    // An explicit rectangle matching the actual penguin bounds in texture coordinates:
     this.bodySprite.setInteractive({
-      hitArea: new Phaser.Geom.Rectangle(14, 10, 100, 108),
+      hitArea: new Phaser.Geom.Rectangle(14, 16, 100, 106),
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       useHandCursor: true,
     });
@@ -564,16 +562,8 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   }
 
   private startWaddleWobble(): void {
-    if (!this.activeWobbleTween) {
-      this.activeWobbleTween = this.scene.tweens.add({
-        targets: this.bodySprite,
-        angle: { from: -8, to: 8 },
-        duration: 240,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      });
-    }
+    // Grounded 4-frame walk animation with articulated weight shift and foot planting
+    // handles locomotion naturally without detached rotational sway tweens.
   }
 
   private stopWobbleTween(): void {
