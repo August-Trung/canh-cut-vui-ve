@@ -105,9 +105,28 @@ export class SnowIslandScene extends Phaser.Scene {
 
   /**
    * Constructs the Central Pond environment:
+   * - Living pond ripple wave on water surface.
    * - Interactive water splash feedback on click.
    */
   private buildCentralPondProps(): void {
+    // Living pond ripple wave layered right over water surface (-299)
+    const pondRipple = this.add.image(0, 15, 'pond_ripple');
+    pondRipple.setOrigin(0.5, 0.5);
+    pondRipple.setScale(1.25);
+    pondRipple.setAlpha(0.45);
+    pondRipple.setDepth(-299);
+
+    this.tweens.add({
+      targets: pondRipple,
+      scaleX: 1.45,
+      scaleY: 1.4,
+      alpha: { from: 0.55, to: 0.2 },
+      duration: 3200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
     // Make pond area interactive: clicking ripples water and sparkles
     if (typeof this.add.zone === 'function') {
       const pondHitArea = this.add.zone(0, 15, 260, 130);
@@ -140,19 +159,19 @@ export class SnowIslandScene extends Phaser.Scene {
     igloo.setScale(0.85);
     igloo.setDepth(-105);
 
-    // 2. Pine trees dusted in snow around perimeter
+    // 2. Pine trees dusted in snow around perimeter with visual variations
     const treePositions = [
-      { x: -320, y: -125, scale: 0.90 },
-      { x: -270, y: -155, scale: 0.75 },
-      { x: 260, y: -140, scale: 0.85 },
-      { x: 310, y: -105, scale: 0.92 },
-      { x: 300, y: 70, scale: 0.82 },
-      { x: -300, y: 80, scale: 0.85 },
-      { x: 0, y: -170, scale: 0.70 },
+      { x: -320, y: -125, scale: 0.90, key: 'pine_tree_a' },
+      { x: -270, y: -155, scale: 0.75, key: 'pine_tree_b' },
+      { x: 260, y: -140, scale: 0.85, key: 'pine_tree_c' },
+      { x: 310, y: -105, scale: 0.92, key: 'pine_tree_a' },
+      { x: 300, y: 70, scale: 0.82, key: 'pine_tree_b' },
+      { x: -300, y: 80, scale: 0.85, key: 'pine_tree_c' },
+      { x: 0, y: -170, scale: 0.70, key: 'pine_tree_b' },
     ];
 
     for (const pos of treePositions) {
-      const tree = this.add.image(pos.x, pos.y, 'pine_tree');
+      const tree = this.add.image(pos.x, pos.y, pos.key);
       tree.setOrigin(0.5, 0.9);
       tree.setScale(pos.scale);
       tree.setDepth(pos.y);
@@ -710,8 +729,10 @@ export class SnowIslandScene extends Phaser.Scene {
    * Frame update loop called by Phaser runtime.
    */
   update(time: number, delta: number): void {
-    for (const penguin of this.penguins.values()) {
+    const list = Array.from(this.penguins.values());
+    for (const penguin of list) {
       penguin.update(time, delta);
+      penguin.applyFlockingSeparation(list, delta);
     }
 
     this.socialScanTimer += delta;

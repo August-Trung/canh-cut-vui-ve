@@ -13,6 +13,18 @@
  * - Headless/Vitest-safe canvas fallback for Node test environments.
  */
 
+export interface AnimConfigLike {
+  key: string;
+  frames: { key: string }[];
+  frameRate?: number;
+  repeat?: number;
+}
+
+export interface AnimManagerLike {
+  exists(key: string): boolean;
+  create(config: AnimConfigLike): unknown;
+}
+
 export interface TextureManagerLike {
   exists(key: string): boolean;
   addCanvas(key: string, canvas: HTMLCanvasElement): unknown;
@@ -20,6 +32,7 @@ export interface TextureManagerLike {
 
 export interface SceneLike {
   textures: TextureManagerLike;
+  anims?: AnimManagerLike;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,8 +73,12 @@ export const EGG_TEXTURE_KEYS = {
 
 export const ENVIRONMENT_TEXTURE_KEYS = {
   ice_pond: 'ice_pond',
+  pond_ripple: 'pond_ripple',
   snow_ground: 'snow_ground',
   pine_tree: 'pine_tree',
+  pine_tree_a: 'pine_tree_a',
+  pine_tree_b: 'pine_tree_b',
+  pine_tree_c: 'pine_tree_c',
   igloo: 'igloo',
   snowman: 'snowman',
   entity_shadow: 'entity_shadow',
@@ -269,7 +286,12 @@ function resolveSpeciesKey(key: string): PenguinSpeciesKey {
   return 'snowy';
 }
 
-export function generatePenguinTexture(species: string): HTMLCanvasElement {
+export type PenguinPoseKey = 'idle' | 'walk_0' | 'walk_1' | 'sleep' | 'eat' | 'celebrate' | 'slide';
+
+export function generatePenguinTexture(
+  species: string,
+  pose: PenguinPoseKey = 'idle'
+): HTMLCanvasElement {
   const canvas = createSafeCanvas(128, 128);
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
@@ -282,9 +304,15 @@ export function generatePenguinTexture(species: string): HTMLCanvasElement {
   // 1. Soft entity ground shadow under penguin
   ctx.save();
   ctx.beginPath();
-  ctx.ellipse(64, 116, 32, 7, 0, 0, Math.PI * 2);
+  if (pose === 'slide') {
+    ctx.ellipse(64, 116, 40, 8, 0, 0, Math.PI * 2);
+  } else if (pose === 'celebrate') {
+    ctx.ellipse(64, 118, 24, 5, 0, 0, Math.PI * 2);
+  } else {
+    ctx.ellipse(64, 116, 32, 7, 0, 0, Math.PI * 2);
+  }
   const groundShadow = ctx.createRadialGradient(64, 116, 4, 64, 116, 32);
-  groundShadow.addColorStop(0, 'rgba(20, 32, 50, 0.28)');
+  groundShadow.addColorStop(0, pose === 'celebrate' ? 'rgba(20, 32, 50, 0.18)' : 'rgba(20, 32, 50, 0.28)');
   groundShadow.addColorStop(1, 'rgba(20, 32, 50, 0)');
   ctx.fillStyle = groundShadow;
   ctx.fill();
@@ -304,8 +332,26 @@ export function generatePenguinTexture(species: string): HTMLCanvasElement {
     ctx.fill();
     ctx.restore();
   };
-  drawFoot(48, 113, -0.15);
-  drawFoot(80, 113, 0.15);
+
+  if (pose === 'walk_0') {
+    drawFoot(44, 110, -0.25);
+    drawFoot(82, 115, 0.1);
+  } else if (pose === 'walk_1') {
+    drawFoot(46, 115, -0.1);
+    drawFoot(84, 110, 0.25);
+  } else if (pose === 'celebrate') {
+    drawFoot(48, 108, -0.3);
+    drawFoot(80, 108, 0.3);
+  } else if (pose === 'slide') {
+    drawFoot(36, 106, -0.7);
+    drawFoot(92, 106, 0.7);
+  } else if (pose === 'sleep') {
+    drawFoot(50, 115, -0.1);
+    drawFoot(78, 115, 0.1);
+  } else {
+    drawFoot(48, 113, -0.15);
+    drawFoot(80, 113, 0.15);
+  }
 
   // 3. Flippers / Wings (drawn behind body or to sides)
   const drawFlipper = (x: number, y: number, angle: number, flipX: boolean) => {
@@ -327,8 +373,29 @@ export function generatePenguinTexture(species: string): HTMLCanvasElement {
     ctx.fill();
     ctx.restore();
   };
-  drawFlipper(26, 74, 0.25, false);
-  drawFlipper(102, 74, -0.25, true);
+
+  if (pose === 'celebrate') {
+    drawFlipper(20, 52, -1.2, false);
+    drawFlipper(108, 52, 1.2, true);
+  } else if (pose === 'walk_0') {
+    drawFlipper(24, 70, 0.45, false);
+    drawFlipper(104, 76, -0.05, true);
+  } else if (pose === 'walk_1') {
+    drawFlipper(28, 76, 0.05, false);
+    drawFlipper(100, 70, -0.45, true);
+  } else if (pose === 'eat') {
+    drawFlipper(22, 68, 0.6, false);
+    drawFlipper(106, 68, -0.6, true);
+  } else if (pose === 'slide') {
+    drawFlipper(18, 72, 0.9, false);
+    drawFlipper(110, 72, -0.9, true);
+  } else if (pose === 'sleep') {
+    drawFlipper(30, 76, 0.1, false);
+    drawFlipper(98, 76, -0.1, true);
+  } else {
+    drawFlipper(26, 74, 0.25, false);
+    drawFlipper(102, 74, -0.25, true);
+  }
 
   // 4. Chubby round pear-shaped body & head
   ctx.save();
@@ -411,7 +478,7 @@ export function generatePenguinTexture(species: string): HTMLCanvasElement {
 
   // 7. Expressive Eyes
   ctx.save();
-  if (pal.eyeType === 'sleepy') {
+  if (pose === 'sleep' || pal.eyeType === 'sleepy') {
     // Cute curved sleepy arc eyelids ⌒ ⌒
     ctx.strokeStyle = '#2B263B';
     ctx.lineWidth = 2.8;
@@ -421,7 +488,7 @@ export function generatePenguinTexture(species: string): HTMLCanvasElement {
     ctx.moveTo(84, 56);
     ctx.arc(78, 56, 5.5, Math.PI * 1.15, Math.PI * 1.85);
     ctx.stroke();
-  } else if (pal.eyeType === 'happy') {
+  } else if (pose === 'celebrate' || pal.eyeType === 'happy') {
     // Joyful curved smile eyes ^ ^
     ctx.strokeStyle = '#1B471F';
     ctx.lineWidth = 3;
@@ -458,22 +525,51 @@ export function generatePenguinTexture(species: string): HTMLCanvasElement {
 
   // 8. Cute golden-orange beak
   ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(57, 60);
-  ctx.quadraticCurveTo(64, 57, 71, 60);
-  ctx.quadraticCurveTo(64, 71, 57, 60);
-  const beakGrad = ctx.createLinearGradient(64, 57, 64, 70);
-  beakGrad.addColorStop(0, '#FFD54F');
-  beakGrad.addColorStop(0.5, '#FFA726');
-  beakGrad.addColorStop(1, '#E65100');
-  ctx.fillStyle = beakGrad;
-  ctx.fill();
+  if (pose === 'eat') {
+    // Open beak with fish morsel
+    ctx.beginPath();
+    ctx.moveTo(57, 59);
+    ctx.quadraticCurveTo(64, 54, 71, 59);
+    ctx.lineTo(64, 63);
+    ctx.closePath();
+    ctx.fillStyle = '#FFA726';
+    ctx.fill();
 
-  // Beak specular sheen
-  ctx.beginPath();
-  ctx.ellipse(64, 61, 4, 1.5, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(59, 64);
+    ctx.lineTo(69, 64);
+    ctx.quadraticCurveTo(64, 71, 59, 64);
+    ctx.closePath();
+    ctx.fillStyle = '#E65100';
+    ctx.fill();
+
+    // Fish morsel
+    ctx.beginPath();
+    ctx.ellipse(64, 63, 4.5, 2.5, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#29B6F6';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(66, 62, 1, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(57, 60);
+    ctx.quadraticCurveTo(64, 57, 71, 60);
+    ctx.quadraticCurveTo(64, 71, 57, 60);
+    const beakGrad = ctx.createLinearGradient(64, 57, 64, 70);
+    beakGrad.addColorStop(0, '#FFD54F');
+    beakGrad.addColorStop(0.5, '#FFA726');
+    beakGrad.addColorStop(1, '#E65100');
+    ctx.fillStyle = beakGrad;
+    ctx.fill();
+
+    // Beak specular sheen
+    ctx.beginPath();
+    ctx.ellipse(64, 61, 4, 1.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fill();
+  }
   ctx.restore();
 
   // 9. Distinct Accessories
@@ -834,10 +930,17 @@ export function generateEnvironmentTexture(key: string): HTMLCanvasElement {
   switch (key) {
     case 'ice_pond':
       return drawIcePond();
+    case 'pond_ripple':
+      return drawPondRipple();
     case 'snow_ground':
       return drawSnowGround();
     case 'pine_tree':
-      return drawPineTree();
+    case 'pine_tree_a':
+      return drawPineTreeA();
+    case 'pine_tree_b':
+      return drawPineTreeB();
+    case 'pine_tree_c':
+      return drawPineTreeC();
     case 'igloo':
       return drawIgloo();
     case 'snowman':
@@ -997,9 +1100,9 @@ function drawSnowGround(): HTMLCanvasElement {
 }
 
 /**
- * pine_tree: Stylized evergreen pine tree dusted with puffy snow (128x160).
+ * pine_tree_a (or pine_tree): Classic conical evergreen pine with scalloped snow caps (128x160).
  */
-function drawPineTree(): HTMLCanvasElement {
+function drawPineTreeA(): HTMLCanvasElement {
   const canvas = createSafeCanvas(128, 160);
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
@@ -1056,6 +1159,196 @@ function drawPineTree(): HTMLCanvasElement {
   ctx.arc(64, 20, 6, 0, Math.PI * 2);
   ctx.fillStyle = '#FFFFFF';
   ctx.fill();
+
+  ctx.restore();
+  return canvas;
+}
+
+/**
+ * pine_tree_b: Broad rounded pine with soft puffy cloud snow pillows (128x160).
+ */
+function drawPineTreeB(): HTMLCanvasElement {
+  const canvas = createSafeCanvas(128, 160);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  ctx.save();
+
+  // Wide stout trunk
+  ctx.beginPath();
+  ctx.roundRect(55, 124, 18, 28, [4, 4, 2, 2]);
+  const trunkGrad = ctx.createLinearGradient(55, 124, 73, 152);
+  trunkGrad.addColorStop(0, '#5D4037');
+  trunkGrad.addColorStop(1, '#3E2723');
+  ctx.fillStyle = trunkGrad;
+  ctx.fill();
+
+  const drawRoundedTier = (
+    topY: number,
+    botY: number,
+    halfWidth: number,
+    pillows: number
+  ) => {
+    // Lush rounded green tier
+    ctx.beginPath();
+    ctx.moveTo(64, topY);
+    ctx.bezierCurveTo(64 + halfWidth * 0.7, topY + (botY - topY) * 0.4, 64 + halfWidth, botY - 6, 64 + halfWidth, botY);
+    ctx.quadraticCurveTo(64, botY + 8, 64 - halfWidth, botY);
+    ctx.bezierCurveTo(64 - halfWidth, botY - 6, 64 - halfWidth * 0.7, topY + (botY - topY) * 0.4, 64, topY);
+    ctx.closePath();
+    const foliageGrad = ctx.createRadialGradient(64, topY + 10, 8, 64, botY, halfWidth);
+    foliageGrad.addColorStop(0, '#66BB6A');
+    foliageGrad.addColorStop(0.6, '#388E3C');
+    foliageGrad.addColorStop(1, '#1B5E20');
+    ctx.fillStyle = foliageGrad;
+    ctx.fill();
+
+    // Puffy cloud snow pillows across the bough
+    const step = (halfWidth * 2) / (pillows + 1);
+    const startX = 64 - halfWidth + step / 2;
+    for (let p = 0; p < pillows; p++) {
+      const px = startX + p * step;
+      const pr = step * 0.65;
+      ctx.beginPath();
+      ctx.arc(px, botY - 2, pr, Math.PI, 0);
+      ctx.closePath();
+      const snowGrad = ctx.createRadialGradient(px, botY - 6, 2, px, botY, pr);
+      snowGrad.addColorStop(0, '#FFFFFF');
+      snowGrad.addColorStop(0.75, '#E0F2F1');
+      snowGrad.addColorStop(1, '#B2DFDB');
+      ctx.fillStyle = snowGrad;
+      ctx.fill();
+    }
+  };
+
+  drawRoundedTier(84, 128, 48, 4);
+  drawRoundedTier(52, 94, 38, 3);
+  drawRoundedTier(24, 62, 26, 2);
+
+  // Big fluffy summit snow dome
+  ctx.beginPath();
+  ctx.arc(64, 22, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+
+  ctx.restore();
+  return canvas;
+}
+
+/**
+ * pine_tree_c: Slender crystal-frosted cedar pine with icy needle tips (128x160).
+ */
+function drawPineTreeC(): HTMLCanvasElement {
+  const canvas = createSafeCanvas(128, 160);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  ctx.save();
+
+  // Slender trunk
+  ctx.beginPath();
+  ctx.roundRect(60, 130, 8, 24, [2, 2, 1, 1]);
+  const trunkGrad = ctx.createLinearGradient(60, 130, 68, 154);
+  trunkGrad.addColorStop(0, '#4E342E');
+  trunkGrad.addColorStop(1, '#3E2723');
+  ctx.fillStyle = trunkGrad;
+  ctx.fill();
+
+  const drawCrispTier = (topY: number, botY: number, halfWidth: number) => {
+    ctx.beginPath();
+    ctx.moveTo(64, topY);
+    ctx.lineTo(64 + halfWidth, botY);
+    ctx.lineTo(64 + halfWidth * 0.5, botY - 3);
+    ctx.lineTo(64, botY + 2);
+    ctx.lineTo(64 - halfWidth * 0.5, botY - 3);
+    ctx.lineTo(64 - halfWidth, botY);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(64 - halfWidth, topY, 64 + halfWidth, botY);
+    grad.addColorStop(0, '#00897B');
+    grad.addColorStop(0.5, '#00695C');
+    grad.addColorStop(1, '#004D40');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Crystalline frosted edges
+    ctx.beginPath();
+    ctx.moveTo(64 - halfWidth, botY);
+    ctx.lineTo(64 - halfWidth * 0.5, botY - 3);
+    ctx.lineTo(64, botY + 2);
+    ctx.lineTo(64 + halfWidth * 0.5, botY - 3);
+    ctx.lineTo(64 + halfWidth, botY);
+    ctx.strokeStyle = '#E0F7FA';
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+  };
+
+  drawCrispTier(96, 132, 34);
+  drawCrispTier(70, 102, 28);
+  drawCrispTier(46, 76, 22);
+  drawCrispTier(24, 50, 15);
+
+  // Crystal star glint at peak
+  ctx.beginPath();
+  ctx.arc(64, 21, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(64, 15);
+  ctx.lineTo(64, 27);
+  ctx.moveTo(58, 21);
+  ctx.lineTo(70, 21);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  ctx.restore();
+  return canvas;
+}
+
+/**
+ * pond_ripple: Soft concentric water ripple rings for living pond effect (240x130).
+ */
+function drawPondRipple(): HTMLCanvasElement {
+  const canvas = createSafeCanvas(240, 130);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  ctx.save();
+
+  // Outer ripple wave
+  ctx.beginPath();
+  ctx.ellipse(120, 65, 100, 48, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(186, 230, 253, 0.45)';
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
+  // Middle ripple wave
+  ctx.beginPath();
+  ctx.ellipse(120, 65, 68, 32, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(224, 242, 254, 0.65)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // Inner ripple wave
+  ctx.beginPath();
+  ctx.ellipse(120, 65, 36, 17, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Soft sparkle glints on ripple crests
+  const glints = [
+    [75, 52],
+    [165, 48],
+    [105, 80],
+    [145, 78],
+  ];
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  for (const [gx, gy] of glints) {
+    ctx.beginPath();
+    ctx.arc(gx, gy, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.restore();
   return canvas;
@@ -1745,18 +2038,95 @@ export function generateDecorationTexture(key: string): HTMLCanvasElement {
  * to strictly prevent duplicate rendering across multiple entities.
  */
 export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
-  // 1. Penguins (5 species)
+  // 1. Penguins (5 species, each with 7 pose frames + 1 default alias)
   const penguinSpecies: PenguinSpeciesKey[] = ['snowy', 'sleepy', 'shy', 'happy', 'hungry'];
+  const poses: PenguinPoseKey[] = ['idle', 'walk_0', 'walk_1', 'sleep', 'eat', 'celebrate', 'slide'];
+
   for (const sp of penguinSpecies) {
-    const key = `penguin_${sp}`;
-    if (scene.textures.exists(key)) {
-      continue;
+    const defaultKey = `penguin_${sp}`;
+    if (!scene.textures.exists(defaultKey)) {
+      const defaultCanvas = generatePenguinTexture(sp, 'idle');
+      scene.textures.addCanvas(defaultKey, defaultCanvas);
     }
-    const canvas = generatePenguinTexture(sp);
-    scene.textures.addCanvas(key, canvas);
+
+    for (const pose of poses) {
+      const poseKey = `penguin_${sp}_${pose}`;
+      if (!scene.textures.exists(poseKey)) {
+        const poseCanvas = pose === 'idle'
+          ? generatePenguinTexture(sp, 'idle')
+          : generatePenguinTexture(sp, pose);
+        scene.textures.addCanvas(poseKey, poseCanvas);
+      }
+    }
   }
 
-  // 2. Eggs (3 types)
+  // 2. Register Phaser Animations if animation manager is present
+  const animMgr = (scene as { anims?: AnimManagerLike }).anims;
+  if (animMgr?.create) {
+    for (const sp of penguinSpecies) {
+      if (!animMgr.exists(`${sp}_idle`)) {
+        animMgr.create({
+          key: `${sp}_idle`,
+          frames: [{ key: `penguin_${sp}_idle` }],
+          frameRate: 1,
+          repeat: -1,
+        });
+      }
+      if (!animMgr.exists(`${sp}_walk`)) {
+        animMgr.create({
+          key: `${sp}_walk`,
+          frames: [
+            { key: `penguin_${sp}_walk_0` },
+            { key: `penguin_${sp}_idle` },
+            { key: `penguin_${sp}_walk_1` },
+            { key: `penguin_${sp}_idle` },
+          ],
+          frameRate: 5,
+          repeat: -1,
+        });
+      }
+      if (!animMgr.exists(`${sp}_sleep`)) {
+        animMgr.create({
+          key: `${sp}_sleep`,
+          frames: [{ key: `penguin_${sp}_sleep` }],
+          frameRate: 1,
+          repeat: -1,
+        });
+      }
+      if (!animMgr.exists(`${sp}_eat`)) {
+        animMgr.create({
+          key: `${sp}_eat`,
+          frames: [
+            { key: `penguin_${sp}_eat` },
+            { key: `penguin_${sp}_idle` },
+          ],
+          frameRate: 3,
+          repeat: -1,
+        });
+      }
+      if (!animMgr.exists(`${sp}_celebrate`)) {
+        animMgr.create({
+          key: `${sp}_celebrate`,
+          frames: [
+            { key: `penguin_${sp}_celebrate` },
+            { key: `penguin_${sp}_idle` },
+          ],
+          frameRate: 4,
+          repeat: -1,
+        });
+      }
+      if (!animMgr.exists(`${sp}_slide`)) {
+        animMgr.create({
+          key: `${sp}_slide`,
+          frames: [{ key: `penguin_${sp}_slide` }],
+          frameRate: 1,
+          repeat: -1,
+        });
+      }
+    }
+  }
+
+  // 3. Eggs (3 types)
   const eggKeys: EggTypeKey[] = ['egg_basic', 'egg_frozen', 'egg_golden'];
   for (const key of eggKeys) {
     if (scene.textures.exists(key)) {
@@ -1766,11 +2136,15 @@ export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
     scene.textures.addCanvas(key, canvas);
   }
 
-  // 3. Environment & particles (9 textures)
+  // 4. Environment & particles (13 textures)
   const envKeys: (keyof typeof ENVIRONMENT_TEXTURE_KEYS)[] = [
     'ice_pond',
+    'pond_ripple',
     'snow_ground',
     'pine_tree',
+    'pine_tree_a',
+    'pine_tree_b',
+    'pine_tree_c',
     'igloo',
     'snowman',
     'entity_shadow',
@@ -1786,7 +2160,7 @@ export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
     scene.textures.addCanvas(key, canvas);
   }
 
-  // 4. Island Decorations (6 items)
+  // 5. Island Decorations (6 items)
   const decKeys: DecorationVisualKey[] = [
     'dec_bench_wood',
     'dec_pine_crystal',
@@ -1803,4 +2177,5 @@ export function ensureGameTextures(scene: Phaser.Scene | SceneLike): void {
     scene.textures.addCanvas(key, canvas);
   }
 }
+
 

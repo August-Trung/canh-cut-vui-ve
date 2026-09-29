@@ -131,6 +131,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
     // Start in IDLE
     this.enterIdleState();
+    this.playStateAnimation('IDLE');
   }
 
   /**
@@ -203,6 +204,77 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   }
 
   /**
+   * Clamp penguin position safely within island boundaries.
+   */
+  clampToBounds(): void {
+    const minX = this.bounds.minX + 20;
+    const maxX = this.bounds.maxX - 20;
+    const minY = this.bounds.minY + 20;
+    const maxY = this.bounds.maxY - 20;
+    this.x = Phaser.Math.Clamp(this.x, minX, maxX);
+    this.y = Phaser.Math.Clamp(this.y, minY, maxY);
+  }
+
+  /**
+   * Applies social separation force to prevent penguins from overlapping or clumping.
+   * If another penguin is within minDistance (42px), pushes gently away.
+   */
+  applyFlockingSeparation(otherPenguins: PenguinEntity[], delta: number): void {
+    if (!this.active) return;
+    const minDistance = 42;
+    const dt = delta / 1000;
+    let pushX = 0;
+    let pushY = 0;
+
+    for (const other of otherPenguins) {
+      if (other === this || !other.active) continue;
+      const dx = this.x - other.x;
+      const dy = this.y - other.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 0.001 && dist < minDistance) {
+        // Inverse linear repulsive force
+        const force = ((minDistance - dist) / minDistance) * 36;
+        pushX += (dx / dist) * force;
+        pushY += (dy / dist) * force;
+      } else if (dist <= 0.001) {
+        pushX += (Math.random() - 0.5) * 20;
+        pushY += (Math.random() - 0.5) * 20;
+      }
+    }
+
+    if (pushX !== 0 || pushY !== 0) {
+      this.x += pushX * dt;
+      this.y += pushY * dt;
+      this.clampToBounds();
+    }
+  }
+
+  /**
+   * Plays character frame animation matching the current FSM state.
+   */
+  private playStateAnimation(state: PenguinState): void {
+    const rawSp = this.ownedPenguin.speciesId.replace('penguin_', '');
+    const animMap: Record<PenguinState, string> = {
+      IDLE: `${rawSp}_idle`,
+      WADDLE: `${rawSp}_walk`,
+      FOLLOW: `${rawSp}_walk`,
+      BELLY_SLIDE: `${rawSp}_slide`,
+      SLEEP: `${rawSp}_sleep`,
+      EAT: `${rawSp}_eat`,
+      CELEBRATE: `${rawSp}_celebrate`,
+      TALK: `${rawSp}_idle`,
+      PLAY: `${rawSp}_celebrate`,
+      FISH: `${rawSp}_idle`,
+      REACT: `${rawSp}_celebrate`,
+    };
+    const animKey = animMap[state];
+    if (animKey && this.scene?.anims?.exists?.(animKey)) {
+      this.bodySprite.play?.(animKey, true);
+    }
+  }
+
+  /**
    * Frame update loop called by the parent Phaser Scene.
    */
   update(_time: number, delta: number): void {
@@ -235,6 +307,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
       } else if (state === 'FOLLOW') {
         this.stopWobbleTween();
         this.resetBodyTransform();
+        this.fsm.transitionTo('IDLE');
       }
       return;
     }
@@ -250,6 +323,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
     this.x += (dx / dist) * moveDist;
     this.y += (dy / dist) * moveDist;
+    this.clampToBounds();
 
     // Orient facing direction
     if (Math.abs(dx) > 1) {
@@ -272,6 +346,7 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
 
   private handleStateChange(newState: PenguinState, _prevState: PenguinState): void {
     this.stopActiveTweens();
+    this.playStateAnimation(newState);
 
     switch (newState) {
       case 'IDLE':
@@ -328,35 +403,27 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   private enterWaddleState(): void {
     this.resetBodyTransform();
 
-    // Pick random wander waypoint guaranteed to remain on snowy land outside the pond
-    const rx = Math.max(100, (this.bounds.maxX - this.bounds.minX) / 2);
-    const ry = Math.max(60, (this.bounds.maxY - this.bounds.minY) / 2);
-    const centerX = (this.bounds.minX + this.bounds.maxX) / 2;
-    const centerY = (this.bounds.minY + this.bounds.maxY) / 2;
-    const pond = this.bounds.pondCenter ?? { x: 0, y: 15, radiusX: 190, radiusY: 105 };
+    // 4 distinct walkable zones covering all 4 quadrants of the island (outside the central pond)
+    const zones = [
+      { minX: -260, maxX: 260, minY: -140, maxY: -95 }, // North ridge
+      { minX: -260, maxX: 260, minY: 110, maxY: 150 },  // South promenade
+      { minX: -320, maxX: -190, minY: -100, maxY: 100 }, // West bank
+      { minX: 190, maxX: 320, minY: -100, maxY: 100 },   // East bank
+    ];
 
-    let wanderX = this.x;
-    let wanderY = this.y;
+    // Pick a destination zone sufficiently far from current position to ensure good journey
+    const farZones = zones.filter((z) => {
+      const midX = (z.minX + z.maxX) / 2;
+      const midY = (z.minY + z.maxY) / 2;
+      return Math.hypot(midX - this.x, midY - this.y) > 90;
+    });
+    const chosenZone = farZones.length > 0
+      ? farZones[Math.floor(Math.random() * farZones.length)]
+      : zones[Math.floor(Math.random() * zones.length)];
 
-    for (let i = 0; i < 15; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      // Between 0.35 and 0.86 of ellipse radius to stay on island snow banks without falling off
-      const rad = 0.35 + Math.random() * 0.51;
-      const testX = Math.round(centerX + rad * rx * Math.cos(angle));
-      const testY = Math.round(centerY + rad * ry * Math.sin(angle));
-
-      const pondDx = (testX - pond.x) / pond.radiusX;
-      const pondDy = (testY - pond.y) / pond.radiusY;
-      // Outside the pond area
-      if (pondDx * pondDx + pondDy * pondDy >= 1.1) {
-        wanderX = testX;
-        wanderY = testY;
-        break;
-      }
-    }
-
-    this.targetX = wanderX;
-    this.targetY = wanderY;
+    this.targetX = Phaser.Math.Between(chosenZone.minX, chosenZone.maxX);
+    this.targetY = Phaser.Math.Between(chosenZone.minY, chosenZone.maxY);
+    this.clampToBounds();
 
     this.startWaddleWobble();
   }
@@ -465,10 +532,14 @@ export class PenguinEntity extends Phaser.GameObjects.Container {
   private enterFishState(): void {
     this.resetBodyTransform();
 
-    // Head towards fishing hole
-    const hole = this.bounds.fishingHole ?? { x: -260, y: 70 };
-    this.targetX = hole.x + Phaser.Math.Between(-15, 15);
-    this.targetY = hole.y + Phaser.Math.Between(-10, 10);
+    // Head towards natural pond perimeter shoreline instead of one fixed corner
+    const pond = this.bounds.pondCenter ?? { x: 0, y: 15, radiusX: 190, radiusY: 105 };
+    const angle = Math.random() * Math.PI * 2;
+    const shoreDistX = pond.radiusX + 16 + Phaser.Math.Between(0, 14);
+    const shoreDistY = pond.radiusY + 12 + Phaser.Math.Between(0, 10);
+    this.targetX = Math.round(pond.x + Math.cos(angle) * shoreDistX);
+    this.targetY = Math.round(pond.y + Math.sin(angle) * shoreDistY);
+    this.clampToBounds();
 
     const dist = Math.hypot(this.targetX - this.x, this.targetY - this.y);
     if (dist < 8) {

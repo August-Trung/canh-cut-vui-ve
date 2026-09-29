@@ -47,8 +47,12 @@ describe('TextureGenerator', () => {
 
     it('defines all required environment and particle texture keys', () => {
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('ice_pond', 'ice_pond');
+      expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('pond_ripple', 'pond_ripple');
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('snow_ground', 'snow_ground');
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('pine_tree', 'pine_tree');
+      expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('pine_tree_a', 'pine_tree_a');
+      expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('pine_tree_b', 'pine_tree_b');
+      expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('pine_tree_c', 'pine_tree_c');
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('igloo', 'igloo');
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('snowman', 'snowman');
       expect(ENVIRONMENT_TEXTURE_KEYS).toHaveProperty('entity_shadow', 'entity_shadow');
@@ -68,22 +72,61 @@ describe('TextureGenerator', () => {
   });
 
   describe('ensureGameTextures and Caching Logic', () => {
-    it('generates and caches all 23 textures when cache is empty', () => {
+    it('generates and caches all 62 textures when cache is empty', () => {
       ensureGameTextures(mockScene);
 
-      // 5 penguins + 3 eggs + 9 environment/particles + 6 decorations = 23 textures
+      // 5 penguins base + 35 poses + 3 eggs + 13 environment/particles + 6 decorations = 62 textures
       const expectedKeys = [
         'penguin_snowy',
         'penguin_sleepy',
         'penguin_shy',
         'penguin_happy',
         'penguin_hungry',
+        'penguin_snowy_idle',
+        'penguin_snowy_walk_0',
+        'penguin_snowy_walk_1',
+        'penguin_snowy_sleep',
+        'penguin_snowy_eat',
+        'penguin_snowy_celebrate',
+        'penguin_snowy_slide',
+        'penguin_sleepy_idle',
+        'penguin_sleepy_walk_0',
+        'penguin_sleepy_walk_1',
+        'penguin_sleepy_sleep',
+        'penguin_sleepy_eat',
+        'penguin_sleepy_celebrate',
+        'penguin_sleepy_slide',
+        'penguin_shy_idle',
+        'penguin_shy_walk_0',
+        'penguin_shy_walk_1',
+        'penguin_shy_sleep',
+        'penguin_shy_eat',
+        'penguin_shy_celebrate',
+        'penguin_shy_slide',
+        'penguin_happy_idle',
+        'penguin_happy_walk_0',
+        'penguin_happy_walk_1',
+        'penguin_happy_sleep',
+        'penguin_happy_eat',
+        'penguin_happy_celebrate',
+        'penguin_happy_slide',
+        'penguin_hungry_idle',
+        'penguin_hungry_walk_0',
+        'penguin_hungry_walk_1',
+        'penguin_hungry_sleep',
+        'penguin_hungry_eat',
+        'penguin_hungry_celebrate',
+        'penguin_hungry_slide',
         'egg_basic',
         'egg_frozen',
         'egg_golden',
         'ice_pond',
+        'pond_ripple',
         'snow_ground',
         'pine_tree',
+        'pine_tree_a',
+        'pine_tree_b',
+        'pine_tree_c',
         'igloo',
         'snowman',
         'entity_shadow',
@@ -98,7 +141,7 @@ describe('TextureGenerator', () => {
         'dec_trophy_master',
       ];
 
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(23);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(62);
       for (const key of expectedKeys) {
         expect(createdTextures.has(key)).toBe(true);
       }
@@ -122,17 +165,39 @@ describe('TextureGenerator', () => {
       expect(mockScene.textures.addCanvas).not.toHaveBeenCalledWith('egg_basic', expect.anything());
       expect(mockScene.textures.addCanvas).not.toHaveBeenCalledWith('ice_pond', expect.anything());
 
-      // 23 total minus 3 already cached = 20 new additions
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(20);
+      // 62 total minus 3 already cached = 59 new additions
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(59);
     });
 
     it('never regenerates any texture on subsequent ensureGameTextures calls', () => {
       ensureGameTextures(mockScene);
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(23);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(62);
 
-      // Second call should generate 0 new textures because all 23 now exist
+      // Second call should generate 0 new textures because all 62 now exist
       ensureGameTextures(mockScene);
-      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(23);
+      expect(mockScene.textures.addCanvas).toHaveBeenCalledTimes(62);
+    });
+
+    it('registers animations when scene.anims is provided', () => {
+      const createdAnims = new Map<string, unknown>();
+      const sceneWithAnims = {
+        textures: mockScene.textures,
+        anims: {
+          exists: vi.fn((key: string) => createdAnims.has(key)),
+          create: vi.fn((config: { key: string }) => {
+            createdAnims.set(config.key, config);
+            return config;
+          }),
+        },
+      };
+
+      ensureGameTextures(sceneWithAnims);
+      expect(sceneWithAnims.anims.create).toHaveBeenCalled();
+      expect(createdAnims.has('snowy_walk')).toBe(true);
+      expect(createdAnims.has('snowy_idle')).toBe(true);
+      expect(createdAnims.has('sleepy_sleep')).toBe(true);
+      expect(createdAnims.has('happy_celebrate')).toBe(true);
+      expect(createdAnims.has('hungry_eat')).toBe(true);
     });
   });
 

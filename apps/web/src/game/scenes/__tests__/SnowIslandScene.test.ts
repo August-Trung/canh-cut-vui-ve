@@ -253,9 +253,9 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       expect(mockAdd.image).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'ice_pond');
       expect(mockAdd.image).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'snow_ground');
 
-      // Winter props: igloo, pine_tree, snowman
+      // Winter props: igloo, pine_tree variations, snowman
       expect(mockAdd.image).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'igloo');
-      expect(mockAdd.image).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'pine_tree');
+      expect(mockAdd.image).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), expect.stringMatching(/^pine_tree/));
       expect(mockAdd.image).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'snowman');
 
       // Ambient particle snow (max 50-80 particles)
