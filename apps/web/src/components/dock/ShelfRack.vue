@@ -51,22 +51,7 @@
           <span class="shelf-btn__label">Bộ Sưu Tập</span>
         </button>
 
-        <!-- 3. Ấp Trứng (Hatchery Nest) -->
-        <button
-          type="button"
-          class="shelf-btn shelf-btn--hatchery"
-          data-testid="btn-hatchery"
-          title="Ấp Trứng"
-          aria-label="Ấp Trứng"
-          @click="emit('open-hatchery')"
-        >
-          <div class="shelf-btn__icon-plate">
-            <GameIcon name="hatchery" size="sm" alt="Ấp Trứng" />
-          </div>
-          <span class="shelf-btn__label">Ấp Trứng</span>
-        </button>
-
-        <!-- 4. Phối Giống (Breeding) -->
+        <!-- 3. Phối Giống (Breeding) -->
         <button
           type="button"
           class="shelf-btn shelf-btn--breeding"

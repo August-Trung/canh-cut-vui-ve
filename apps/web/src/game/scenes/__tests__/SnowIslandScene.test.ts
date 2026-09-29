@@ -287,27 +287,6 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       expect(registeredEvents).toContain('wheel');
     });
 
-    it('emits egg:clicked and resets/kills tweens on nestContainer when incubator nest is clicked', () => {
-      const eggHandler = vi.fn();
-      gameBridge.on('egg:clicked', eggHandler);
-
-      scene.create();
-
-      // Trigger the nest click callback
-      scene.handleNestClick();
-
-      expect(mockTweens.killTweensOf).toHaveBeenCalled();
-      expect(mockTweens.add).toHaveBeenCalledWith(
-        expect.objectContaining({
-          scaleX: 1.15,
-          scaleY: 0.88,
-          duration: 90,
-          yoyo: true,
-        })
-      );
-      expect(eggHandler).toHaveBeenCalledWith({ slotId: 1 });
-    });
-
     it('synchronizes island entities on world:sync, clearing old entities and spawning incoming ones', () => {
       scene.create();
 
@@ -482,143 +461,31 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
       expect(scene.getPenguinCount()).toBe(0);
     });
 
-    describe('Dynamic Incubator Nest Visual Synchronization', () => {
-      it('initializes with an empty nest without hardcoding an egg sprite', () => {
+    describe('Asset-First & Zero Fake Data Verification', () => {
+      it('does not build an incubator nest on the island', () => {
         scene.create();
-
-        expect(scene.getNestContainer()).toBeDefined();
-        // Slot 1 is EMPTY by default, so no egg sprite is rendered in the nest
+        expect(scene.getNestContainer()).toBeNull();
         expect(scene.getNestEggSprite()).toBeNull();
       });
 
-      it('displays correct egg sprite when an egg is placed in slot 1 (basic_egg, frozen_egg, golden_egg)', () => {
+      it('does not spawn fake scattered eggs on the snow terrain', () => {
         scene.create();
-
-        // 1. Place basic_egg
-        gameBridge.emit('nest:sync', {
-          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'basic_egg' },
-        });
-
-        expect(mockAdd.image).toHaveBeenCalledWith(0, -8, 'egg_basic');
-        expect(scene.getNestEggSprite()).not.toBeNull();
-
-        // 2. Place frozen_egg
-        gameBridge.emit('nest:sync', {
-          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'frozen_egg' },
-        });
-        const eggSprite = scene.getNestEggSprite() as unknown as { setTexture: ReturnType<typeof vi.fn> };
-        expect(eggSprite.setTexture).toHaveBeenCalledWith('egg_frozen');
-
-        // 3. Place golden_egg
-        gameBridge.emit('nest:sync', {
-          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'golden_egg' },
-        });
-        expect(eggSprite.setTexture).toHaveBeenCalledWith('egg_golden');
-      });
-
-      it('starts gentle wobble animation when egg enters READY_TO_HATCH state', () => {
-        scene.create();
-
-        gameBridge.emit('nest:sync', {
-          slot: { slotId: 1, state: 'READY_TO_HATCH', eggTypeId: 'basic_egg' },
-        });
-
-        expect(mockTweens.add).toHaveBeenCalledWith(
-          expect.objectContaining({
-            duration: 350,
-            yoyo: true,
-            repeat: -1,
-          })
+        const imageCalls = mockAdd.image.mock.calls;
+        const eggImageCalls = imageCalls.filter((call) =>
+          typeof call[2] === 'string' && call[2].startsWith('egg_')
         );
+        expect(eggImageCalls.length).toBe(0);
       });
 
-      it('removes egg and restores empty nest when egg is hatched and slot returns to EMPTY', () => {
+      it('does not render procedural food storage label or island signpost text', () => {
         scene.create();
-
-        // Egg placed
-        gameBridge.emit('nest:sync', {
-          slot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'basic_egg' },
-        });
-        expect(scene.getNestEggSprite()).not.toBeNull();
-
-        // Egg hatched -> slot returns to EMPTY
-        gameBridge.emit('nest:sync', {
-          slot: { slotId: 1, state: 'EMPTY' },
-        });
-
-        expect(mockTweens.killTweensOf).toHaveBeenCalled();
-        expect(scene.getNestEggSprite()).toBeNull();
+        const textCalls = mockAdd.text.mock.calls;
+        const foodStorageText = textCalls.find((call) => typeof call[2] === 'string' && call[2].includes('Hồ Thức Ăn'));
+        const signpostText = textCalls.find((call) => typeof call[2] === 'string' && call[2].includes('Đảo Tuyết'));
+        expect(foodStorageText).toBeUndefined();
+        expect(signpostText).toBeUndefined();
       });
-
-      it('restores nest visual when reloading saved state via world:sync with nestSlot', () => {
-        scene.create();
-
-        gameBridge.emit('world:sync', {
-          penguins: [],
-          nestSlot: { slotId: 1, state: 'INCUBATING', eggTypeId: 'frozen_egg' },
-        });
-
-        expect(mockAdd.image).toHaveBeenCalledWith(0, -8, 'egg_frozen');
-        expect(scene.getNestEggSprite()).not.toBeNull();
-      });
-
-      it('clicking the nestContainer emits egg:clicked { slotId: 1 } and plays bounce animation', () => {
-        const eggHandler = vi.fn();
-        gameBridge.on('egg:clicked', eggHandler);
-
-        scene.create();
-        scene.handleNestClick();
-
-        expect(mockTweens.killTweensOf).toHaveBeenCalled();
-        expect(mockTweens.add).toHaveBeenCalledWith(
-          expect.objectContaining({
-            scaleX: 1.15,
-            scaleY: 0.88,
-            duration: 90,
-            yoyo: true,
-          })
-        );
-        expect(eggHandler).toHaveBeenCalledWith({ slotId: 1 });
-      });
-
-      it('configures incubator nest container with centered circular hitArea matching nest and egg geometry', () => {
-        scene.create();
-
-        const nestContainer = scene.getNestContainer();
-        expect(nestContainer).not.toBeNull();
-
-        // Inspect setInteractive call on the nest container
-        expect(nestContainer?.setSize).toHaveBeenCalledWith(72, 72);
-        expect(nestContainer?.setInteractive).toHaveBeenCalledWith(
-          expect.objectContaining({
-            hitArea: expect.any(Phaser.Geom.Circle),
-            hitAreaCallback: Phaser.Geom.Circle.Contains,
-            useHandCursor: true,
-          })
-        );
-
-        // Verify the Circle geometry: center (36, 32) with radius 38
-        const interactiveConfig = (nestContainer?.setInteractive as ReturnType<typeof vi.fn>).mock.calls[0][0];
-        const circle = interactiveConfig.hitArea as Phaser.Geom.Circle;
-        expect(circle.x).toBe(36);
-        expect(circle.y).toBe(32);
-        expect(circle.radius).toBe(38);
-
-        // Center point (36, 36) in Container hit-test space corresponds to visual (0, 0)
-        expect(Phaser.Geom.Circle.Contains(circle, 36, 36)).toBe(true);
-
-        // Top of egg (36, 6) corresponds to visual (0, -26)
-        expect(Phaser.Geom.Circle.Contains(circle, 36, 6)).toBe(true);
-
-        // Bottom of nest (36, 61) corresponds to visual (0, +29)
-        expect(Phaser.Geom.Circle.Contains(circle, 36, 61)).toBe(true);
-
-        // Upper-left shifted point (0, 0) is correctly outside the circle (distance ~48 > 38)
-        expect(Phaser.Geom.Circle.Contains(circle, 0, 0)).toBe(false);
-
-        // Distant outside point (100, 100) is rejected
-        expect(Phaser.Geom.Circle.Contains(circle, 100, 100)).toBe(false);
-      });
+    });
 
       it('disables scene input and resets cursor when ui:modal is open, and restores scene input when closed', () => {
         scene.create();
@@ -763,7 +630,6 @@ describe('Task 8: Snow Island Scene & Camera Controls', () => {
 
         vi.restoreAllMocks();
       });
-    });
   });
 });
 

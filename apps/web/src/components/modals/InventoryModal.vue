@@ -119,17 +119,7 @@
             <!-- Actions based on Item Category -->
             <div class="item-card__actions">
               <button
-                v-if="item.category === 'eggs'"
-                type="button"
-                class="btn-item-action btn-item-action--egg"
-                :data-testid="`action-place-egg-${item.itemId}`"
-                @click="handlePlaceEgg(item.itemId)"
-              >
-                Đặt Vào Tổ Ấp
-              </button>
-
-              <button
-                v-else-if="item.category === 'food'"
+                v-if="item.category === 'food'"
                 type="button"
                 class="btn-item-action btn-item-action--food"
                 :data-testid="`action-feed-fish-${item.itemId}`"
@@ -190,21 +180,6 @@ const totalItemsCount = computed(() => {
 function showFeedback(msg: string, type: 'success' | 'warning' | 'info' = 'info') {
   feedbackMessage.value = msg;
   feedbackType.value = type;
-}
-
-function handlePlaceEgg(itemId: string) {
-  const emptySlot = gameStore.incubatorSlots.find((s) => s.state === 'EMPTY');
-  if (!emptySlot) {
-    showFeedback('Tất cả tổ ấp đều đang bận, hãy đợi hoặc ấp nở trứng trước nhé!', 'warning');
-    return;
-  }
-
-  const success = gameStore.placeEggInIncubator(emptySlot.slotId, itemId);
-  if (success) {
-    showFeedback(`Đã đặt trứng vào tổ ấp #${emptySlot.slotId}!`, 'success');
-  } else {
-    showFeedback('Không thể đặt trứng vào tổ ấp.', 'warning');
-  }
 }
 
 function handleFeedPenguin(itemId: string) {

@@ -1,5 +1,5 @@
 <template>
-  <aside class="neighbor-strip" aria-label="Danh sách Hàng Xóm Mô Phỏng">
+  <aside class="neighbor-strip" aria-label="Danh sách Hàng Xóm">
     <!-- Header Badge with toggle -->
     <div
       class="neighbor-strip__header"
@@ -12,7 +12,7 @@
       <div class="neighbor-strip__badge">
         <GameIcon name="pet" size="xs" class="neighbor-strip__badge-icon" />
         <span class="neighbor-strip__badge-text">
-          Hàng Xóm Đảo Băng <span class="neighbor-strip__badge-sub">(NPC Mô Phỏng)</span>
+          Hàng Xóm Đảo Băng
         </span>
       </div>
       <button
@@ -39,15 +39,20 @@
       <!-- Frost edge cap -->
       <div class="neighbor-strip__frost-rim" aria-hidden="true"></div>
 
+      <!-- Real Empty State -->
+      <div v-if="neighbors.length === 0" class="neighbor-strip__empty" data-testid="neighbor-empty-state">
+        <span class="neighbor-strip__empty-text">Chưa có hàng xóm</span>
+      </div>
+
       <div
         v-for="neighbor in neighbors"
         :key="neighbor.id"
         class="neighbor-card"
         role="listitem"
-        :title="`${neighbor.name} (${neighbor.role}) - ${neighbor.status}`"
+        :title="`${neighbor.name}${neighbor.role ? ' (' + neighbor.role + ')' : ''}${neighbor.status ? ' - ' + neighbor.status : ''}`"
       >
         <!-- Avatar Frame with overlapping Level Star -->
-        <div class="neighbor-card__avatar-box" :style="{ background: neighbor.avatarBg }">
+        <div class="neighbor-card__avatar-box" :style="{ background: neighbor.avatarBg || 'linear-gradient(135deg, #BAE6FD 0%, #38BDF8 100%)' }">
           <GameIcon :name="neighbor.avatarIcon" size="sm" class="neighbor-card__avatar-icon" />
           <div class="neighbor-card__level-badge">
             <span class="neighbor-card__level-star">★</span>
@@ -58,7 +63,7 @@
         <!-- Meta -->
         <div class="neighbor-card__info">
           <span class="neighbor-card__name">{{ neighbor.name }}</span>
-          <span class="neighbor-card__status">{{ neighbor.status }}</span>
+          <span v-if="neighbor.status" class="neighbor-card__status">{{ neighbor.status }}</span>
         </div>
 
         <!-- Wave / Greeting Action Button -->
@@ -74,7 +79,7 @@
         </button>
       </div>
 
-      <!-- Add Friend NPC slot (Decorative social feature) -->
+      <!-- Add Friend slot (Social feature) -->
       <div class="neighbor-card neighbor-card--add" title="Thêm hàng xóm mới">
         <div class="neighbor-card__add-icon">+</div>
         <span class="neighbor-card__add-label">Kết Bạn</span>
@@ -94,69 +99,35 @@
 import { ref, onUnmounted } from 'vue';
 import GameIcon from '../common/GameIcon.vue';
 
-export interface SimulatedNeighbor {
+export interface NeighborData {
   id: string;
   name: string;
-  role: string;
+  role?: string;
   level: number;
-  status: string;
+  status?: string;
   avatarIcon: string;
-  avatarBg: string;
-  response: string;
+  avatarBg?: string;
+  response?: string;
 }
+
+const props = withDefaults(
+  defineProps<{
+    neighbors?: NeighborData[];
+  }>(),
+  {
+    neighbors: () => [],
+  }
+);
 
 const isExpanded = ref(true);
 const toastMessage = ref('');
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-const neighbors: SimulatedNeighbor[] = [
-  {
-    id: 'npc-bear',
-    name: 'Bác Gấu Tuyết',
-    role: 'Ngư Dân Đảo Băng',
-    level: 12,
-    status: 'Đang câu cá',
-    avatarIcon: 'fish',
-    avatarBg: 'linear-gradient(135deg, #BAE6FD 0%, #38BDF8 100%)',
-    response: 'Bác Gấu Tuyết mỉm cười gật đầu và ném cho bạn một con cá tươi!',
-  },
-  {
-    id: 'npc-neighbor',
-    name: 'Cánh Cụt Bé Nhỏ',
-    role: 'Hàng Xóm Vui Vẻ',
-    level: 4,
-    status: 'Đang trượt băng',
-    avatarIcon: 'crown',
-    avatarBg: 'linear-gradient(135deg, #DDD6FE 0%, #8B5CF6 100%)',
-    response: 'Cánh Cụt Bé Nhỏ trượt một vòng số 8 tuyệt đẹp chào bạn!',
-  },
-  {
-    id: 'npc-explorer',
-    name: 'Đội Thám Hiểm Băng',
-    role: 'Nhà Khám Phá Nam Cực',
-    level: 8,
-    status: 'Đang khảo sát',
-    avatarIcon: 'target',
-    avatarBg: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
-    response: 'Đội Thám Hiểm giơ kính viễn vọng chào bạn từ xa!',
-  },
-  {
-    id: 'npc-tailor',
-    name: 'Thợ May Khăn Ấm',
-    role: 'Nghệ Nhân Đan Len',
-    level: 6,
-    status: 'Đang đan mũ',
-    avatarIcon: 'gift',
-    avatarBg: 'linear-gradient(135deg, #FECDD3 0%, #F43F5E 100%)',
-    response: 'Thợ May vẫy cuộn len ấm áp chúc bạn một ngày vui vẻ!',
-  },
-];
-
-function handleWave(neighbor: SimulatedNeighbor) {
+function handleWave(neighbor: NeighborData) {
   if (toastTimer) {
     clearTimeout(toastTimer);
   }
-  toastMessage.value = neighbor.response;
+  toastMessage.value = neighbor.response || `${neighbor.name} vẫy tay chào bạn!`;
   toastTimer = setTimeout(() => {
     toastMessage.value = '';
     toastTimer = null;
@@ -264,6 +235,22 @@ onUnmounted(() => {
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: thin;
+}
+
+.neighbor-strip__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+}
+
+.neighbor-strip__empty-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0369A1;
+  font-style: italic;
+  white-space: nowrap;
 }
 
 .neighbor-strip__tray::-webkit-scrollbar {

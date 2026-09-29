@@ -46,48 +46,20 @@ describe('InventoryModal.vue', () => {
     expect(wrapper.find('[data-testid="inventory-item-basic_egg"]').exists()).toBe(false);
   });
 
-  it('places egg in available incubator slot when "Đặt Vào Tổ Ấp" is clicked', async () => {
-    const game = useGameStore();
+  it('renders egg items as inventory items without incubation placement actions', async () => {
     const invStore = useInventoryStore();
     invStore.setItems([
-      { itemId: 'basic_egg', category: 'eggs', name: 'Basic Egg', description: 'Trứng cơ bản', quantity: 1, stackable: true },
+      { itemId: 'basic_egg', category: 'eggs', name: 'Basic Egg', description: 'Trứng cơ bản', quantity: 3, stackable: true },
     ]);
-
-    // Ensure slot 1 is empty
-    game.incubatorSlots[0].state = 'EMPTY';
-
-    const placeSpy = vi.spyOn(game, 'placeEggInIncubator');
 
     const wrapper = mount(InventoryModal);
     await wrapper.find('[data-testid="tab-eggs"]').trigger('click');
 
-    const placeBtn = wrapper.find('[data-testid="action-place-egg-basic_egg"]');
-    expect(placeBtn.exists()).toBe(true);
-    await placeBtn.trigger('click');
-
-    expect(placeSpy).toHaveBeenCalledWith(1, 'basic_egg');
-    expect(wrapper.text()).toContain('Đã đặt trứng vào tổ ấp');
-  });
-
-  it('shows feedback when all incubator slots are full and egg cannot be placed', async () => {
-    const game = useGameStore();
-    const invStore = useInventoryStore();
-    invStore.setItems([
-      { itemId: 'basic_egg', category: 'eggs', name: 'Basic Egg', description: 'Trứng cơ bản', quantity: 1, stackable: true },
-    ]);
-
-    // Fill all incubator slots
-    for (const slot of game.incubatorSlots) {
-      slot.state = 'INCUBATING';
-    }
-
-    const wrapper = mount(InventoryModal);
-    await wrapper.find('[data-testid="tab-eggs"]').trigger('click');
-
-    const placeBtn = wrapper.find('[data-testid="action-place-egg-basic_egg"]');
-    await placeBtn.trigger('click');
-
-    expect(wrapper.text()).toContain('Tất cả tổ ấp đều đang bận');
+    expect(wrapper.find('[data-testid="inventory-item-basic_egg"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Basic Egg');
+    expect(wrapper.text()).toContain('x3');
+    // Ensure no incubation trigger exists
+    expect(wrapper.find('[data-testid="action-place-egg-basic_egg"]').exists()).toBe(false);
   });
 
   it('feeds penguin when "Cho Ăn" is clicked on fish item', async () => {

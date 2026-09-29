@@ -4,15 +4,18 @@ import { mount } from '@vue/test-utils';
 import ShelfRack from '../dock/ShelfRack.vue';
 
 describe('ShelfRack Component', () => {
-  it('renders all action buttons with Vietnamese labels', () => {
+  it('renders verified action buttons with Vietnamese labels and no Hatchery button', () => {
     const wrapper = mount(ShelfRack);
     expect(wrapper.text()).toContain('Túi Đồ');
     expect(wrapper.text()).toContain('Bộ Sưu Tập');
-    expect(wrapper.text()).toContain('Ấp Trứng');
     expect(wrapper.text()).toContain('Phối Giống');
     expect(wrapper.text()).toContain('Cửa Hàng');
     expect(wrapper.text()).toContain('Nhiệm Vụ');
     expect(wrapper.text()).toContain('Cài Đặt');
+
+    // Domain correction: No Hatchery / Incubation
+    expect(wrapper.text()).not.toContain('Ấp Trứng');
+    expect(wrapper.find('[data-testid="btn-hatchery"]').exists()).toBe(false);
   });
 
   it('emits open-inventory when Túi Đồ is clicked', async () => {
@@ -33,16 +36,6 @@ describe('ShelfRack Component', () => {
     await btn.trigger('click');
     expect(wrapper.emitted('open-collection')).toBeTruthy();
     expect(wrapper.emitted('open-collection')?.length).toBe(1);
-  });
-
-  it('emits open-hatchery when Ấp Trứng is clicked', async () => {
-    const wrapper = mount(ShelfRack);
-    const btn = wrapper.find('[data-testid="btn-hatchery"]');
-    expect(btn.exists()).toBe(true);
-
-    await btn.trigger('click');
-    expect(wrapper.emitted('open-hatchery')).toBeTruthy();
-    expect(wrapper.emitted('open-hatchery')?.length).toBe(1);
   });
 
   it('emits open-breeding when Phối Giống is clicked', async () => {
