@@ -20,19 +20,19 @@
       @click.stop
     >
       <!-- Modal Close Button -->
-      <button
-        type="button"
-        class="modal-close-btn"
-        data-testid="modal-close-btn"
-        aria-label="Đóng"
-        @pointerdown.stop
-        @pointerup.stop
-        @mousedown.stop
-        @mouseup.stop
-        @click.stop="emit('close')"
-      >
-        <GameIcon name="close" size="sm" />
-      </button>
+        <button
+          type="button"
+          class="modal-close-btn"
+          data-testid="modal-close-btn"
+          aria-label="Đóng"
+          @pointerdown.stop
+          @pointerup.stop
+          @mousedown.stop
+          @mouseup.stop
+          @click.stop="emit('close')"
+        >
+          <span class="close-x">✕</span>
+        </button>
 
       <!-- Feedback Toast Notification -->
       <transition name="toast-fade">
@@ -334,42 +334,50 @@ function handleFeed() {
   position: relative;
   width: 100%;
   max-width: 440px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%);
-  border: 3px solid #7DD3FC;
-  border-radius: 28px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.35),
-    0 0 0 2px rgba(255, 255, 255, 0.9) inset;
-  padding: 24px;
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 14px;
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-close-btn {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 10px;
+  right: 10px;
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  border: none;
-  background: #E2E8F0;
-  color: #64748B;
-  font-weight: bold;
+  border: 2px solid #451A03;
+  border-top-color: #FDE68A;
+  background: linear-gradient(180deg, #A16207 0%, #78350F 100%);
+  color: #FFFFFF;
+  font-weight: 900;
   font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  z-index: 10;
 }
 
 .modal-close-btn:hover {
-  background: #FEE2E2;
-  color: #DC2626;
   transform: scale(1.08);
+  filter: brightness(1.15);
+}
+
+.close-x {
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* Feedback Toast */

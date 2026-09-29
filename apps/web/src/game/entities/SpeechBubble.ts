@@ -136,17 +136,17 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     const pointerWidth = 10;
 
     // Soft drop shadow
-    this.bubbleBg.fillStyle(0x0f172a, 0.12);
-    this.bubbleBg.fillRoundedRect(x, y + 2, width, height, radius);
+    this.bubbleBg.fillStyle(0x0f172a, 0.2);
+    this.bubbleBg.fillRoundedRect(x, y + 3, width, height, radius);
 
     // Speech bubble background fill
-    this.bubbleBg.fillStyle(0xffffff, 0.96);
-    this.bubbleBg.lineStyle(2, 0x80deea, 1);
+    this.bubbleBg.fillStyle(0xffffff, 1.0);
     this.bubbleBg.fillRoundedRect(x, y, width, height, radius);
+    this.bubbleBg.lineStyle(2, 0x1e293b, 1.0);
     this.bubbleBg.strokeRoundedRect(x, y, width, height, radius);
 
     // Speech pointer tail pointing down towards penguin's head
-    this.bubbleBg.fillStyle(0xffffff, 1);
+    this.bubbleBg.fillStyle(0xffffff, 1.0);
     this.bubbleBg.beginPath();
     this.bubbleBg.moveTo(-pointerWidth / 2, y + height);
     this.bubbleBg.lineTo(0, y + height + pointerHeight);
@@ -155,7 +155,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     this.bubbleBg.fillPath();
 
     // Border line on pointer tail
-    this.bubbleBg.lineStyle(2, 0x80deea, 1);
+    this.bubbleBg.lineStyle(2, 0x1e293b, 1.0);
     this.bubbleBg.beginPath();
     this.bubbleBg.moveTo(-pointerWidth / 2, y + height);
     this.bubbleBg.lineTo(0, y + height + pointerHeight);
@@ -163,7 +163,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     this.bubbleBg.strokePath();
 
     // Overwrite inner seam between bubble and pointer with white line
-    this.bubbleBg.lineStyle(2, 0xffffff, 1);
+    this.bubbleBg.lineStyle(2.5, 0xffffff, 1.0);
     this.bubbleBg.beginPath();
     this.bubbleBg.moveTo(-pointerWidth / 2 + 1, y + height);
     this.bubbleBg.lineTo(pointerWidth / 2 - 1, y + height);

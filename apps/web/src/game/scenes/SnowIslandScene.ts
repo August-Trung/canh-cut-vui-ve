@@ -67,9 +67,11 @@ export class SnowIslandScene extends Phaser.Scene {
   create(): void {
     // 1. Build 2.5D Snow Island Environment & Backdrop
     this.buildBackdrop();
+    this.buildCentralPondProps();
     this.buildWinterProps();
     this.buildAnchorPlots();
     this.buildIncubatorNest();
+    this.buildWorldEggs();
     this.buildAmbientSnowParticles();
 
     // 2. Setup Camera Controls & Bounds
@@ -87,45 +89,192 @@ export class SnowIslandScene extends Phaser.Scene {
   }
 
   /**
-   * Constructs floating ice cliffs, multi-layered snow banks, and center frozen ice pond.
+   * Constructs expansive natural snow terrain, distant arctic mountains, and central feeding pond.
    */
   private buildBackdrop(): void {
-    // 1. Lower floating ice cliffs backdrop (faceted depth polygons with gradient shading)
-    const cliffs = this.add.graphics();
-    cliffs.setDepth(-500);
+    // 1. Distant icy mountain peaks on horizon
+    const mountains = this.add.graphics();
+    mountains.setDepth(-550);
 
-    // Deep ice cliff shadow
-    cliffs.fillStyle(0x5a8fa8, 0.45);
-    cliffs.fillEllipse(0, 60, 880, 480);
+    // Pale mountain silhouettes in the distance
+    mountains.fillStyle(0xcce7f6, 0.85);
+    mountains.beginPath();
+    mountains.moveTo(-600, -180);
+    mountains.lineTo(-420, -290);
+    mountains.lineTo(-240, -190);
+    mountains.lineTo(-100, -280);
+    mountains.lineTo(80, -190);
+    mountains.lineTo(260, -310);
+    mountains.lineTo(460, -200);
+    mountains.lineTo(600, -270);
+    mountains.lineTo(600, 200);
+    mountains.lineTo(-600, 200);
+    mountains.closePath();
+    mountains.fillPath();
 
-    // Mid ice cliff body
-    cliffs.fillStyle(0x7fb3cd, 0.7);
-    cliffs.fillEllipse(0, 40, 840, 450);
+    // Snow caps on mountain peaks
+    mountains.fillStyle(0xffffff, 0.95);
+    const peaks = [
+      [-420, -290, 45],
+      [-100, -280, 40],
+      [260, -310, 50],
+      [600, -270, 35],
+    ];
+    for (const [px, py, radius] of peaks) {
+      mountains.fillCircle(px, py + 20, radius);
+    }
 
-    // Soft ice shelf rim
-    cliffs.fillStyle(0xa6d8ef, 0.85);
-    cliffs.fillEllipse(0, 20, 800, 420);
+    // 2. Wide sprawling snow base across the game world
+    const snowBase = this.add.graphics();
+    snowBase.setDepth(-480);
+    snowBase.fillStyle(0xe2f1fb, 0.95);
+    snowBase.fillRoundedRect(-650, -320, 1300, 640, 60);
 
-    // 2. Base Snow Ground Island surface (organic elliptical snowy plateau)
-    const snowGround = this.add.image(0, 5, 'snow_ground');
+    // 3. Base Snow Ground Island surface (organic snowy plateau)
+    const snowGround = this.add.image(0, 10, 'snow_ground');
     snowGround.setOrigin(0.5, 0.5);
-    snowGround.setScale(3.2, 1.7);
+    snowGround.setScale(4.5, 2.3);
     snowGround.setDepth(-400);
 
-    // 3. Multi-layer soft snow banks surrounding the perimeter
+    // 4. Multi-layer soft undulating snow banks surrounding the perimeter
     const snowBanks = this.add.graphics();
     snowBanks.setDepth(-350);
-    snowBanks.fillStyle(0xffffff, 0.5);
-    snowBanks.fillEllipse(-230, -110, 260, 130);
-    snowBanks.fillEllipse(240, -100, 250, 120);
-    snowBanks.fillEllipse(-210, 90, 240, 115);
-    snowBanks.fillEllipse(220, 80, 230, 110);
+    snowBanks.fillStyle(0xffffff, 0.65);
+    snowBanks.fillEllipse(-280, -130, 320, 150);
+    snowBanks.fillEllipse(280, -120, 310, 140);
+    snowBanks.fillEllipse(-260, 110, 300, 135);
+    snowBanks.fillEllipse(270, 100, 290, 130);
+    snowBanks.fillEllipse(0, -150, 400, 130);
+    snowBanks.fillEllipse(0, 150, 420, 130);
 
-    // 4. Center Frozen Ice Pond (focal point scaled gracefully, ground level behind entities)
+    // 5. Center Water Pond (focal point scaled prominently in center)
     const icePond = this.add.image(0, 15, 'ice_pond');
     icePond.setOrigin(0.5, 0.5);
-    icePond.setScale(1.35);
+    icePond.setScale(1.55);
     icePond.setDepth(-300);
+  }
+
+  /**
+   * Constructs the Central Pond environment:
+   * - Rainbow arched bridge on the left shore (matching original Zing Me screenshot).
+   * - Interactive water splash feedback on click.
+   * - Floating Food Storage signpost above the pond.
+   */
+  private buildCentralPondProps(): void {
+    const pondProps = this.add.container(0, 15);
+    pondProps.setDepth(-290);
+
+    // 1. Rainbow Slide / Bridge on the left pond shore
+    const rainbowGraphics = this.add.graphics();
+    rainbowGraphics.setPosition(-165, -15);
+    const colors = [0xef4444, 0xf59e0b, 0x10b981, 0x3b82f6];
+    for (let i = 0; i < colors.length; i++) {
+      rainbowGraphics.lineStyle(3, colors[i], 1.0);
+      rainbowGraphics.strokeEllipse(0, 0, (28 + i * 4) * 2, (16 + i * 2) * 2);
+    }
+    // Candy stripe posts supporting the rainbow bridge
+    rainbowGraphics.fillStyle(0xffffff, 1.0);
+    rainbowGraphics.fillRoundedRect(-36, 0, 6, 22, 0);
+    rainbowGraphics.fillRoundedRect(28, 0, 6, 22, 0);
+    rainbowGraphics.fillStyle(0xef4444, 1.0);
+    rainbowGraphics.fillRoundedRect(-36, 4, 6, 4, 0);
+    rainbowGraphics.fillRoundedRect(-36, 12, 6, 4, 0);
+    rainbowGraphics.fillRoundedRect(28, 4, 6, 4, 0);
+    rainbowGraphics.fillRoundedRect(28, 12, 6, 4, 0);
+    pondProps.add(rainbowGraphics);
+
+    // 2. Floating Food Storage Gauge Sign above the pond
+    const gaugeContainer = this.add.container(0, -82);
+    gaugeContainer.setDepth(-200);
+
+    const signGfx = this.add.graphics();
+    // Shadow
+    signGfx.fillStyle(0x0f172a, 0.25);
+    signGfx.fillRoundedRect(-52, -13, 104, 28, 14);
+    // Plaque background
+    signGfx.fillStyle(0xffffff, 0.95);
+    signGfx.fillRoundedRect(-54, -15, 108, 28, 14);
+    signGfx.lineStyle(2, 0x0284c7, 1.0);
+    signGfx.strokeRoundedRect(-54, -15, 108, 28, 14);
+
+    const signText = this.add.text(0, -1, '🐟 Hồ Thức Ăn', {
+      fontFamily: `'Nunito', 'Quicksand', system-ui, sans-serif`,
+      fontSize: '11px',
+      color: '#0369a1',
+      fontStyle: 'bold',
+      align: 'center',
+    });
+    signText.setOrigin(0.5, 0.5);
+
+    gaugeContainer.add([signGfx, signText]);
+
+    // Gentle floating bobbing tween
+    this.tweens?.add?.({
+      targets: gaugeContainer,
+      y: -88,
+      duration: 1800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // Make pond area interactive: clicking ripples water and sparkles
+    if (typeof this.add.zone === 'function') {
+      const pondHitArea = this.add.zone(0, 15, 260, 130);
+      pondHitArea.setOrigin?.(0.5, 0.5);
+      pondHitArea.setInteractive?.({ useHandCursor: true });
+      pondHitArea.on?.('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        soundService.playPop();
+        if (typeof this.add.particles === 'function') {
+          const emitter = this.add.particles(pointer.worldX, pointer.worldY, 'particle_sparkle', {
+            speed: { min: 20, max: 70 },
+            scale: { start: 0.8, end: 0 },
+            lifespan: 450,
+            quantity: 4,
+            emitting: false,
+          });
+          emitter?.explode?.();
+          this.time?.delayedCall?.(500, () => emitter?.destroy?.());
+        }
+      });
+    }
+  }
+
+  /**
+   * Constructs collectible cartoon eggs scattered on the snow
+   * matching the iconic visual clutter of Zing Me Cánh Cụt Vui Vẻ.
+   */
+  private buildWorldEggs(): void {
+    const eggPositions = [
+      { x: -140, y: -45, texture: 'egg_basic', scale: 0.65 },
+      { x: 135, y: -40, texture: 'egg_frozen', scale: 0.68 },
+      { x: -85, y: 75, texture: 'egg_basic', scale: 0.64 },
+      { x: 95, y: 80, texture: 'egg_golden', scale: 0.72 },
+      { x: -185, y: 25, texture: 'egg_frozen', scale: 0.62 },
+      { x: 175, y: 15, texture: 'egg_basic', scale: 0.66 },
+    ];
+
+    for (const eggData of eggPositions) {
+      const egg = this.add.image(eggData.x, eggData.y, eggData.texture);
+      egg.setOrigin(0.5, 0.8);
+      egg.setScale(eggData.scale);
+      egg.setDepth(eggData.y);
+
+      egg.setInteractive({ useHandCursor: true });
+      egg.on('pointerdown', () => {
+        soundService.playPop();
+        // Playful hop animation
+        this.tweens?.add?.({
+          targets: egg,
+          y: eggData.y - 14,
+          scaleY: eggData.scale * 1.25,
+          scaleX: eggData.scale * 0.85,
+          duration: 180,
+          yoyo: true,
+          ease: 'Back.easeOut',
+        });
+      });
+    }
   }
 
   /**

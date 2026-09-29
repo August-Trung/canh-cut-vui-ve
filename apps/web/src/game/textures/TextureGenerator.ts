@@ -865,54 +865,60 @@ function drawIcePond(): HTMLCanvasElement {
 
   ctx.save();
 
-  // 1. Frosted outer rim border
+  // 1. Organic cartoon shoreline rim (snow & ice bank)
   ctx.beginPath();
-  ctx.ellipse(160, 90, 150, 78, 0, 0, Math.PI * 2);
-  const rimGrad = ctx.createRadialGradient(160, 90, 80, 160, 90, 150);
-  rimGrad.addColorStop(0, '#E0F7FA');
-  rimGrad.addColorStop(0.7, '#B2EBF2');
-  rimGrad.addColorStop(1, '#80DEEA');
-  ctx.fillStyle = rimGrad;
+  ctx.ellipse(160, 90, 154, 82, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#BAE6FD';
   ctx.fill();
 
-  // 2. Frozen ice surface
+  ctx.beginPath();
+  ctx.ellipse(160, 90, 148, 76, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#E0F2FE';
+  ctx.fill();
+
+  // Shore pebbles
+  const pebbles = [
+    [24, 90, 7, 5], [42, 60, 6, 4], [70, 36, 8, 5], [120, 22, 9, 5],
+    [180, 20, 8, 5], [235, 34, 7, 4], [278, 62, 8, 5], [298, 92, 7, 5],
+    [282, 124, 8, 5], [240, 148, 9, 6], [185, 160, 8, 5], [125, 162, 9, 5],
+    [65, 146, 8, 5], [35, 122, 7, 4]
+  ];
+  ctx.fillStyle = '#93C5FD';
+  for (const [px, py, rx, ry] of pebbles) {
+    ctx.beginPath();
+    ctx.ellipse(px, py, rx, ry, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 2. Deep vibrant blue water pool
   ctx.beginPath();
   ctx.ellipse(160, 90, 138, 68, 0, 0, Math.PI * 2);
-  const pondGrad = ctx.createRadialGradient(140, 70, 20, 160, 90, 138);
-  pondGrad.addColorStop(0, 'rgba(128, 222, 234, 0.95)');
-  pondGrad.addColorStop(0.5, 'rgba(0, 172, 193, 0.92)');
-  pondGrad.addColorStop(1, 'rgba(0, 131, 143, 0.96)');
+  const pondGrad = ctx.createRadialGradient(150, 80, 15, 160, 90, 138);
+  pondGrad.addColorStop(0, '#38BDF8');
+  pondGrad.addColorStop(0.45, '#0284C7');
+  pondGrad.addColorStop(0.85, '#0369A1');
+  pondGrad.addColorStop(1, '#0C4A6E');
   ctx.fillStyle = pondGrad;
   ctx.fill();
 
-  // 3. Reflective gloss arc on ice surface
+  // 3. Gentle cartoon water ripples (rings)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.lineWidth = 2.2;
   ctx.beginPath();
-  ctx.ellipse(135, 65, 80, 28, -0.15, 0, Math.PI * 2);
-  const glossGrad = ctx.createLinearGradient(60, 45, 210, 85);
-  glossGrad.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
-  glossGrad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
-  ctx.fillStyle = glossGrad;
-  ctx.fill();
-
-  // 4. Subtle ice fissure vectors / cracks
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
-  ctx.lineWidth = 1.6;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  // Crack 1
-  ctx.moveTo(90, 85);
-  ctx.lineTo(115, 95);
-  ctx.lineTo(135, 90);
-  ctx.lineTo(155, 102);
-  ctx.moveTo(115, 95);
-  ctx.lineTo(125, 110);
-  // Crack 2
-  ctx.moveTo(190, 75);
-  ctx.lineTo(210, 88);
-  ctx.lineTo(235, 84);
-  ctx.moveTo(210, 88);
-  ctx.lineTo(220, 104);
+  ctx.ellipse(160, 90, 95, 42, 0, 0, Math.PI * 2);
   ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(160, 90, 55, 24, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 4. Glossy sunlight reflection on water surface
+  ctx.beginPath();
+  ctx.ellipse(125, 62, 50, 18, -0.15, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+  ctx.fill();
 
   ctx.restore();
   return canvas;

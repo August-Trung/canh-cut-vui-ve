@@ -101,17 +101,20 @@ onMounted(() => {
 }
 
 .levelup-dialog {
-  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
-  border-radius: 28px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 24px;
   width: 100%;
   max-width: 440px;
-  padding: 32px 24px;
+  padding: 28px 20px 24px;
   text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-  animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
+  animation: popUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
-  border: 2px solid #86efac;
 }
 
 .levelup-burst {
@@ -122,9 +125,9 @@ onMounted(() => {
 
 .levelup-badge-wrap {
   position: relative;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 16px auto;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 14px auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,75 +141,85 @@ onMounted(() => {
 }
 
 .level-circle {
-  width: 90px;
-  height: 90px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-  border: 4px solid #ffffff;
-  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.4);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border: 3.5px solid #FFFFFF;
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-family: 'Quicksand', 'Nunito', sans-serif;
+  font-size: 1.4rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .levelup-title {
-  margin: 0 0 6px 0;
-  font-size: 1.5rem;
+  margin: 0 0 4px 0;
+  font-family: 'Quicksand', 'Nunito', sans-serif;
+  font-size: 1.35rem;
   font-weight: 900;
-  color: #15803d;
-  letter-spacing: 0.5px;
+  color: #451A03;
+  letter-spacing: 0.03em;
 }
 
 .levelup-sub {
-  margin: 0 0 20px 0;
-  font-size: 0.9rem;
-  color: #64748b;
+  margin: 0 0 16px 0;
+  font-size: 0.85rem;
+  color: #78350F;
+  font-weight: 700;
 }
 
 .unlock-highlights {
-  background: #ffffff;
-  border: 1px solid #dcfce7;
-  border-radius: 16px;
-  padding: 14px;
+  background: #FFFDF5;
+  border: 2px solid #E2C8A2;
+  border-radius: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 20px;
   text-align: left;
 }
 
 .unlock-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-  color: #334155;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #451A03;
+  font-weight: 700;
 }
 
 .unlock-icon {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
 .btn-celebrate {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 16px;
-  padding: 12px 28px;
-  font-size: 1rem;
-  font-weight: 800;
+  background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+  color: #FFFFFF;
+  border: 2px solid #15803D;
+  border-radius: 14px;
+  padding: 10px 24px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
-  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+  transition: transform 0.15s ease, filter 0.15s ease;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-celebrate:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45);
+  transform: scale(1.03);
+  filter: brightness(1.08);
 }
 
 @keyframes fadeIn {

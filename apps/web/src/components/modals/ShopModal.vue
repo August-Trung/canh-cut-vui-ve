@@ -19,12 +19,18 @@
       @mouseup.stop
       @click.stop
     >
+      <!-- Market Awning Canopy (Striped Scalloped Roof) -->
+      <div class="shop-awning" aria-hidden="true">
+        <div class="shop-awning__stripes"></div>
+        <div class="shop-awning__scallop"></div>
+      </div>
+
       <!-- Header -->
       <div class="shop-header">
         <div class="shop-header__title-group">
           <GameIcon name="shop" size="sm" class="shop-header__icon" />
           <div>
-            <h2 class="shop-header__title">Cửa Hàng Đảo Tuyết</h2>
+            <h2 class="shop-header__title">Cửa Hàng Đảo Băng</h2>
             <p class="shop-header__sub">Sắm sửa thức ăn, trứng quý và đồ trang trí ấm cúng!</p>
           </div>
         </div>
@@ -52,12 +58,12 @@
             @mouseup.stop
             @click.stop="emit('close')"
           >
-            <GameIcon name="close" size="sm" />
+            <span class="close-x">✕</span>
           </button>
         </div>
       </div>
 
-      <!-- Category Tabs -->
+      <!-- Category Tabs (Chunky Cartoon Tabs) -->
       <div class="shop-tabs" role="tablist">
         <button
           type="button"
@@ -113,6 +119,7 @@
             <div class="shop-card__badge" v-if="gameStore.player.level < item.playerLevelRequired">
               <GameIcon name="lock" size="xs" /> Yêu cầu Lv. {{ item.playerLevelRequired }}
             </div>
+            <div class="shop-card__stars">★★★☆☆</div>
             <div class="shop-card__icon">
               <GameIcon :name="item.icon" size="lg" />
             </div>
@@ -151,6 +158,7 @@
             <div class="shop-card__badge" v-if="gameStore.player.level < egg.playerLevelRequired">
               <GameIcon name="lock" size="xs" /> Yêu cầu Lv. {{ egg.playerLevelRequired }}
             </div>
+            <div class="shop-card__stars">★★★★☆</div>
             <div class="shop-card__icon">
               <GameIcon :name="egg.icon" size="lg" />
             </div>
@@ -195,6 +203,7 @@
             <div class="shop-card__badge" v-if="gameStore.player.level < dec.playerLevelRequired">
               <GameIcon name="lock" size="xs" /> Yêu cầu Lv. {{ dec.playerLevelRequired }}
             </div>
+            <div class="shop-card__stars">★★★☆☆</div>
             <div class="shop-card__icon">
               <GameIcon name="decorate" size="lg" />
             </div>
@@ -255,10 +264,8 @@ function setFeedback(msg: string, type: 'success' | 'error' = 'success') {
   feedback.value = msg;
   feedbackType.value = type;
   setTimeout(() => {
-    if (feedback.value === msg) {
-      feedback.value = null;
-    }
-  }, 3000);
+    feedback.value = null;
+  }, 2500);
 }
 
 function canBuyFood(item: FoodItemDefinition): boolean {
@@ -267,26 +274,33 @@ function canBuyFood(item: FoodItemDefinition): boolean {
 }
 
 function buyFood(item: FoodItemDefinition) {
-  const success = shopStore.buyFood(item.id, 1);
-  if (success) {
-    setFeedback(`Mua thành công 1 ${item.name}!`, 'success');
+  if (!canBuyFood(item)) {
+    setFeedback('Không đủ điều kiện mua!', 'error');
+    return;
+  }
+  const ok = shopStore.buyFood(item.id, 1);
+  if (ok) {
+    setFeedback(`Đã mua 1x ${item.name}!`, 'success');
   } else {
-    setFeedback('Không thể mua vật phẩm!', 'error');
+    setFeedback('Không đủ tiền!', 'error');
   }
 }
 
 function canBuyEgg(egg: EggShopDefinition): boolean {
   if (gameStore.player.level < egg.playerLevelRequired) return false;
-  if (egg.priceGems) {
-    return gameStore.currencies.gems >= egg.priceGems;
-  }
-  return gameStore.currencies.coins >= egg.priceCoins;
+  if (egg.priceGems && gameStore.currencies.gems < egg.priceGems) return false;
+  if (egg.priceCoins && gameStore.currencies.coins < egg.priceCoins) return false;
+  return true;
 }
 
 function buyEgg(egg: EggShopDefinition) {
-  const success = shopStore.buyEgg(egg.id, 1);
-  if (success) {
-    setFeedback(`Mua thành công 1 ${egg.name}!`, 'success');
+  if (!canBuyEgg(egg)) {
+    setFeedback('Không đủ tiền hoặc cấp độ!', 'error');
+    return;
+  }
+  const ok = shopStore.buyEgg(egg.id);
+  if (ok) {
+    setFeedback(`Đã mua ${egg.name}! Đã thêm vào túi đồ.`, 'success');
   } else {
     setFeedback('Không thể mua trứng!', 'error');
   }
@@ -300,11 +314,15 @@ function canBuyDecor(dec: DecorationDefinition): boolean {
 }
 
 function buyDecor(dec: DecorationDefinition) {
-  const success = shopStore.buyDecoration(dec.id, 1);
-  if (success) {
-    setFeedback(`Mua thành công 1 ${dec.name}!`, 'success');
+  if (!canBuyDecor(dec)) {
+    setFeedback('Không đủ tiền hoặc cấp độ!', 'error');
+    return;
+  }
+  const ok = shopStore.buyDecoration(dec.id);
+  if (ok) {
+    setFeedback(`Đã mua ${dec.name}! Đã thêm vào kho trang trí.`, 'success');
   } else {
-    setFeedback('Không thể mua đồ trang trí!', 'error');
+    setFeedback('Không thể mua trang trí!', 'error');
   }
 }
 </script>
@@ -313,286 +331,354 @@ function buyDecor(dec: DecorationDefinition) {
 .modal-backdrop {
   position: fixed;
   inset: 0;
+  background: rgba(15, 23, 42, 0.6);
   z-index: 1000;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.15s ease-out;
 }
 
+/* Warm Beige Board with 4px Double Wooden Border (Zing Me Style) */
 .shop-dialog {
-  background: #ffffff;
-  border-radius: 24px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   width: 100%;
-  max-width: 760px;
+  max-width: 780px;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: slideUp 0.25s ease-out;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
+  animation: slideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+/* Market Awning Canopy (Striped Scalloped Roof) */
+.shop-awning {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  background: repeating-linear-gradient(
+    90deg,
+    #F43F5E 0px,
+    #F43F5E 24px,
+    #FFFFFF 24px,
+    #FFFFFF 48px
+  );
+  border-bottom: 2px solid #E11D48;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .shop-header {
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
-  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #F5E6CA 0%, #E8D2AC 100%);
+  border-bottom: 3px solid #6B3E1B;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .shop-header__title-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .shop-header__icon {
-  font-size: 2.2rem;
+  font-size: 1.8rem;
 }
 
 .shop-header__title {
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #0f172a;
+  font-family: 'Quicksand', 'Nunito', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #451A03;
+  letter-spacing: 0.02em;
 }
 
 .shop-header__sub {
-  margin: 2px 0 0 0;
-  font-size: 0.85rem;
-  color: #64748b;
+  margin: 1px 0 0 0;
+  font-size: 0.76rem;
+  color: #78350F;
+  font-weight: 700;
 }
 
 .shop-header__right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .currency-chips {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chip {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .chip--coin {
-  background: #fef9c3;
-  color: #854d0e;
-  border: 1px solid #fde047;
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1.5px solid #F59E0B;
 }
 
 .chip--gem {
-  background: #ede9fe;
-  color: #6b21a8;
-  border: 1px solid #ddd6fe;
+  background: #F5F3FF;
+  color: #7C3AED;
+  border: 1.5px solid #C4B5FD;
 }
 
+/* Wooden Close Button */
 .modal-close-btn {
-  background: rgba(255, 255, 255, 0.8);
-  border: none;
-  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 2px solid #451A03;
+  border-top-color: #FDE68A;
+  background: linear-gradient(180deg, #A16207 0%, #78350F 100%);
+  color: #FFFFFF;
+  font-weight: 900;
+  font-size: 1rem;
   cursor: pointer;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .modal-close-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  transform: scale(1.08);
+  filter: brightness(1.15);
 }
 
+.close-x {
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Chunky Cartoon Tabs */
 .shop-tabs {
   display: flex;
-  padding: 12px 24px;
-  gap: 10px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 8px 14px;
+  gap: 8px;
+  background: #EFE5D0;
+  border-bottom: 2px solid #E5D5BA;
 }
 
 .tab-btn {
-  padding: 8px 18px;
-  border: none;
-  background: transparent;
+  padding: 6px 14px;
+  border: 2px solid #D5C4A1;
+  background: #F5EADB;
   border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #64748b;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.84rem;
+  color: #78350F;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   transition: all 0.15s;
 }
 
 .tab-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #E8D8BD;
+  border-color: #B45309;
 }
 
 .tab-btn--active {
-  background: #0284c7;
-  color: #ffffff;
-}
-
-.tab-btn--active:hover {
-  background: #0369a1;
-  color: #ffffff;
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%);
+  border-color: #B45309;
+  color: #451A03;
+  box-shadow: 0 2px 5px rgba(180, 83, 9, 0.25);
 }
 
 .shop-feedback {
-  padding: 8px 24px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 800;
   text-align: center;
 }
 
 .shop-feedback--success {
-  background: #dcfce7;
-  color: #166534;
+  background: #DCFCE7;
+  color: #15803D;
+  border-bottom: 2px solid #86EFAC;
 }
 
 .shop-feedback--error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-bottom: 2px solid #FCA5A5;
 }
 
 .items-grid {
-  padding: 20px 24px;
+  padding: 14px;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
 }
 
+/* Warm White Shop Card Tile */
 .shop-card {
   position: relative;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  padding: 16px;
+  background: #FFFDF5;
+  border: 2px solid #E2C8A2;
+  border-radius: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s, border-color 0.15s;
 }
 
 .shop-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  border-color: #B45309;
+  box-shadow: 0 6px 12px rgba(180, 83, 9, 0.15);
 }
 
 .shop-card--locked {
-  opacity: 0.65;
-  background: #f1f5f9;
+  opacity: 0.7;
+  background: #F5EADB;
 }
 
 .shop-card__badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #fee2e2;
-  color: #b91c1c;
+  top: 8px;
+  right: 8px;
+  background: #FEE2E2;
+  color: #B91C1C;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid #FCA5A5;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.shop-card__stars {
   font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.shop-card__icon {
-  font-size: 2.5rem;
+  color: #F59E0B;
   text-align: center;
-  margin-bottom: 8px;
-}
-
-.shop-card__name {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
-  text-align: center;
+  letter-spacing: 2px;
   margin-bottom: 4px;
 }
 
-.shop-card__desc {
-  font-size: 0.75rem;
-  color: #64748b;
+.shop-card__icon {
+  font-size: 2.2rem;
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+}
+
+.shop-card__name {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #451A03;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.shop-card__desc {
+  font-size: 0.74rem;
+  color: #78350F;
+  text-align: center;
+  margin-bottom: 8px;
   flex: 1;
 }
 
 .shop-card__stats {
   display: flex;
   justify-content: center;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 5px;
+  margin-bottom: 8px;
 }
 
 .stat-tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 0.72rem;
-  font-weight: 600;
+  background: #E0F2FE;
+  color: #0369A1;
+  font-size: 0.68rem;
+  font-weight: 700;
   padding: 2px 6px;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .stat-tag--happy {
-  background: #fce7f3;
-  color: #be185d;
+  background: #FCE7F3;
+  color: #BE185D;
 }
 
 .stat-tag--cozy {
-  background: #fef3c7;
-  color: #b45309;
+  background: #FEF3C7;
+  color: #B45309;
 }
 
 .shop-card__bottom {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   margin-top: auto;
 }
 
 .price-tag {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #451A03;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .btn-buy {
-  background: #0284c7;
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  padding: 8px 12px;
-  font-weight: 700;
-  font-size: 0.85rem;
+  background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+  color: #FFFFFF;
+  border: 1.5px solid #15803D;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.82rem;
   cursor: pointer;
-  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s, filter 0.15s;
 }
 
 .btn-buy:hover:not(:disabled) {
-  background: #0369a1;
+  transform: scale(1.03);
+  filter: brightness(1.08);
 }
 
 .btn-buy:disabled {
-  background: #cbd5e1;
-  color: #94a3b8;
+  background: #CBD5E1;
+  border-color: #94A3B8;
+  color: #64748B;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 @keyframes fadeIn {
@@ -601,7 +687,7 @@ function buyDecor(dec: DecorationDefinition) {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { transform: translateY(12px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 </style>

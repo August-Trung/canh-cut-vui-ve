@@ -12,19 +12,24 @@
       class="inventory-dialog"
       role="dialog"
       aria-modal="true"
-      aria-label="Túi Đồ Của Bạn"
+      aria-label="Túi Đồ"
       @pointerdown.stop
       @pointerup.stop
       @mousedown.stop
       @mouseup.stop
       @click.stop
     >
-      <!-- Modal Header -->
+      <!-- Modal Header (Zing Me Leather / Wood Banner) -->
       <div class="modal-header">
-        <div class="modal-header__title-group">
+        <div class="modal-header__title-banner">
           <GameIcon name="inventory" size="sm" class="modal-header__icon" />
-          <h2 class="modal-header__title">Túi Đồ Của Bạn</h2>
+          <h2 class="modal-header__title">Túi Đồ</h2>
         </div>
+
+        <div class="modal-header__capacity-pill" title="Sức chứa túi đồ">
+          <span class="capacity-text">Sức Chứa: {{ totalItemsCount }} / 1000</span>
+        </div>
+
         <button
           type="button"
           class="modal-close-btn"
@@ -36,7 +41,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          <GameIcon name="close" size="sm" />
+          <span class="close-x">✕</span>
         </button>
       </div>
 
@@ -47,7 +52,7 @@
         </div>
       </transition>
 
-      <!-- Category Filter Tabs -->
+      <!-- Category Filter Tabs (Chunky Cartoon Tabs) -->
       <div class="tabs-bar" role="tablist" aria-label="Phân loại túi đồ">
         <button
           type="button"
@@ -178,6 +183,10 @@ const filteredItems = computed(() => {
   return invStore.itemsByCategory(activeCategory.value);
 });
 
+const totalItemsCount = computed(() => {
+  return invStore.items.reduce((sum, item) => sum + item.quantity, 0);
+});
+
 function showFeedback(msg: string, type: 'success' | 'warning' | 'info' = 'info') {
   feedbackMessage.value = msg;
   feedbackType.value = type;
@@ -229,156 +238,193 @@ function handleFeedPenguin(itemId: string) {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.15s ease-out;
 }
 
+/* Warm Beige Board with 4px Double Wooden Border (Zing Me Style) */
 .inventory-dialog {
   width: 100%;
   max-width: 620px;
   max-height: 85vh;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%);
-  border: 3px solid #F59E0B;
-  border-radius: 28px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.35),
-    0 0 0 2px rgba(255, 255, 255, 0.9) inset;
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
 }
 
+/* Modal Header: Leather green title tab + capacity pill + wooden X */
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%);
-  border-bottom: 2px solid #F59E0B;
-}
-
-.modal-header__title-group {
-  display: flex;
-  align-items: center;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #F5E6CA 0%, #E8D2AC 100%);
+  border-bottom: 3px solid #6B3E1B;
   gap: 10px;
 }
 
+.modal-header__title-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #22C55E 0%, #15803D 100%);
+  border: 2px solid #86EFAC;
+  border-radius: 12px;
+  padding: 4px 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
 .modal-header__icon {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
 }
 
 .modal-header__title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #92400E;
+  font-family: 'Quicksand', 'Nunito', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #FFFFFF;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
 }
 
-.modal-close-btn {
-  width: 34px;
-  height: 34px;
+.modal-header__capacity-pill {
+  background: #78350F;
+  border: 2px solid #D97706;
   border-radius: 12px;
-  border: none;
-  background: #FFFFFF;
-  color: #78350F;
-  font-weight: bold;
-  font-size: 1.1rem;
+  padding: 3px 10px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.capacity-text {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 0.76rem;
+  color: #FEF08A;
+}
+
+/* Square Wooden Close Button with 'X' */
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 2px solid #451A03;
+  border-top-color: #FDE68A;
+  background: linear-gradient(180deg, #A16207 0%, #78350F 100%);
+  color: #FFFFFF;
+  font-weight: 900;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .modal-close-btn:hover {
-  background: #FEE2E2;
-  color: #DC2626;
   transform: scale(1.08);
+  filter: brightness(1.15);
+}
+
+.close-x {
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* Feedback Toast */
 .feedback-toast {
-  margin: 10px 16px 0;
-  padding: 10px 14px;
-  border-radius: 14px;
-  font-size: 0.88rem;
-  font-weight: 700;
+  margin: 8px 14px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
   text-align: center;
 }
 
 .feedback-toast--success {
   background: #DCFCE7;
   color: #15803D;
-  border: 1px solid #86EFAC;
+  border: 2px solid #86EFAC;
 }
 
 .feedback-toast--warning {
   background: #FEF3C7;
   color: #B45309;
-  border: 1px solid #FDE68A;
+  border: 2px solid #FDE68A;
 }
 
 .feedback-toast--info {
   background: #E0F2FE;
   color: #0369A1;
-  border: 1px solid #BAE6FD;
+  border: 2px solid #BAE6FD;
 }
 
 .toast-fade-enter-active,
 .toast-fade-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-6px);
 }
 
-/* Tabs */
+/* Chunky Cartoon Tabs */
 .tabs-bar {
   display: flex;
   gap: 8px;
-  padding: 12px 16px 8px;
-  border-bottom: 1px solid #E2E8F0;
+  padding: 10px 14px 6px;
+  border-bottom: 2px solid #E5D5BA;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 8px 12px;
-  border-radius: 14px;
-  border: 2px solid transparent;
-  background: #F1F5F9;
-  color: #64748B;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 2px solid #D5C4A1;
+  background: #EFE5D0;
+  color: #78350F;
   font-family: inherit;
   font-weight: 800;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   transition: all 0.15s ease;
 }
 
 .tab-btn:hover {
-  background: #E2E8F0;
-  color: #334155;
+  background: #E8D8BD;
+  border-color: #B45309;
 }
 
 .tab-btn.is-active {
-  background: #FEF3C7;
-  border-color: #F59E0B;
-  color: #92400E;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%);
+  border-color: #B45309;
+  color: #451A03;
+  box-shadow: 0 2px 5px rgba(180, 83, 9, 0.25);
 }
 
 /* Inventory Body & Grid */
 .inventory-body {
-  padding: 16px;
+  padding: 14px;
   overflow-y: auto;
   flex: 1;
 }
@@ -388,58 +434,56 @@ function handleFeedPenguin(itemId: string) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 36px 16px;
-  color: #94A3B8;
-  gap: 8px;
+  padding: 32px 16px;
+  color: #8C7B65;
+  gap: 6px;
 }
 
 .empty-icon {
-  font-size: 2.2rem;
+  font-size: 2rem;
 }
 
 .empty-text {
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .items-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* Warm Cream Tile with Golden-Brown Border */
 .item-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  background: #FFFFFF;
-  border: 2px solid #E2E8F0;
-  border-radius: 18px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  gap: 12px;
+  padding: 10px 14px;
+  background: #FFFDF5;
+  border: 2px solid #E2C8A2;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
 .item-card:hover {
-  border-color: #F59E0B;
-  transform: translateY(-2px);
+  border-color: #B45309;
+  transform: translateY(-1px);
 }
 
 .item-card__icon-box {
   position: relative;
-  width: 52px;
-  height: 52px;
-  background: #FEF9C3;
-  border: 2px solid #FDE047;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(180deg, #FEF9C3 0%, #FDE047 100%);
+  border: 2px solid #D97706;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.item-emoji {
-  font-size: 1.8rem;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .item-card__quantity {
@@ -448,11 +492,12 @@ function handleFeedPenguin(itemId: string) {
   right: -4px;
   background: #0284C7;
   color: #FFFFFF;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 999px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .item-card__info {
@@ -461,15 +506,15 @@ function handleFeedPenguin(itemId: string) {
 }
 
 .item-card__name {
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  color: #0F172A;
+  color: #451A03;
   margin: 0 0 2px;
 }
 
 .item-card__desc {
-  font-size: 0.82rem;
-  color: #64748B;
+  font-size: 0.78rem;
+  color: #78350F;
   margin: 0;
   line-height: 1.3;
 }
@@ -477,35 +522,44 @@ function handleFeedPenguin(itemId: string) {
 .item-card__actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
+/* Chunky Tactile Action Buttons */
 .btn-item-action {
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: none;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 2px solid transparent;
   font-family: inherit;
   font-weight: 800;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .btn-item-action:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.06);
+  transform: scale(1.04);
+  filter: brightness(1.08);
+}
+
+.btn-item-action:active {
+  transform: scale(0.96);
 }
 
 .btn-item-action--egg {
-  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+  background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+  border-color: #15803D;
   color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .btn-item-action--food {
-  background: linear-gradient(180deg, #34D399 0%, #059669 100%);
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+  border-color: #0369A1;
   color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes fadeIn {
@@ -514,7 +568,7 @@ function handleFeedPenguin(itemId: string) {
 }
 
 @keyframes popIn {
-  from { transform: scale(0.92); opacity: 0; }
+  from { transform: scale(0.94); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 </style>

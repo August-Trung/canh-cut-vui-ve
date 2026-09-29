@@ -1,11 +1,25 @@
 <template>
   <header class="top-bar" role="banner">
-    <!-- Left: Player Profile & Level -->
+    <!-- Left: Player Profile & Level Star (Zing Me Style) -->
     <div class="top-bar__profile">
-      <div class="top-bar__avatar-wrapper">
-        <div class="top-bar__avatar-ring">
-          <svg class="top-bar__avatar-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Stylized default penguin face icon -->
+      <!-- Player Avatar with Level Star Badge overlapping -->
+      <div class="top-bar__avatar-container">
+        <!-- Level Star Badge on top-left of Avatar -->
+        <div class="top-bar__star-level" title="Cấp độ người chơi">
+          <svg class="top-bar__star-svg" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2l2.9 6.5 7.1.6-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.6L12 2z"
+              fill="#F59E0B"
+              stroke="#FFFFFF"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="top-bar__star-text">Lv.{{ playerLevel }}</span>
+        </div>
+
+        <div class="top-bar__avatar-box">
+          <svg class="top-bar__avatar-img" viewBox="0 0 36 36" fill="none">
             <ellipse cx="18" cy="20" rx="14" ry="13" fill="#1E293B" />
             <ellipse cx="18" cy="22" rx="10" ry="9" fill="#F8FAFC" />
             <ellipse cx="13" cy="17" rx="2.5" ry="3.5" fill="#0F172A" />
@@ -14,10 +28,6 @@
             <circle cx="22" cy="15.5" r="1" fill="#FFFFFF" />
             <path d="M15 20c0 0 1.5 2 3 2s3-2 3-2l-3 4-3-4z" fill="#F59E0B" />
           </svg>
-        </div>
-        <div class="top-bar__level-badge" title="Cấp độ người chơi">
-          <GameIcon name="crown" size="xs" />
-          <span>Lv.{{ playerLevel }}</span>
         </div>
       </div>
 
@@ -36,15 +46,28 @@
       </div>
     </div>
 
-    <!-- Center: Currencies -->
+    <!-- Center: Currencies (Fish / Coins / Gems Capsules) -->
     <div class="top-bar__currencies">
       <CurrencyBadge type="fish" :amount="gameStore.currencies.fish" />
       <CurrencyBadge type="coins" :amount="gameStore.currencies.coins" />
       <CurrencyBadge type="gems" :amount="gameStore.currencies.gems" />
     </div>
 
-    <!-- Right: Utility Controls (Audio & Settings) -->
+    <!-- Right: Utility Controls (Camera, Sound, Settings) -->
     <div class="top-bar__controls">
+      <!-- Camera Button -->
+      <button
+        type="button"
+        class="top-bar__btn top-bar__btn--camera"
+        data-testid="camera-btn"
+        title="Chụp ảnh hòn đảo"
+        aria-label="Chụp ảnh"
+        @click="handleSnapshot"
+      >
+        📷
+      </button>
+
+      <!-- Audio Mute Toggle -->
       <button
         type="button"
         class="top-bar__btn"
@@ -53,9 +76,10 @@
         :aria-label="gameStore.audioMuted ? 'Bật âm thanh' : 'Tắt âm thanh'"
         @click="handleToggleAudio"
       >
-        <GameIcon :name="gameStore.audioMuted ? 'sound_off' : 'sound_on'" size="sm" />
+        <GameIcon :name="gameStore.audioMuted ? 'sound_off' : 'sound_on'" size="xs" />
       </button>
 
+      <!-- Settings Button -->
       <button
         type="button"
         class="top-bar__btn"
@@ -64,7 +88,7 @@
         aria-label="Cài đặt & Sao lưu"
         @click="emit('open-settings')"
       >
-        <GameIcon name="settings" size="sm" />
+        <GameIcon name="settings" size="xs" />
       </button>
     </div>
   </header>
@@ -74,11 +98,13 @@
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/gameStore';
 import { getPlayerLevelFromExp } from '../../services/ProgressionService';
+import { soundService } from '../../services/SoundService';
 import CurrencyBadge from './CurrencyBadge.vue';
 import GameIcon from '../common/GameIcon.vue';
 
 const emit = defineEmits<{
   (e: 'open-settings'): void;
+  (e: 'open-camera'): void;
 }>();
 
 const gameStore = useGameStore();
@@ -95,117 +121,125 @@ const expTooltip = computed(() => {
 function handleToggleAudio() {
   gameStore.toggleAudio();
 }
+
+function handleSnapshot() {
+  soundService.playPop();
+  emit('open-camera');
+}
 </script>
 
 <style scoped>
+/* 2010s Compact Webgame HUD - Pinned to very top */
 .top-bar {
-  position: relative;
-  width: 100%;
-  max-width: 980px;
-  height: 50px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(224, 242, 254, 0.75) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1.5px solid rgba(255, 255, 255, 0.85);
-  border-radius: 9999px;
-  box-shadow:
-    0 6px 20px rgba(15, 23, 42, 0.12),
-    inset 0 1px 2px rgba(255, 255, 255, 0.9);
-  z-index: 50;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E6F4FA 100%);
+  border-bottom: 2px solid #BAE6FD;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+  z-index: 100;
   pointer-events: auto;
+  user-select: none;
 }
 
-/* Left Profile */
+/* Profile Section */
 .top-bar__profile {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.top-bar__avatar-wrapper {
+.top-bar__avatar-container {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.top-bar__avatar-ring {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7DD3FC 0%, #0284C7 100%);
-  border: 2px solid #FFFFFF;
-  box-shadow:
-    0 3px 8px rgba(2, 132, 199, 0.35),
-    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+/* Level Star */
+.top-bar__star-level {
+  position: absolute;
+  top: -8px;
+  left: -10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.top-bar__star-svg {
+  width: 32px;
+  height: 32px;
+}
+
+.top-bar__star-text {
+  position: absolute;
+  font-family: 'Nunito', 'Quicksand', sans-serif;
+  font-weight: 900;
+  font-size: 0.65rem;
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.02em;
+}
+
+/* Avatar Box */
+.top-bar__avatar-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #E0F2FE;
+  border: 1.5px solid #0284C7;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
-.top-bar__avatar-icon {
-  width: 36px;
-  height: 36px;
-}
-
-.top-bar__level-badge {
-  position: absolute;
-  bottom: -4px;
-  right: -6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  color: #FFFFFF;
-  border: 1.5px solid #FEF3C7;
-  border-radius: 9999px;
-  padding: 1px 6px;
-  font-family: 'Quicksand', 'Nunito', sans-serif;
-  font-weight: 900;
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-  user-select: none;
+.top-bar__avatar-img {
+  width: 28px;
+  height: 28px;
 }
 
 .top-bar__player-meta {
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .top-bar__player-name {
-  font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+  font-family: 'Nunito', 'Quicksand', system-ui, sans-serif;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: #0F172A;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
-  max-width: 140px;
+  max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.1;
 }
 
 .top-bar__exp-bar {
-  width: 90px;
+  width: 75px;
   height: 6px;
-  background: rgba(148, 163, 184, 0.35);
-  border-radius: 9999px;
+  background: #CBD5E1;
+  border-radius: 3px;
   overflow: hidden;
-  position: relative;
   margin-top: 2px;
-  cursor: pointer;
+  border: 1px solid #94A3B8;
 }
 
 .top-bar__exp-fill {
   height: 100%;
-  background: linear-gradient(90deg, #38BDF8 0%, #0284C7 100%);
-  border-radius: 9999px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, #10B981 0%, #34D399 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
 /* Center Currencies */
@@ -223,72 +257,41 @@ function handleToggleAudio() {
 }
 
 .top-bar__btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.7);
-  background: linear-gradient(135deg, #FFFFFF 0%, #F1F5F9 100%);
-  color: #334155;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+  border: 1.5px solid #CBD5E1;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow:
-    0 3px 6px rgba(15, 23, 42, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.9);
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  padding: 0;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .top-bar__btn:hover {
-  transform: translateY(-2px) scale(1.06);
-  color: #0284C7;
-  border-color: #BAE6FD;
-  box-shadow:
-    0 5px 12px rgba(2, 132, 199, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  background: #E2E8F0;
+  border-color: #94A3B8;
 }
 
-.top-bar__btn:active {
-  transform: translateY(1px) scale(0.96);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+.top-bar__btn--camera {
+  background: linear-gradient(180deg, #FEF08A 0%, #F59E0B 100%);
+  border-color: #D97706;
+  color: #78350F;
 }
 
-.top-bar__btn-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.top-bar__btn-icon--muted {
-  color: #EF4444;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .top-bar {
-    top: 8px;
-    left: 8px;
-    right: 8px;
-    padding: 0 10px;
-    height: 52px;
+    padding: 0 8px;
   }
-
-  .top-bar__player-meta {
-    display: none;
-  }
-
   .top-bar__currencies {
     gap: 6px;
   }
-
-  .top-bar__avatar-ring {
-    width: 38px;
-    height: 38px;
-  }
-
-  .top-bar__btn {
-    width: 34px;
-    height: 34px;
+  .top-bar__player-meta {
+    display: none;
   }
 }
 </style>

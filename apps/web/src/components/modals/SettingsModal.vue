@@ -36,7 +36,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          <GameIcon name="close" size="xs" />
+          <span class="close-x">✕</span>
         </button>
       </div>
 
@@ -296,65 +296,73 @@ async function handleConfirmReset() {
   width: 100%;
   max-width: 540px;
   max-height: 85vh;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%);
-  border: 3px solid #64748B;
-  border-radius: 28px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.35),
-    0 0 0 2px rgba(255, 255, 255, 0.9) inset;
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%);
-  border-bottom: 2px solid #CBD5E1;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #F5E6CA 0%, #E8D2AC 100%);
+  border-bottom: 3px solid #6B3E1B;
 }
 
 .modal-header__title-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .modal-header__icon {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
 }
 
 .modal-header__title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1E293B;
+  font-family: 'Quicksand', 'Nunito', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #451A03;
   margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .modal-close-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  border: none;
-  background: #FFFFFF;
-  color: #64748B;
-  font-weight: bold;
-  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 2px solid #451A03;
+  border-top-color: #FDE68A;
+  background: linear-gradient(180deg, #A16207 0%, #78350F 100%);
+  color: #FFFFFF;
+  font-weight: 900;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .modal-close-btn:hover {
-  background: #FEE2E2;
-  color: #DC2626;
   transform: scale(1.08);
+  filter: brightness(1.15);
+}
+
+.close-x {
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* Feedback Toast */

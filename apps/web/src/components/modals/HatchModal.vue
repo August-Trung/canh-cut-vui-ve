@@ -437,44 +437,46 @@ function getRarityLabel(rarity: RarityTier): string {
   position: relative;
   width: 100%;
   max-width: 480px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%);
-  border: 4px solid #7DD3FC;
-  border-radius: 32px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.35),
-    0 0 0 2px rgba(255, 255, 255, 0.9) inset;
-  padding: 30px 24px 28px;
+    0 20px 48px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
+  padding: 24px 20px 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow: hidden;
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-close-btn {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  border: none;
-  background: #E2E8F0;
-  color: #64748B;
-  font-weight: bold;
-  font-size: 1.1rem;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 2px solid #451A03;
+  border-top-color: #FDE68A;
+  background: linear-gradient(180deg, #A16207 0%, #78350F 100%);
+  color: #FFFFFF;
+  font-weight: 900;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
   z-index: 10;
 }
 
 .modal-close-btn:hover {
-  background: #FEE2E2;
-  color: #EF4444;
   transform: scale(1.08);
+  filter: brightness(1.15);
 }
 
 .hatch-scene {

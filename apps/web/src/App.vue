@@ -8,17 +8,67 @@
       <!-- Top Resource Bar -->
       <TopBar @open-settings="openModal('settings')" />
 
-      <!-- Bottom Dock: Wooden Shelf Rack -->
+      <!-- Left Column: Flock Capacity Signpost & Quick shortcuts -->
+      <aside class="left-sidebar" aria-label="Thông tin đàn và lối tắt">
+        <!-- Flock Capacity Signpost / Shield -->
+        <button
+          type="button"
+          class="flock-signpost"
+          title="Sức chứa đàn chim"
+          @click="openModal('collection')"
+        >
+          <div class="flock-signpost__icon-box">
+            <span class="flock-signpost__emoji">🐧</span>
+          </div>
+          <div class="flock-signpost__info">
+            <span class="flock-signpost__title">ĐÀN</span>
+            <span class="flock-signpost__val">
+              {{ gameStore.ownedPenguins.length }}/{{ maxFlockCap }}
+            </span>
+          </div>
+        </button>
+
+        <!-- Shortcut: Xe Hàng (Quests / Delivery Truck) -->
+        <button
+          type="button"
+          class="side-shortcut"
+          title="Nhiệm Vụ Xe Hàng"
+          @click="openModal('quest')"
+        >
+          <span class="side-shortcut__icon">🚚</span>
+          <span class="side-shortcut__label">Xe Hàng</span>
+        </button>
+
+        <!-- Shortcut: Trang Trí Đảo -->
+        <button
+          type="button"
+          class="side-shortcut"
+          title="Trang Trí Đảo Băng"
+          @click="openModal('decoration')"
+        >
+          <span class="side-shortcut__icon">❄️</span>
+          <span class="side-shortcut__label">Trang Trí</span>
+        </button>
+      </aside>
+
+      <!-- Bottom Dock: Friend Tray (Left/Center) + Wooden Shelf Rack (Right) -->
       <footer class="bottom-dock" role="region" aria-label="Bảng điều khiển dưới">
-        <ShelfRack
-          @open-inventory="openModal('inventory')"
-          @open-collection="openModal('collection')"
-          @open-hatchery="openModal('hatchery')"
-          @open-breeding="openModal('breeding')"
-          @open-shop="openModal('shop')"
-          @open-quests="openModal('quest')"
-          @open-settings="openModal('settings')"
-        />
+        <div class="bottom-dock__content">
+          <!-- Friend / Neighbor Icy Strip -->
+          <NeighborStrip class="bottom-dock__neighbors" />
+
+          <!-- Wooden Shelf Rack in bottom-right corner -->
+          <ShelfRack
+            class="bottom-dock__shelf"
+            @open-inventory="openModal('inventory')"
+            @open-collection="openModal('collection')"
+            @open-hatchery="openModal('hatchery')"
+            @open-breeding="openModal('breeding')"
+            @open-shop="openModal('shop')"
+            @open-quests="openModal('quest')"
+            @open-settings="openModal('settings')"
+          />
+        </div>
       </footer>
     </div>
 
@@ -90,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useGameStore } from './stores/gameStore';
 import { gameBridge } from './game/bridge/GameBridge';
 import { soundService } from './services/SoundService';
@@ -98,6 +148,7 @@ import { getMaxFlockCapacity } from './services/ProgressionService';
 import IslandCanvas from './components/canvas/IslandCanvas.vue';
 import TopBar from './components/hud/TopBar.vue';
 import ShelfRack from './components/dock/ShelfRack.vue';
+import NeighborStrip from './components/dock/NeighborStrip.vue';
 import InventoryModal from './components/modals/InventoryModal.vue';
 import CollectionModal from './components/modals/CollectionModal.vue';
 import HatcheryModal from './components/modals/HatcheryModal.vue';
@@ -117,6 +168,8 @@ const inspectedPenguinId = ref<string | null>(null);
 const activePlotId = ref<number>(1);
 const levelUpNewLevel = ref<number>(2);
 const canvasReady = ref(false);
+
+const maxFlockCap = computed(() => getMaxFlockCapacity(gameStore.player.level));
 
 function openModal(modalName: string) {
   soundService.playPop();
@@ -327,39 +380,149 @@ body,
   right: 0;
   bottom: 0;
   pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+/* Left Sidebar (Flock counter + shortcuts) */
+.left-sidebar {
+  position: absolute;
+  top: 50px;
+  left: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 12px 16px 14px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
-  z-index: 10;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 12;
+}
+
+.flock-signpost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 2.5px solid #B45309;
+  border-radius: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.flock-signpost:hover {
+  transform: scale(1.05);
+  filter: brightness(1.05);
+}
+
+.flock-signpost__icon-box {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.flock-signpost__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.flock-signpost__title {
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: #92400E;
+  letter-spacing: 0.05em;
+}
+
+.flock-signpost__val {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #451A03;
+  line-height: 1;
+}
+
+.side-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+  border: 2px solid #64748B;
+  border-radius: 10px;
+  padding: 4px 7px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.side-shortcut:hover {
+  transform: scale(1.06);
+  border-color: #0284C7;
+}
+
+.side-shortcut__icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.side-shortcut__label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #1E293B;
 }
 
 /* Bottom Dock Area */
 .bottom-dock {
-  margin-top: auto;
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  right: 8px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
   pointer-events: none;
-  max-width: 900px;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+  z-index: 12;
 }
 
-.bottom-dock > * {
+.bottom-dock__content {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.bottom-dock__neighbors {
+  flex: 1;
+  max-width: calc(100% - 290px);
+  pointer-events: auto;
+}
+
+.bottom-dock__shelf {
+  flex-shrink: 0;
+  margin-left: auto;
   pointer-events: auto;
 }
 
 @media (max-width: 640px) {
-  .ui-overlay {
-    padding: 8px 10px 10px;
+  .left-sidebar {
+    top: 48px;
+    left: 6px;
+    gap: 6px;
+  }
+
+  .side-shortcut__label {
+    display: none;
   }
 
   .bottom-dock {
-    gap: 6px;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+  }
+
+  .bottom-dock__neighbors {
+    display: none;
+  }
+
+  .bottom-dock__shelf {
+    margin: 0 auto;
   }
 }
 </style>

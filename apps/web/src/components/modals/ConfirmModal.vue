@@ -108,17 +108,18 @@ const emit = defineEmits<{
 .confirm-card {
   width: 100%;
   max-width: 420px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%);
-  border: 3px solid #BAE6FD;
-  border-radius: 24px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
-  padding: 24px;
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 14px;
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .confirm-card__header {
@@ -128,11 +129,12 @@ const emit = defineEmits<{
 }
 
 .confirm-card__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: #E0F2FE;
-  color: #0284C7;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1.5px solid #F59E0B;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,73 +144,79 @@ const emit = defineEmits<{
 .confirm-card__icon--danger {
   background: #FEE2E2;
   color: #DC2626;
+  border-color: #F87171;
 }
 
 .svg-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .confirm-card__title {
+  font-family: 'Quicksand', 'Nunito', sans-serif;
   font-size: 1.15rem;
-  font-weight: 800;
-  color: #0F172A;
+  font-weight: 900;
+  color: #451A03;
   margin: 0;
 }
 
 .confirm-card__message {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.5;
-  color: #475569;
+  color: #78350F;
   margin: 0;
+  font-weight: 700;
 }
 
 .confirm-card__actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .btn-action {
-  padding: 10px 18px;
-  border-radius: 14px;
+  padding: 8px 16px;
+  border-radius: 12px;
   font-family: inherit;
-  font-weight: 700;
-  font-size: 0.92rem;
+  font-weight: 800;
+  font-size: 0.88rem;
   cursor: pointer;
-  border: none;
-  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .btn-action:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
+  transform: scale(1.04);
+  filter: brightness(1.08);
 }
 
 .btn-action:active {
-  transform: translateY(1px);
+  transform: scale(0.96);
 }
 
 .btn-action--cancel {
-  background: #E2E8F0;
-  color: #475569;
+  background: #EFE5D0;
+  border-color: #D5C4A1;
+  color: #78350F;
 }
 
 .btn-action--cancel:hover {
-  background: #CBD5E1;
+  background: #E8D8BD;
 }
 
 .btn-action--primary {
   background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+  border-color: #0369A1;
   color: #FFFFFF;
-  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 3px 6px rgba(2, 132, 199, 0.3);
 }
 
 .btn-action--danger {
-  background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
+  background: linear-gradient(180deg, #F87171 0%, #DC2626 100%);
+  border-color: #991B1B;
   color: #FFFFFF;
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
+  box-shadow: 0 3px 6px rgba(220, 38, 38, 0.3);
 }
 
 @keyframes fadeIn {

@@ -1,6 +1,6 @@
 <template>
   <aside class="neighbor-strip" aria-label="Danh sách Hàng Xóm Mô Phỏng">
-    <!-- Header Badge: explicitly labeled as simulated local NPCs -->
+    <!-- Header Badge with toggle -->
     <div
       class="neighbor-strip__header"
       role="button"
@@ -10,8 +10,10 @@
       @keydown.enter="isExpanded = !isExpanded"
     >
       <div class="neighbor-strip__badge">
-        <GameIcon name="decorate" size="xs" class="neighbor-strip__badge-icon" />
-        <span class="neighbor-strip__badge-text">Hàng Xóm Đảo Băng <small class="neighbor-strip__badge-sub">(NPC Mô Phỏng)</small></span>
+        <GameIcon name="pet" size="xs" class="neighbor-strip__badge-icon" />
+        <span class="neighbor-strip__badge-text">
+          Hàng Xóm Đảo Băng <span class="neighbor-strip__badge-sub">(NPC Mô Phỏng)</span>
+        </span>
       </div>
       <button
         type="button"
@@ -20,17 +22,23 @@
         :title="isExpanded ? 'Thu gọn' : 'Mở rộng'"
         @click.stop="isExpanded = !isExpanded"
       >
-        <GameIcon
-          name="chevron_right"
-          size="xs"
-          class="neighbor-strip__toggle-chevron"
+        <svg
+          class="neighbor-strip__toggle-icon"
           :class="{ 'is-flipped': isExpanded }"
-        />
+          viewBox="0 0 16 16"
+          width="12"
+          height="12"
+        >
+          <path d="M4 6 L8 10 L12 6" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
       </button>
     </div>
 
-    <!-- Horizontal Neighbor Cards Container -->
-    <div v-show="isExpanded" class="neighbor-strip__carousel" role="list">
+    <!-- Horizontal Neighbor Cards Container (Icy Tray) -->
+    <div v-show="isExpanded" class="neighbor-strip__tray" role="list">
+      <!-- Frost edge cap -->
+      <div class="neighbor-strip__frost-rim" aria-hidden="true"></div>
+
       <div
         v-for="neighbor in neighbors"
         :key="neighbor.id"
@@ -38,10 +46,13 @@
         role="listitem"
         :title="`${neighbor.name} (${neighbor.role}) - ${neighbor.status}`"
       >
-        <!-- Avatar Frame -->
+        <!-- Avatar Frame with overlapping Level Star -->
         <div class="neighbor-card__avatar-box" :style="{ background: neighbor.avatarBg }">
           <GameIcon :name="neighbor.avatarIcon" size="sm" class="neighbor-card__avatar-icon" />
-          <span class="neighbor-card__level">Lv.{{ neighbor.level }}</span>
+          <div class="neighbor-card__level-badge">
+            <span class="neighbor-card__level-star">★</span>
+            <span class="neighbor-card__level-num">{{ neighbor.level }}</span>
+          </div>
         </div>
 
         <!-- Meta -->
@@ -50,7 +61,7 @@
           <span class="neighbor-card__status">{{ neighbor.status }}</span>
         </div>
 
-        <!-- Action Button -->
+        <!-- Wave / Greeting Action Button -->
         <button
           type="button"
           class="neighbor-card__action-btn"
@@ -58,16 +69,22 @@
           :title="`Vẫy tay chào ${neighbor.name}`"
           @click="handleWave(neighbor)"
         >
-          <GameIcon name="pet" size="xs" class="neighbor-card__action-icon" />
+          <span class="neighbor-card__action-icon">👋</span>
           <span class="neighbor-card__action-text">Chào</span>
         </button>
+      </div>
+
+      <!-- Add Friend NPC slot (Decorative social feature) -->
+      <div class="neighbor-card neighbor-card--add" title="Thêm hàng xóm mới">
+        <div class="neighbor-card__add-icon">+</div>
+        <span class="neighbor-card__add-label">Kết Bạn</span>
       </div>
     </div>
 
     <!-- Friendly interaction feedback toast -->
     <transition name="toast-fade">
       <div v-if="toastMessage" class="neighbor-strip__toast" role="status">
-        <span>{{ toastMessage }}</span>
+        <span class="neighbor-strip__toast-bubble">{{ toastMessage }}</span>
       </div>
     </transition>
   </aside>
@@ -88,7 +105,7 @@ export interface SimulatedNeighbor {
   response: string;
 }
 
-const isExpanded = ref(false);
+const isExpanded = ref(true);
 const toastMessage = ref('');
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -98,7 +115,7 @@ const neighbors: SimulatedNeighbor[] = [
     name: 'Bác Gấu Tuyết',
     role: 'Ngư Dân Đảo Băng',
     level: 12,
-    status: 'Đang câu cá hồi tuyết',
+    status: 'Đang câu cá',
     avatarIcon: 'fish',
     avatarBg: 'linear-gradient(135deg, #BAE6FD 0%, #38BDF8 100%)',
     response: 'Bác Gấu Tuyết mỉm cười gật đầu và ném cho bạn một con cá tươi!',
@@ -108,7 +125,7 @@ const neighbors: SimulatedNeighbor[] = [
     name: 'Cánh Cụt Bé Nhỏ',
     role: 'Hàng Xóm Vui Vẻ',
     level: 4,
-    status: 'Đang trượt băng nghệ thuật',
+    status: 'Đang trượt băng',
     avatarIcon: 'crown',
     avatarBg: 'linear-gradient(135deg, #DDD6FE 0%, #8B5CF6 100%)',
     response: 'Cánh Cụt Bé Nhỏ trượt một vòng số 8 tuyệt đẹp chào bạn!',
@@ -118,7 +135,7 @@ const neighbors: SimulatedNeighbor[] = [
     name: 'Đội Thám Hiểm Băng',
     role: 'Nhà Khám Phá Nam Cực',
     level: 8,
-    status: 'Đang khảo sát hang băng',
+    status: 'Đang khảo sát',
     avatarIcon: 'target',
     avatarBg: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
     response: 'Đội Thám Hiểm giơ kính viễn vọng chào bạn từ xa!',
@@ -128,7 +145,7 @@ const neighbors: SimulatedNeighbor[] = [
     name: 'Thợ May Khăn Ấm',
     role: 'Nghệ Nhân Đan Len',
     level: 6,
-    status: 'Đang đan mũ len đỏ',
+    status: 'Đang đan mũ',
     avatarIcon: 'gift',
     avatarBg: 'linear-gradient(135deg, #FECDD3 0%, #F43F5E 100%)',
     response: 'Thợ May vẫy cuộn len ấm áp chúc bạn một ngày vui vẻ!',
@@ -159,166 +176,157 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   pointer-events: auto;
   user-select: none;
   max-width: 100%;
 }
 
-/* Header Badge */
+/* Header Badge: Zing Me style wooden/icy tab */
 .neighbor-strip__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 4px;
   cursor: pointer;
-  transition: transform 0.15s ease;
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+  border: 2px solid #BAE6FD;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 3px 10px;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
+  transition: filter 0.15s ease;
 }
 
 .neighbor-strip__header:hover {
-  transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 
 .neighbor-strip__badge {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  padding: 3px 12px;
-  border-radius: 9999px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.neighbor-strip__header:hover .neighbor-strip__badge {
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(255, 255, 255, 0.7);
+  gap: 5px;
 }
 
 .neighbor-strip__badge-icon {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .neighbor-strip__badge-text {
   font-family: 'Quicksand', 'Nunito', sans-serif;
   font-weight: 800;
-  font-size: 0.78rem;
-  color: #F8FAFC;
+  font-size: 0.74rem;
+  color: #FFFFFF;
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .neighbor-strip__badge-sub {
-  color: #93C5FD;
+  color: #FEF08A;
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
 }
 
 .neighbor-strip__toggle {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  color: #FFFFFF;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  transition: all 0.2s ease;
 }
 
-.neighbor-strip__toggle:hover {
-  background: rgba(255, 255, 255, 0.6);
-  color: #0F172A;
-}
-
-.neighbor-strip__toggle-chevron {
-  font-size: 0.6rem;
+.neighbor-strip__toggle-icon {
   transition: transform 0.2s ease;
 }
 
-.neighbor-strip__toggle-chevron.is-flipped {
+.neighbor-strip__toggle-icon.is-flipped {
   transform: rotate(180deg);
 }
 
-/* Horizontal Carousel */
-.neighbor-strip__carousel {
+/* Horizontal Neighbor Tray: Cartoon Icy Shelf */
+.neighbor-strip__tray {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  border-radius: 18px;
+  gap: 6px;
+  padding: 6px 10px 6px;
+  background: linear-gradient(180deg, #E0F2FE 0%, #BAE6FD 100%);
+  border: 2.5px solid #38BDF8;
+  border-top-color: #FFFFFF;
+  border-radius: 0 16px 16px 16px;
   box-shadow:
-    0 4px 16px rgba(15, 23, 42, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.8);
-  max-width: 95vw;
+    0 4px 12px rgba(15, 23, 42, 0.25),
+    inset 0 1px 3px rgba(255, 255, 255, 0.9);
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: thin;
 }
 
-.neighbor-strip__carousel::-webkit-scrollbar {
+.neighbor-strip__tray::-webkit-scrollbar {
   height: 4px;
 }
 
-.neighbor-strip__carousel::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.5);
+.neighbor-strip__tray::-webkit-scrollbar-thumb {
+  background: #38BDF8;
   border-radius: 4px;
 }
 
-/* Neighbor Card */
+/* Neighbor Card: Cartoon portrait tile */
 .neighbor-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  padding: 4px 8px 4px 4px;
-  border-radius: 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  gap: 6px;
+  background: #FFFFFF;
+  border: 2px solid #BAE6FD;
+  padding: 3px 6px 3px 3px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
 .neighbor-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  border-color: #0284C7;
 }
 
 .neighbor-card__avatar-box {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.neighbor-card__emoji {
-  font-size: 1.25rem;
-}
-
-.neighbor-card__level {
+.neighbor-card__level-badge {
   position: absolute;
-  bottom: -3px;
-  right: -3px;
-  background: #0284C7;
+  bottom: -4px;
+  right: -4px;
+  background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF;
+  border: 1.5px solid #FFFFFF;
   font-family: 'Quicksand', sans-serif;
   font-weight: 800;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   padding: 0 4px;
-  border-radius: 6px;
-  border: 1px solid #FFFFFF;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.neighbor-card__level-star {
+  color: #FEF08A;
+  font-size: 0.55rem;
 }
 
 .neighbor-card__info {
@@ -329,36 +337,37 @@ onUnmounted(() => {
 .neighbor-card__name {
   font-family: 'Quicksand', sans-serif;
   font-weight: 800;
-  font-size: 0.78rem;
-  color: #1E293B;
+  font-size: 0.72rem;
+  color: #0F172A;
   white-space: nowrap;
 }
 
 .neighbor-card__status {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: #64748B;
   white-space: nowrap;
 }
 
+/* Action button: bright cartoon blue capsule */
 .neighbor-card__action-btn {
   display: flex;
   align-items: center;
-  gap: 3px;
-  background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%);
+  gap: 2px;
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
   color: #FFFFFF;
-  border: 1px solid #7DD3FC;
-  padding: 4px 8px;
+  border: 1.5px solid #7DD3FC;
+  padding: 3px 6px;
   border-radius: 8px;
   cursor: pointer;
   font-family: 'Quicksand', sans-serif;
-  font-weight: 700;
-  font-size: 0.7rem;
-  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
+  font-weight: 800;
+  font-size: 0.65rem;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .neighbor-card__action-btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.06);
   filter: brightness(1.1);
 }
 
@@ -367,34 +376,79 @@ onUnmounted(() => {
 }
 
 .neighbor-card__action-icon {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
+}
+
+/* Add Friend decorative card */
+.neighbor-card--add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px dashed #38BDF8;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.neighbor-card--add:hover {
+  background: #FFFFFF;
+  border-color: #0284C7;
+  transform: translateY(-2px);
+}
+
+.neighbor-card__add-icon {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #0284C7;
+  line-height: 1;
+}
+
+.neighbor-card__add-label {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 0.58rem;
+  color: #0284C7;
 }
 
 /* Toast Message */
 .neighbor-strip__toast {
   position: absolute;
-  top: -42px;
-  background: rgba(15, 23, 42, 0.9);
-  color: #FEF08A;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-family: 'Quicksand', sans-serif;
-  font-weight: 700;
-  font-size: 0.8rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  top: -38px;
+  left: 20px;
+  z-index: 20;
   pointer-events: none;
+}
+
+.neighbor-strip__toast-bubble {
+  background: #FFFFFF;
+  color: #0F172A;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 0.74rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
-  border: 1px solid rgba(254, 240, 138, 0.3);
+  border: 2px solid #0284C7;
 }
 
 .toast-fade-enter-active,
 .toast-fade-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(4px);
+}
+
+@media (max-width: 640px) {
+  .neighbor-strip {
+    display: none; /* Hide friend strip on very narrow mobile to prioritize world & shelf */
+  }
 }
 </style>

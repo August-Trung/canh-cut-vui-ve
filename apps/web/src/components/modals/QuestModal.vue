@@ -40,7 +40,7 @@
           @mouseup.stop
           @click.stop="emit('close')"
         >
-          <GameIcon name="close" size="sm" />
+          <span class="close-x">✕</span>
         </button>
       </div>
 
@@ -272,22 +272,27 @@ function claimQuest(questId: string) {
 }
 
 .quest-dialog {
-  background: #ffffff;
-  border-radius: 24px;
+  background: #FBF6EB;
+  border: 4px solid #6B3E1B;
+  border-radius: 20px;
   width: 100%;
   max-width: 760px;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: slideUp 0.25s ease-out;
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px #FFF9E6,
+    inset 0 -3px 6px rgba(107, 62, 27, 0.2);
+  animation: slideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
 }
 
 .quest-header {
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #fef3c7 0%, #e0f2fe 100%);
-  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #F5E6CA 0%, #E8D2AC 100%);
+  border-bottom: 3px solid #6B3E1B;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -296,44 +301,55 @@ function claimQuest(questId: string) {
 .quest-header__title-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .quest-header__icon {
-  font-size: 2.2rem;
+  font-size: 1.8rem;
 }
 
 .quest-header__title {
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #0f172a;
+  font-family: 'Quicksand', 'Nunito', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #451A03;
+  letter-spacing: 0.02em;
 }
 
 .quest-header__sub {
-  margin: 2px 0 0 0;
-  font-size: 0.85rem;
-  color: #64748b;
+  margin: 1px 0 0 0;
+  font-size: 0.76rem;
+  color: #78350F;
+  font-weight: 700;
 }
 
 .modal-close-btn {
-  background: rgba(255, 255, 255, 0.8);
-  border: none;
-  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 2px solid #451A03;
+  border-top-color: #FDE68A;
+  background: linear-gradient(180deg, #A16207 0%, #78350F 100%);
+  color: #FFFFFF;
+  font-weight: 900;
+  font-size: 1rem;
   cursor: pointer;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .modal-close-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  transform: scale(1.08);
+  filter: brightness(1.15);
+}
+
+.close-x {
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .quest-body {
