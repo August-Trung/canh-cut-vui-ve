@@ -10,7 +10,6 @@ describe('ShelfRack Component', () => {
     expect(wrapper.text()).toContain('Bộ Sưu Tập');
     expect(wrapper.text()).toContain('Ấp Trứng');
     expect(wrapper.text()).toContain('Phối Giống');
-    expect(wrapper.text()).toContain('Câu Cá');
     expect(wrapper.text()).toContain('Cửa Hàng');
     expect(wrapper.text()).toContain('Nhiệm Vụ');
     expect(wrapper.text()).toContain('Cài Đặt');
@@ -54,16 +53,6 @@ describe('ShelfRack Component', () => {
     await btn.trigger('click');
     expect(wrapper.emitted('open-breeding')).toBeTruthy();
     expect(wrapper.emitted('open-breeding')?.length).toBe(1);
-  });
-
-  it('emits open-catch-fish when Câu Cá is clicked', async () => {
-    const wrapper = mount(ShelfRack);
-    const btn = wrapper.find('[data-testid="btn-catch-fish"]');
-    expect(btn.exists()).toBe(true);
-
-    await btn.trigger('click');
-    expect(wrapper.emitted('open-catch-fish')).toBeTruthy();
-    expect(wrapper.emitted('open-catch-fish')?.length).toBe(1);
   });
 
   it('emits open-shop when Cửa Hàng is clicked', async () => {

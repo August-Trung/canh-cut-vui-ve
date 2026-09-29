@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { SnowIslandScene } from './scenes/SnowIslandScene';
-import { CatchFishScene } from './scenes/CatchFishScene';
 
 /**
  * Returns a responsive, production-ready Phaser 3/4 GameConfig.
@@ -44,6 +43,6 @@ export function getPhaserConfig(containerId: string): Phaser.Types.Core.GameConf
     input: {
       activePointers: 2,
     },
-    scene: [BootScene, SnowIslandScene, CatchFishScene],
+    scene: [BootScene, SnowIslandScene],
   };
 }

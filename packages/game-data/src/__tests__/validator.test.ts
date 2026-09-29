@@ -241,19 +241,6 @@ describe('Game Data & Drop Table Validation', () => {
       expect(GENETICS_MUTATION_POOLS.sameSpeciesMutationPool.snowy).toBeDefined();
       expect(GENETICS_MUTATION_POOLS.crossSpeciesMutationPool.default).toBeDefined();
     });
-
-    it('should export MINIGAME_CATCH_FISH_CONFIG and FISH_TARGET_TABLE', async () => {
-      const { MINIGAME_CATCH_FISH_CONFIG, FISH_TARGET_TABLE } = await import('../index');
-      expect(MINIGAME_CATCH_FISH_CONFIG.durationSeconds).toBe(30);
-      expect(MINIGAME_CATCH_FISH_CONFIG.dailyFreePlays).toBe(3);
-      expect(MINIGAME_CATCH_FISH_CONFIG.maxExtraPlaysPerDay).toBe(3);
-      expect(MINIGAME_CATCH_FISH_CONFIG.extraPlayCostCoins).toBe(50);
-      expect(FISH_TARGET_TABLE.length).toBeGreaterThanOrEqual(5);
-      const sardine = FISH_TARGET_TABLE.find((f) => f.id === 'sardine');
-      expect(sardine?.points).toBe(10);
-      const boot = FISH_TARGET_TABLE.find((f) => f.id === 'old_boot');
-      expect(boot?.isObstacle).toBe(true);
-    });
   });
 });
 

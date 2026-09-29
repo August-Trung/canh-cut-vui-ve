@@ -1,4 +1,4 @@
-import { OwnedPenguin, IncubatorSlot, PlacedDecoration, MiniGameResult } from '@penguin/types';
+import { OwnedPenguin, IncubatorSlot, PlacedDecoration } from '@penguin/types';
 
 export type GameBridgeEventMap = {
   'penguin:clicked': { ownedId: string };
@@ -23,14 +23,6 @@ export type GameBridgeEventMap = {
   'action:shop_purchase': { itemId: string; category: string; quantity: number };
   'action:decorate': { plotId: number; decorationId: string };
   'action:breed': { parentAId: string; parentBId: string; eggItemId: string };
-  'action:minigame_complete': { gameId: string; score: number; tier: string };
-
-  // Mini-game lifecycle events
-  'minigame:start': { gameId: string; sessionId: string; companionPenguinId?: string };
-  'minigame:quit': void;
-  'minigame:score_update': { score: number; combo: number; maxCombo: number };
-  'minigame:time_update': { remainingSeconds: number };
-  'minigame:ended': { result: MiniGameResult };
 };
 
 export type GameBridgeHandler<K extends keyof GameBridgeEventMap> = (

@@ -1,5 +1,13 @@
 import { BreedingConfig } from '@penguin/types';
 
+/**
+ * BREEDING_CONFIG
+ *
+ * NOTE: [PLANNED FEATURE / PROVISIONAL BALANCE]
+ * Cơ chế phối giống chim cánh cụt nằm trong định hướng phát triển bản gốc Zing Me (Mục 31).
+ * Các con số dưới đây (Level tối thiểu 3, 200 xu, 1 gem, 30m cooldown) là thông số cân bằng tạm thời
+ * [PROVISIONAL / NEW DESIGN] làm nền tảng kiểm thử, có thể điều chỉnh trong các Phase cân bằng sau.
+ */
 export const BREEDING_CONFIG: BreedingConfig = {
   minParentLevel: 3,
   costCoins: 200,

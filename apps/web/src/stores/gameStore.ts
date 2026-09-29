@@ -12,8 +12,6 @@ import type {
   PlacedDecoration,
   BreedingSlot,
   MiniGameState,
-  MiniGameResult,
-  MiniGameReward,
 } from '@penguin/types';
 import { EGG_TYPES_MAP, SPECIES_MAP } from '@penguin/game-data';
 import { gameStorage, createDefaultSaveDataV2, migrateSaveData } from '../services/StorageService';
@@ -32,11 +30,6 @@ import {
 } from '../services/NeedsService';
 import { calculateCozyRating, getCoinDropMultiplier } from '../services/DecorationService';
 import { hatchService } from '../services/HatchService';
-import {
-  canPlayMiniGame,
-  validateMiniGameSessionResult,
-  calculateCatchFishReward,
-} from '../services/MiniGameRewardService';
 import { gameBridge } from '../game/bridge/GameBridge';
 import { useInventoryStore } from './inventoryStore';
 import { useCollectionStore } from './collectionStore';
@@ -633,91 +626,6 @@ export const useGameStore = defineStore('game', {
       });
       this.currencies.fish = invStore.getItemCount('sardine');
       this.persistSave().catch((err) => console.error('Save failed:', err));
-    },
-
-    startMiniGameSession(gameId: string): { success: boolean; sessionId?: string; isFree?: boolean; reason?: string } {
-      const today = new Date().toISOString().split('T')[0];
-      if (this.miniGameState.lastPlayedDate !== today) {
-        this.miniGameState.lastPlayedDate = today;
-        this.miniGameState.dailyPlaysCount = {};
-      }
-
-      const currentCount = this.miniGameState.dailyPlaysCount[gameId] ?? 0;
-      const eligibility = canPlayMiniGame(gameId, currentCount, this.currencies.coins);
-
-      if (!eligibility.canPlay) {
-        return { success: false, reason: eligibility.reason };
-      }
-
-      if (!eligibility.isFree && eligibility.cost > 0) {
-        this.currencies.coins -= eligibility.cost;
-      }
-
-      this.miniGameState.dailyPlaysCount[gameId] = currentCount + 1;
-      const sessionId = `mg_${gameId}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-      this.persistSave().catch((err) => console.error('Save failed:', err));
-      return { success: true, sessionId, isFree: eligibility.isFree };
-    },
-
-    claimMiniGameReward(result: MiniGameResult): { success: boolean; reward?: MiniGameReward; reason?: string } {
-      const validation = validateMiniGameSessionResult(result, 30);
-      if (!validation.valid) {
-        return { success: false, reason: validation.reason };
-      }
-
-      const companion = result.companionPenguinId
-        ? this.ownedPenguins.find((p) => p.id === result.companionPenguinId)
-        : undefined;
-
-      const reward = calculateCatchFishReward(
-        result.score,
-        companion?.level ?? 1,
-        companion?.traits ?? []
-      );
-
-      // 1. Grant coins
-      if (reward.coins > 0) {
-        this.currencies.coins += reward.coins;
-        gameBridge.emit('effect:coin_drop', { x: 0, y: 0, amount: reward.coins });
-      }
-
-      // 2. Grant player EXP
-      if (reward.playerExp > 0) {
-        this.addPlayerExp(reward.playerExp);
-      }
-
-      // 3. Grant items (fish caught added to inventory)
-      const invStore = useInventoryStore();
-      for (const item of reward.items) {
-        invStore.addItem({
-          itemId: item.itemId,
-          category: 'food',
-          name: item.itemId,
-          description: '',
-          quantity: item.quantity,
-          stackable: true,
-        });
-      }
-
-      // 4. Grant companion penguin EXP and update bonding stats
-      if (companion) {
-        this.addPenguinExp(companion.id, reward.penguinExp);
-        if (companion.stats) {
-          companion.stats.gamesPlayed = (companion.stats.gamesPlayed ?? 0) + 1;
-          companion.stats.fishCaught = (companion.stats.fishCaught ?? 0) + result.catchesCount;
-        }
-      }
-
-      // 5. Emit bridge action event
-      gameBridge.emit('action:minigame_complete', {
-        gameId: result.gameId,
-        score: result.score,
-        tier: reward.tier,
-      });
-
-      this.persistSave().catch((err) => console.error('Save failed:', err));
-      return { success: true, reward };
     },
 
     async resetSave(): Promise<void> {

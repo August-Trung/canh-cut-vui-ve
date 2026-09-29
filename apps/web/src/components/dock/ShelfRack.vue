@@ -79,22 +79,7 @@
         <span class="shelf-btn__label">Phối Giống</span>
       </button>
 
-      <!-- 5. Câu Cá (Catch Fish Mini-game) -->
-      <button
-        type="button"
-        class="shelf-btn shelf-btn--minigame"
-        data-testid="btn-catch-fish"
-        title="Câu Cá"
-        aria-label="Câu Cá"
-        @click="emit('open-catch-fish')"
-      >
-        <div class="shelf-btn__icon-plate">
-          <GameIcon name="fish" size="md" alt="Câu Cá" />
-        </div>
-        <span class="shelf-btn__label">Câu Cá</span>
-      </button>
-
-      <!-- 6. Cửa Hàng (Shop) -->
+      <!-- 5. Cửa Hàng (Shop) -->
       <button
         type="button"
         class="shelf-btn shelf-btn--shop"
@@ -150,7 +135,6 @@ const emit = defineEmits<{
   (e: 'open-collection'): void;
   (e: 'open-hatchery'): void;
   (e: 'open-breeding'): void;
-  (e: 'open-catch-fish'): void;
   (e: 'open-shop'): void;
   (e: 'open-quests'): void;
   (e: 'open-settings'): void;
